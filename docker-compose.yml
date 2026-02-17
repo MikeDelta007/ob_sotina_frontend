@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  # --- Backend Spring Boot ---
+  spring-app:
+    build:
+      context: ./ob_enrolment_backend
+      dockerfile: Dockerfile
+    container_name: spring-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_JSON: > 
+        { 
+          "spring.data.mongodb.uri": "mongodb://admin:root@host.docker.internal:27017/office_du_bac?authSource=admin",
+          "FICHIER_UPLOAD_DIR": "/app/uploads"
+        }
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - app_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # --- Frontend Next.js ---
+  nextjs-app:
+    build:
+      context: ./ob_enrolment_frontend
+      dockerfile: Dockerfile
+    container_name: nextjs-app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - spring-app
+    networks:
+      - app_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  uploads_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge

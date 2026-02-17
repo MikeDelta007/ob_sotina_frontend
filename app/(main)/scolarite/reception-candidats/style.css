@@ -1,0 +1,38 @@
+/* ===== INDICATORS (petits ronds) ===== */
+
+/* Style par défaut des indicateurs */
+.p-carousel .p-carousel-indicators .p-carousel-indicator button {
+  background-color: #d1d5db; /* gris clair */
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+/* Indicateur actif */
+.p-carousel .p-carousel-indicators .p-carousel-indicator.p-highlight button {
+  background-color: #000dff; /* bleu */
+  transform: scale(1.2);
+}
+
+/* ===== FLECHES PREV / NEXT ===== */
+.p-carousel .p-carousel-prev,
+.p-carousel .p-carousel-next {
+  background: #000dff;   /* bleu */
+  color: #ffffff;        /* icône blanche */
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+  border: none;
+}
+
+/* Hover sur les flèches */
+.p-carousel .p-carousel-prev:hover,
+.p-carousel .p-carousel-next:hover {
+  background: #000dff; /* bleu foncé */
+}

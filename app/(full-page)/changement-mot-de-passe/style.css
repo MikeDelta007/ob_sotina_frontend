@@ -1,0 +1,10 @@
+/* Aligner l'icône de toggleMask (œil) à droite */
+
+/* Réduire la taille et l'espace des labels de force */
+.p-password .p-password-meter .p-password-info {
+    font-size: 0.75rem;   /* réduit la taille du texte */
+    margin-top: 0.2rem;   /* réduit l'espace vertical */
+    line-height: 1rem;    /* compacte la hauteur */
+    padding: 0.2rem 0;    /* réduit le padding interne */
+}
+

@@ -1,0 +1,7 @@
+/* Aligner l'icône de toggleMask (œil) à droite */
+.p-password .p-password-toggle {
+    right: 100px; /* Ajuste cette valeur pour modifier l'espace */
+    position: absolute;
+    top: 105px;
+    transform: translateY(-50%);
+}

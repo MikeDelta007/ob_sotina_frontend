@@ -1,0 +1,10 @@
+/* supprime la bordure native */
+.custom-fieldset {
+    border: 1px solid #2196f3; /* bleu-200 */
+    border-radius: 0.375rem; /* border-round-md */
+    /* padding: 0.5rem 0.75rem; */
+}
+.custom-fieldset legend {
+    color: #2196f3; /* text-primary */
+    font-weight: bold;
+}
