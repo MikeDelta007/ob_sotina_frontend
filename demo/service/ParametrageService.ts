@@ -233,19 +233,29 @@ export const ParametrageService = {
     });
   },
 
-  getCandidats() {
-    // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
-    return axiosInstance.get('/import-data/candidats-by-aca')
-    .then(response => {
-        console.log('Données reçues:', response.data);
-        return response.data; // <-- ici, on retourne les données
-    })
-    .catch(error => {
-        console.error('Erreur Axios:', error);
-        console.error('Code HTTP:', error.response?.status);
-        console.error('Message:', error.response?.data);
-        return []; // on peut retourner un tableau vide pour éviter un crash
-    });
+  getCandidats(page: number, size: number) {
+      return axiosInstance
+          .get(`/import-data/candidats-by-aca/${page}/${size}`)
+          .then(response => {
+              console.log('Données reçues:', response.data);
+
+              // ✅ On récupère les candidats groupés et les informations de pagination
+              return {
+                  data: response.data.content || {},      // grouped Map<string, SourceCandidat[]>
+                  total: response.data.totalElements || 0,
+                  totalPages: response.data.totalPages || 0,
+                  size: response.data.size || size,
+                  page: response.data.page || page
+              };
+          })
+          .catch(error => {
+              console.error('Erreur Axios:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message:', error.response?.data);
+
+              // ✅ fallback pour éviter crash
+              return { data: {}, total: 0, totalPages: 0, size, page };
+          });
   },
 
   getDataRepCP() {

@@ -91,6 +91,8 @@ const CalendarDemo = () => {
 
     const [errorMessage, setErrorMessage] = useState('');
 
+    const [totalRecords, setTotalRecords] = useState(0);
+
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
         { label: 'AGENT DE SAISIE', value: 'AGENT_DE_SAISIE' },
@@ -103,6 +105,8 @@ const CalendarDemo = () => {
         { label: 'RECEPTIONNISTE', value: 'RECEPTIONNISTE' }
         //{ label: 'STATISTIQUES', value: 'STATISTIQUES' }
     ];
+
+    const [lazyParams, setLazyParams] = useState({first:0, rows:10, page:0});
 
     useEffect(() => {
         ProductService.getProducts().then((data) => setProducts(data));
@@ -378,36 +382,47 @@ const CalendarDemo = () => {
     };
 
     const loadData = async () => {
-        setLoading(true);
-        setError(null);
-        try 
-        {
-            const data = await ParametrageService.getCandidats();
-            if (data && typeof data === 'object') {
-                const result = Object.entries(data).map(([aca, cdt]) => ({
+    setLoading(true);
+    setError(null);
+
+    try {
+        // 🔹 On passe page/size depuis lazyParams pour limiter la charge
+        const data = await ParametrageService.getCandidats(lazyParams.page, lazyParams.rows);
+
+        if (data && typeof data === 'object') {
+
+            // 🔹 Transformer le Map groupé en tableau pour le rendu des tabs
+            const result = Object.entries(data.data) // data.data contient le Map groupé
+                .map(([aca, cdt]) => ({
                     aca,
-                    cdt
+                    cdt: Array.isArray(cdt) ? cdt : [] // sécurité
                 }));
-                console.log('OHHH :', result);
-                setGroupedUsers(result);
-            }
-            else 
-            {
-                console.warn('Données inattendues :', data);
-                setGroupedUsers([]); // fallback sécurité
-            }
-        } 
-        catch (err) 
-        {
-            console.error('❌ Erreur chargement données :', err);
-            setError('Erreur lors du chargement');
-            setGroupedUsers([]);
-        } 
-        finally 
-        {
-            setLoading(false);
+
+            // 🔹 Nombre total d'enregistrements pour la pagination
+            setTotalRecords(data.total || 0);
+
+            console.log('Données brutes:', data);
+            console.log('Données groupées :', result);
+
+            setGroupedUsers(result);
+
+        } else {
+            console.warn('Données inattendues :', data);
+            setGroupedUsers([]); // fallback sécurité
+            setTotalRecords(0);
         }
-    };
+
+    } catch (err) {
+        console.error('❌ Erreur chargement données :', err);
+        setError('Erreur lors du chargement');
+        setGroupedUsers([]);
+        setTotalRecords(0);
+    } finally {
+        setLoading(false);
+    }
+};
+
+
 
     const findIndexById = (id) => {
         let index = -1;
@@ -1024,41 +1039,54 @@ const CalendarDemo = () => {
                         <Toast ref={toast} />
                         <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
-                            {groupedUsers && Object.keys(groupedUsers).length > 0 && (
-                                <TabView>
-                                    {groupedUsers.map(({ aca, cdt }) => (
-                                        <TabPanel key={aca} header={aca}>
-                                            <DataTable
-                                                ref={dt}
-                                                stripedRows
-                                                showGridlines
-                                                value={Array.isArray(cdt) ? cdt : []}
-                                                paginator
-                                                rows={10}
-                                                rowsPerPageOptions={[5, 10, 25]}
-                                                className="p-datatable-sm"
-                                                currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
-                                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                                globalFilter={globalFilter}
-                                                emptyMessage="Aucune donnée n'a été trouvée"
-                                                header={header}
-                                                >
-                                                <Column field="numTable" header="N° de table" body={numTableTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="jury" header="Jury" body={juryTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="centreExamen" header="Centre Examen" body={cexTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
-                                                <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="serie" header="Série" body={serieTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="firstname" header="Prénom (s)" body={firstnameTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="lastname" header="NOM" body={lastnameTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
-                                                <Column field="gender" header="Sexe" body={genderTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="date_birth" header="Date de naiss." body={dateTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="place_birth" header="Lieu de naiss." body={placeBirthTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
+                            {groupedUsers && groupedUsers.length > 0 && (
+                            <TabView>
+                                {groupedUsers.map(({ aca, cdt }) => (
+                                    <TabPanel key={aca} header={aca}>
+                                        <DataTable
+                                            ref={dt}
+                                            stripedRows
+                                            showGridlines
+                                            value={Array.isArray(cdt) ? cdt : []}  // sécurité
+                                            paginator
+                                            lazy
+                                            rows={lazyParams.rows}
+                                            first={lazyParams.first}
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            totalRecords={totalRecords}             // nombre total côté backend
+                                            onPage={(e) => {
+                                                // ⚡ Mettre à jour la pagination et relancer le chargement
+                                                setLazyParams({
+                                                    ...lazyParams,
+                                                    first: e.first,
+                                                    rows: e.rows,
+                                                    page: e.page
+                                                });
+                                                loadData(); // ⚡ recharger la page demandée
+                                            }}
+                                            className="p-datatable-sm"
+                                            currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement(s)"
+                                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                            globalFilter={globalFilter}
+                                            emptyMessage="Aucune donnée n'a été trouvée"
+                                            header={header}
+                                        >
+                                            <Column field="numTable" header="N° de table" body={numTableTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                            <Column field="jury" header="Jury" body={juryTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                            <Column field="centreExamen" header="Centre Examen" body={cexTemplate} headerStyle={{ minWidth: '3rem' }} />
+                                            <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                            <Column field="serie" header="Série" body={serieTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                            <Column field="firstname" header="Prénom (s)" body={firstnameTemplate} headerStyle={{ minWidth: '5rem' }} />
+                                            <Column field="lastname" header="NOM" body={lastnameTemplate} headerStyle={{ minWidth: '3rem' }} />
+                                            <Column field="gender" header="Sexe" body={genderTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                            <Column field="date_birth" header="Date de naiss." body={dateTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                            <Column field="place_birth" header="Lieu de naiss." body={placeBirthTemplate} headerStyle={{ minWidth: '2rem' }} />
+                                        </DataTable>
+                                    </TabPanel>
+                                ))}
+                            </TabView>
+                        )}
 
-                                            </DataTable>
-                                       </TabPanel>
-                                    ))}
-                                </TabView>
-                            )}
 
                         <Dialog visible={productDialog} style={{ width: '65%', maxHeight: '95vh' }} header="Panneau de création d'un accés" modal className="p-fluid" onHide={hideDialog}>
                             <form onSubmit={formik.handleSubmit} className="p-0">
