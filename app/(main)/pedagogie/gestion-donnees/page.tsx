@@ -2,7 +2,7 @@
 
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
+import { DataTable, DataTablePageEvent } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Rating } from 'primereact/rating';
@@ -15,7 +15,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Checkbox } from 'primereact/checkbox';
 import { Calendar } from 'primereact/calendar';
 import { Carousel } from 'primereact/carousel';
-import { ActeurDTO, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, UserDTO } from '@/demo/service/ParametrageService';
+import { ActeurDTO, CandidatGrouped, LazyParams, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, UserDTO } from '@/demo/service/ParametrageService';
 import * as Yup from 'yup';
 
 import 'primereact/resources/themes/lara-light-blue/theme.css';
@@ -91,7 +91,13 @@ const CalendarDemo = () => {
 
     const [errorMessage, setErrorMessage] = useState('');
 
+    // State
     const [totalRecords, setTotalRecords] = useState(0);
+
+
+    const [groupedCandidats, setGroupedCandidats] = useState<CandidatGrouped>({});
+
+    const [archives, setArchives] = useState([]);
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -108,13 +114,7 @@ const CalendarDemo = () => {
 
     const [lazyParams, setLazyParams] = useState({first:0, rows:10, page:0});
 
-    useEffect(() => {
-        ProductService.getProducts().then((data) => setProducts(data));
-    }, []);
 
-    useEffect(() => {
-        loadData();
-    }, []);
 
     useEffect(() => {
         ParametrageService.getEtablissements().then((response) => {
@@ -130,19 +130,17 @@ const CalendarDemo = () => {
         });
     }, []);
 
+    useEffect(() => 
+    {
+        loadData();
+    }, [lazyParams.page, lazyParams.rows]);
+
+
     const formatCurrency = (value) => {
         return value.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD'
         });
-    };
-
-    const openNew = () => {
-        setProduct(emptyProduct);
-        setSubmitted(false);
-        setProductDialog(true);
-        setIsUpdate(false);
-        formik.resetForm();
     };
 
     const hideDialog = () => {
@@ -239,25 +237,7 @@ const CalendarDemo = () => {
         return etab.find((e) => e.name === etab) || null;
     };
 
-    const editProduct = (acces) => {
-        if (acces.login === 'ADMIN CENTRAL')
-        {
-            setIsAdmin(true);
-        }
-        setProduct({ ...product });
-        setProductDialog2(true);
-        setIsUpdate(true);
-        const accesFormatted = {
-            ...acces,
-            profil: formatProfil(acces.profil).name,
-            etablissement: formatEtab(acces.acteur.etablissement)
-        };
 
-        console.log(accesFormatted);
-        id_acces.current = acces.id;
-        console.log(id_acces);
-        formik2.setValues(accesFormatted);
-    };
 
     console.log(is_update);
 
@@ -270,32 +250,6 @@ const CalendarDemo = () => {
         return randomLetters + randomDigits;
     };
 
-    const editProduct2 = (acces) => {
-        setDeleteProductDialog(true);
-        const accesFormatted2 = {
-            ...acces,
-            password: generateSimplePassword() // ajoute le mot de passe généré
-        };
-        formik.setValues(accesFormatted2);
-        setEmail(accesFormatted2.email);
-        console.log(email);
-    };
-
-    const editProduct3 = (acces) => {
-        setSupprimerDialog(true);
-        const accesFormatted3 = {...acces};
-        formik.setValues(accesFormatted3);
-        setIdUser(accesFormatted3.id);
-        console.log(id_user);
-    };
-
-    const editProduct4 = (acces) => {
-        setDesactiveAccessDialog(true);
-        const accesFormatted4 = {...acces};
-        formik.setValues(accesFormatted4);
-        setIdUser(accesFormatted4.id);
-        console.log(id_user);
-    };
 
     const confirmDeleteProduct = (product) => {
         setProduct(product);
@@ -343,7 +297,7 @@ const CalendarDemo = () => {
         {
             setSubmitting(false);
         }
-        await loadData();
+        //await loadData();
         setSupprimerDialog(false);
     };
 
@@ -377,51 +331,45 @@ const CalendarDemo = () => {
         {
             setSubmitting(false);
         }
-        await loadData();
+        //await loadData();
         setDesactiveAccessDialog(false);
     };
 
-    const loadData = async () => {
-    setLoading(true);
-    setError(null);
+    const loadData = () => {
+        setLoading(true);
 
-    try {
-        // 🔹 On passe page/size depuis lazyParams pour limiter la charge
-        const data = await ParametrageService.getCandidats(lazyParams.page, lazyParams.rows);
-
-        if (data && typeof data === 'object') {
-
-            // 🔹 Transformer le Map groupé en tableau pour le rendu des tabs
-            const result = Object.entries(data.data) // data.data contient le Map groupé
-                .map(([aca, cdt]) => ({
-                    aca,
-                    cdt: Array.isArray(cdt) ? cdt : [] // sécurité
-                }));
-
-            // 🔹 Nombre total d'enregistrements pour la pagination
-            setTotalRecords(data.total || 0);
-
-            console.log('Données brutes:', data);
-            console.log('Données groupées :', result);
-
-            setGroupedUsers(result);
-
-        } else {
-            console.warn('Données inattendues :', data);
-            setGroupedUsers([]); // fallback sécurité
-            setTotalRecords(0);
+        if (!archives) 
+        {
+            setLoading(false);
+            return;
         }
 
-    } catch (err) {
-        console.error('❌ Erreur chargement données :', err);
-        setError('Erreur lors du chargement');
-        setGroupedUsers([]);
-        setTotalRecords(0);
-    } finally {
-        setLoading(false);
-    }
+        try 
+        {
+            ParametrageService.getAllCandidats(
+            lazyParams.page,
+            lazyParams.rows
+            
+            
+        )
+            .then((result) => {
+                setArchives(result.data);
+                setTotalRecords(result.total);
+            })
+            .catch((error) => {
+                console.error("❌ Erreur chargement archives :", error);
+            });
+        }
+        catch (err)
+        {
+        console.error("❌ Erreur chargement FAEB :", err);
+        setError("Erreur lors du chargement");
+        } 
+        finally 
+        {
+            setLoading(false);
+        }
 };
-
 
 
     const findIndexById = (id) => {
@@ -680,57 +628,7 @@ const CalendarDemo = () => {
         );
     };
 
-    const actionBodyTemplate = (rowData) => {
-        return (
-            <>
-                <div className="flex gap-2">
-                    <Button
-                                icon="pi pi-user-edit"
-                                tooltip="Modifier infos accès"
-                                tooltipOptions={{ position: 'bottom' }}
-                                rounded
-                                severity="warning"
-                                onClick={() => editProduct(rowData)}
-                    />
-
-                    {!(rowData.login === "ADMIN CENTRAL") && (
-                            <Button
-                                    icon="pi pi-history"
-                                    tooltip="Réinitialiser le mot de passe"
-                                    tooltipOptions={{ position: 'bottom' }}
-                                    rounded
-                                    severity="help"
-                                    onClick={() => editProduct2(rowData)}
-                        />
-                    )}
-                    
-                    {!(rowData.login === "ADMIN CENTRAL") && (
-                    <Button
-                                icon="pi pi-trash"
-                                tooltip="Supprimer le compte"
-                                tooltipOptions={{ position: 'bottom' }}
-                                rounded
-                                severity="danger"
-                                onClick={() => editProduct3(rowData)}
-                    />
-                    )}
-
-                    {!(rowData.login === "ADMIN CENTRAL") && (
-                    <Button
-                                icon="pi pi-eject"
-                                tooltip="Activé ou Désactivé le compte"
-                                tooltipOptions={{ position: 'bottom' }}
-                                rounded
-                                severity="danger"
-                                onClick={() => editProduct4(rowData)}
-                    />
-                    )}
-
-                    {/* <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteProduct(rowData)} /> */}
-                </div>
-            </>
-        );
-    };
+   
 
     const statutCompteTemplate = (rowData) => {
     const colorClass = rowData.first_connexion ? "bg-red-500" : "bg-green-500";
@@ -756,239 +654,10 @@ const CalendarDemo = () => {
         </div>
     );
 
-    const productDialogFooter = (
-        <>
-            <Button label="Valider" icon="pi pi-check" text onClick={saveProduct} />
-            <Button label="Fermer" icon="pi pi-times" text onClick={hideDialog} />
-        </>
-    );
-    const deleteProductDialogFooter = (
-        <>
-            <Button label="Oui" icon="pi pi-check" text onClick={() => deleteProduct(formik.values, { setSubmitting: formik.setSubmitting, resetForm: formik.resetForm })} />
-            <Button label="Non" icon="pi pi-times" text onClick={hideDeleteProductDialog} />
-        </>
-    );
-
-    const createBatchDialogFooter = (
-        <>
-            <Button label="OK" icon="pi pi-times" text onClick={hideBatchCreatedDialog} />
-        </>
-    );
-
-    const deleteProductDialogFooter_ = (
-        <>
-            <Button label="Oui" icon="pi pi-check" text onClick={() => deleteUser(formik.values, { setSubmitting: formik.setSubmitting, resetForm: formik.resetForm })} />
-            <Button label="Non" icon="pi pi-times" text onClick={hideDeleteProductDialog_} />
-        </>
-    );
-
-    const deleteProductDialogFooter__ = (
-        <>
-            <Button label="Oui" icon="pi pi-check" text onClick={() => desactiveUser(formik.values, { setSubmitting: formik.setSubmitting, resetForm: formik.resetForm })} />
-            <Button label="Non" icon="pi pi-times" text onClick={hideDeleteProductDialog__} />
-        </>
-    );
-
-    const deleteProductsDialogFooter = (
-        <>
-            <Button label="No" icon="pi pi-times" text onClick={hideDeleteProductsDialog} />
-            <Button label="Yes" icon="pi pi-check" text onClick={deleteSelectedProducts} />
-        </>
-    );
 
     const openNew3 = () => {
         setCodifDialog(true);
     };
-
-    const formik = useFormik({
-        initialValues: {
-            firstname: '',
-            lastname: '',
-            login: '',
-            password: '',
-            conf_password: '',
-            phone: '',
-            email: '',
-            state_account: true,
-            etablissement: null,
-            profil: null,
-            acteur: null
-        },
-
-        validationSchema: Yup.object({
-            login: Yup.string().required('Champ obligatoire'),
-            firstname: Yup.string().required('Champ obligatoire'),
-            lastname: Yup.string().required('Champ obligatoire'),
-            phone: Yup.string()
-                            .required('Le téléphone est obligatoire')
-                            .test('valid-phone', 'Numéro de téléphone invalide', (value) => {
-                                if (!value) return false;
-                                const digitsOnly = value.replace(/\s/g, ''); // supprime les espaces
-                                const allowedPrefixes = ['77', '78', '76', '75', '71', '70'];
-            
-                                // doit faire exactement 9 chiffres et avoir un préfixe valide
-                                return digitsOnly.length === 9 && allowedPrefixes.includes(digitsOnly.slice(0, 2));
-                            }),
-            email: Yup.string()
-                            .email('Email invalide')
-                            .trim()
-                            .required("L'email est obligatoire")
-                            .test(
-                                'no-leading-space',
-                                "L'email ne peut pas commencer par un espace",
-                                (value) => value && !value.startsWith(' ')
-                            )
-                            .test(
-                                'no-trailing-space',
-                                "L'email ne peut pas se terminer par un espace",
-                                (value) => value && !value.endsWith(' ')
-                            )
-                            .matches(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, "Le domaine doit se terminer par au moins 2 caractères"),
-            
-            profil: Yup.string().required('Champ obligatoire'),
-            password: Yup.string().required('Champ obligatoire')
-                .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-            conf_password: Yup.string()
-                .required('Champ obligatoire')
-                .oneOf([Yup.ref('password'), null], 'Les mots de passe ne correspondent pas'),
-            etablissement: Yup.mixed()
-                .nullable()
-                .when('profil', {
-                    is: (val) => val === 'AGENT_DE_SAISIE',
-                    then: (schema) => schema.required('Champ obligatoire'),
-                    otherwise: (schema) => schema.nullable()
-                })
-        }),
-
-        onSubmit: async (values, { setSubmitting, resetForm }) => {
-            console.log('cliquer...');
-
-            const acteurDTO: ActeurDTO = { etablissement: values.etablissement };
-            const profilDTO: ProfilDTO = { name: values.profil };
-
-            const userDTO: UserDTO = {
-                firstname: values.firstname,
-                lastname: values.lastname,
-                login: values.login,
-                password: values.password,
-                phone: values.phone.replace(/\s/g, ''),
-                email: values.email,
-                state_account: true,
-                profil: profilDTO,
-                acteur: acteurDTO
-            };
-
-            try {
-                //console.log(is_update);
-                if (is_update === false) 
-                {
-                    console.log('POST', is_go_by_smtp);
-                    const response = await ParametrageService.createUser(userDTO, is_go_by_smtp);
-                    console.log('✅ User créé:', response.data);
-                    setMessage('User créé avec succès');
-                    toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Utilisateur créé avec succès', life: 4000 });
-                }
-                resetForm();
-                await loadData();
-                setProductDialog(false);
-            } 
-            catch (error) {
-            // On essaie de récupérer un message clair depuis le backend
-            const errorMessage = error.response?.data?.errorMessage;
-            setMessage(errorMessage);
-                toast.current.show({ 
-                    severity: 'error', 
-                    summary: 'Office du Bac', 
-                    detail: errorMessage, 
-                    life: 4000 
-                });
-            }
-            finally 
-            {
-                setSubmitting(false);
-            }
-        }
-    });
-
-
-    const formik2 = useFormik({
-        initialValues: {
-            firstname: '',
-            lastname: '',
-            login: '',
-            phone: '',
-            email: '',
-            state_account: true,
-            etablissement: null,
-            profil: null,
-            acteur: null
-        },
-
-        validationSchema: Yup.object({
-            login: Yup.string().required('Champ obligatoire'),
-            firstname: Yup.string().required('Champ obligatoire'),
-            lastname: Yup.string().required('Champ obligatoire'),
-            phone: Yup.string().required('Champ obligatoire'),
-            email: Yup.string().required('Champ obligatoire'),
-            profil: Yup.string().required('Champ obligatoire'),
-            etablissement: Yup.mixed()
-                .nullable()
-                .when('profil', {
-                    is: (val) => val === 'AGENT_DE_SAISIE',
-                    then: (schema) => schema.required('Champ obligatoire'),
-                    otherwise: (schema) => schema.nullable()
-                })
-        }),
-
-        onSubmit: async (values, { setSubmitting, resetForm }) => {
-            console.log('cliquer...');
-
-            const acteurDTO: ActeurDTO = { etablissement: values.etablissement };
-            const profilDTO: ProfilDTO = { name: values.profil };
-
-            const userDTO_ = {
-                firstname: values.firstname,
-                lastname: values.lastname,
-                login: values.login,
-                phone: values.phone,
-                email: values.email,
-                state_account: true,
-                profil: profilDTO,
-                acteur: acteurDTO
-            };
-
-            try {
-                //console.log(is_update);
-                if (is_update === true) {
-                    console.log('PUT');
-                    const response = await ParametrageService.updateUser(id_acces, userDTO_);
-                    console.log('✅ Candidat mis à jour:', response.data);
-                    setMessage('Candidat créé avec succès');
-                    toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Utilisateur mis à jour avec succès', life: 4000 });
-                    resetForm();
-                }
-                await loadData();
-                setProductDialog2(false);
-                setIsAdmin(false);
-            } 
-            catch (error) 
-            {
-            // On essaie de récupérer un message clair depuis le backend
-            const errorMessage = error.response?.data?.errorMessage;
-            setMessage(errorMessage);
-                toast.current.show({ 
-                    severity: 'error', 
-                    summary: 'Office du Bac', 
-                    detail: errorMessage, 
-                    life: 4000 
-                });
-            } 
-            finally 
-            {
-                setSubmitting(false);
-            }
-        }
-    });
 
 
     const handleFileChange = (e) => {
@@ -1018,6 +687,16 @@ const CalendarDemo = () => {
         }
     };
 
+
+    const formatDateToInput = (isoDateStr) => 
+    {
+        const date = new Date(isoDateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
     //console.log(is_update);
 
     return (
@@ -1039,229 +718,78 @@ const CalendarDemo = () => {
                         <Toast ref={toast} />
                         <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
-                            {groupedUsers && groupedUsers.length > 0 && (
-                            <TabView>
-                                {groupedUsers.map(({ aca, cdt }) => (
-                                    <TabPanel key={aca} header={aca}>
-                                        <DataTable
-                                            ref={dt}
-                                            stripedRows
-                                            showGridlines
-                                            value={Array.isArray(cdt) ? cdt : []}  // sécurité
-                                            paginator
-                                            lazy
-                                            rows={lazyParams.rows}
-                                            first={lazyParams.first}
-                                            rowsPerPageOptions={[5, 10, 25]}
-                                            totalRecords={totalRecords}             // nombre total côté backend
-                                            onPage={(e) => {
-                                                // ⚡ Mettre à jour la pagination et relancer le chargement
-                                                setLazyParams({
-                                                    ...lazyParams,
-                                                    first: e.first,
-                                                    rows: e.rows,
-                                                    page: e.page
-                                                });
-                                                loadData(); // ⚡ recharger la page demandée
-                                            }}
-                                            className="p-datatable-sm"
-                                            currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement(s)"
-                                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                            globalFilter={globalFilter}
-                                            emptyMessage="Aucune donnée n'a été trouvée"
-                                            header={header}
-                                        >
-                                            <Column field="numTable" header="N° de table" body={numTableTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                            <Column field="jury" header="Jury" body={juryTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                            <Column field="centreExamen" header="Centre Examen" body={cexTemplate} headerStyle={{ minWidth: '3rem' }} />
-                                            <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                            <Column field="serie" header="Série" body={serieTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                            <Column field="firstname" header="Prénom (s)" body={firstnameTemplate} headerStyle={{ minWidth: '5rem' }} />
-                                            <Column field="lastname" header="NOM" body={lastnameTemplate} headerStyle={{ minWidth: '3rem' }} />
-                                            <Column field="gender" header="Sexe" body={genderTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                            <Column field="date_birth" header="Date de naiss." body={dateTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                            <Column field="place_birth" header="Lieu de naiss." body={placeBirthTemplate} headerStyle={{ minWidth: '2rem' }} />
-                                        </DataTable>
-                                    </TabPanel>
-                                ))}
-                            </TabView>
-                        )}
+                        <DataTable
+                            ref={dt}
+                            loading={loading}
+                            loadingIcon="pi pi-spin pi-spinner"
+                            paginator
+                            size='small'
+                            showGridlines
+                            value={archives}
+                            lazy
+                            scrollable
+                            style={{ width: '100%', whiteSpace: 'nowrap' }}
+                            totalRecords={totalRecords}
+                            first={lazyParams.first}
+                            rows={lazyParams.rows}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            onPage={(e) => {
+                                setLazyParams({
+                                    ...lazyParams,
+                                    first: e.first,
+                                    rows: e.rows,
+                                    page: e.page
+                                });
+                            }}
+                            className="p-datatable-sm"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
+                            emptyMessage="Aucune donnée n'a été trouvée"
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                                                            <Column field="tableNum" header="N° de table" frozen alignFrozen="left"/>
+                                                            <Column field="jury" header="Jury" frozen alignFrozen="left"/>
+                                                            <Column field="session" header="Session" frozen alignFrozen="left"/>
+                                                            <Column field="firstname" header="Prénom (s)" frozen alignFrozen="left"/>
+                                                            <Column field="lastname" header="Nom" frozen alignFrozen="left"/>
+                                                            <Column
+                                                                field="date_birth"
+                                                                header="Date Naiss."
+                                                                body={(rowData) => {
+                                                                    return formatDateToInput(rowData.date_birth);
+                                                                }}
+                                                            />
+                            
+                                                            <Column field="place_birth" header="Lieu Naiss." />
+                                                            <Column
+                                                                field="gender"
+                                                                header="Sexe"
+                                                            
+                                                                style={{ width: '1500px' }}
+                                                                sortable
+                                                            />
+                                                            
+                                                            <Column field="place_birth" header="Lieu Naiss."/>
+                                                            <Column field="nationality" header="Nationalité" />
+                                                            <Column field="serie" header="Série"/>
+                                                            
+                                                          
+                                                            <Column field="matiere1" header="Matière Optionnelle 1"/>
+                                                            <Column field="matiere2" header="Matière Optionnelle 2"/>
+                                                            <Column field="matiere3" header="Matière Optionnelle 3"/>
+                                                            <Column field="eprFacListA" header="Epreuve Facultative A"/>
+                                                            <Column field="eprFacListB" header="Epreuve Facultative B" />
+                                                            <Column field="etablissement" header="Etablissement" />
+                                                            <Column field="acaEtab" header="Académie Etab." />
+                                                            <Column field="acaCentEcrit" header="Académie Centre Ecrit" />
+                                                            <Column field="centreEcritPrincipal" header="Centre d'Ecrit Principal" />
+                                                            <Column field="centreEcritSecondaire" header="Centre d'Ecrit Secondaire" />
+
+                        </DataTable>
 
 
-                        <Dialog visible={productDialog} style={{ width: '65%', maxHeight: '95vh' }} header="Panneau de création d'un accés" modal className="p-fluid" onHide={hideDialog}>
-                            <form onSubmit={formik.handleSubmit} className="p-0">
-                                <div className="p-1">
-                                    <div className="formgrid grid mt-0">
-                                        <div className="field col-4">
-                                            <label htmlFor="quantity"><span className="text-red-600">*</span> Login</label>
 
-                                            <InputText
-                                                placeholder="Fournir un login"
-                                                autoComplete='off'
-                                                id="login"
-                                                name="login"
-                                                value={formik.values.login}
-                                                onChange={(e) => formik.setFieldValue('login', e.target.value)}
-                                                onBlur={formik.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik.touched.login && formik.errors.login ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik.touched.login && typeof formik.errors.login === 'string' && <small className="p-error">{formik.errors.login}</small>}
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-                                        <div className="field col-6">
-                                            <label htmlFor="price"><span className="text-red-600">*</span> Prénom (s)</label>
-                                            <InputText
-                                                placeholder="Saisir le prénom (s)"
-                                                autoCapitalize='on'
-                                                autoComplete='off'
-                                                id="firstname"
-                                                name="firstname"
-                                                value={formik.values.firstname}
-                                                onChange={(e) => formik.setFieldValue('firstname', e.target.value)}
-                                                onBlur={formik.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik.touched.firstname && formik.errors.firstname ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik.touched.firstname && typeof formik.errors.firstname === 'string' && <small className="p-error">{formik.errors.firstname}</small>}
-                                        </div>
-
-                                        <div className="field col-3">
-                                            <label htmlFor="quantity"><span className="text-red-600">*</span> Nom</label>
-                                            <InputText
-                                                placeholder="Saisir le nom"
-                                                autoCapitalize='on'
-                                                autoComplete='off'
-                                                id="lastname"
-                                                name="lastname"
-                                                value={formik.values.lastname}
-                                                onChange={(e) => formik.setFieldValue('lastname', e.target.value)}
-                                                onBlur={formik.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik.touched.lastname && formik.errors.lastname ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik.touched.lastname && typeof formik.errors.lastname === 'string' && <small className="p-error">{formik.errors.lastname}</small>}
-                                        </div>
-
-                                        <div className="field col-3">
-                                            <label htmlFor="quantity">Téléphone (Portable)</label>
-                                             <InputText
-                                                autoComplete='off'
-                                                placeholder="Téléphone"
-                                                id="phone"
-                                                name="phone"
-                                                value={formik.values.phone}
-                                                onChange={formik.handleChange}
-                                                onBlur={formik.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik.touched.phone && formik.errors.phone ? 'p-invalid' : ''}`}
-                                            />
-                                            
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-                                        
-                                        <div className="field col-6">
-                                            <label htmlFor="email"><span className="text-red-600">*</span> Email</label>
-                                            <InputText
-                                                autoComplete='off'      
-                                                placeholder="Email"
-                                                id="email"
-                                                name="email"
-                                                value={formik.values.email}
-                                                onChange={formik.handleChange}
-                                                onBlur={formik.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik.touched.email && formik.errors.email ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik.touched.email && typeof formik.errors.email === 'string' && <small className="p-error">{formik.errors.email}</small>}
-                                        </div>
-
-                                        <div className="field col-6">
-                                            <label htmlFor="quantity"><span className="text-red-600">*</span> Choisissez un profil</label>
-                                            <Dropdown
-                                                id="profil"
-                                                name="profil"
-                                                value={formik.values.profil}
-                                                onChange={(e) => formik.setFieldValue('profil', e.value)}
-                                                options={profilsOptions}
-                                                // optionLabel="code" // adapter si ton objet contient un champ "libelle"
-                                                placeholder="Sélectionner le profil"
-                                                className={`p-inputtext-sm w-full ${formik.touched.profil && formik.errors.profil ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik.touched.profil && typeof formik.errors.profil === 'string' && <small className="p-error">{formik.errors.email}</small>}
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-                                        {formik.values.profil === 'AGENT_DE_SAISIE' && (
-                                            <div className="field col-8">
-                                                <label htmlFor="email"><span className="text-red-600">*</span> Précisez l&apos;établissement</label>
-                                                <Dropdown
-                                                    showClear
-                                                    id="etablissement"
-                                                    name="etablissement"
-                                                    value={formik.values.etablissement}
-                                                    onChange={(e) => formik.setFieldValue('etablissement', e.value)}
-                                                    options={etabs}
-                                                    optionLabel="name" // adapter si ton objet contient un champ "libelle"
-                                                    placeholder="Sélectionner l'etablissement"
-                                                    filter
-                                                    virtualScrollerOptions={{ itemSize: 30 }}
-                                                    className={`p-inputtext-sm w-full ${formik.touched.etablissement && formik.errors.etablissement ? 'p-invalid' : ''}`}
-                                                />
-                                                {formik.touched.etablissement && typeof formik.errors.etablissement === 'string' && <small className="p-error">{formik.errors.email}</small>}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <hr />
-                                    {!is_update && (
-                                        <div className="formgrid grid">
-                                            <div className="field col-6">
-                                                <label htmlFor="password"><span className="text-red-600">*</span> Fournir le mot de passe</label>
-                                                <InputText
-                                                    placeholder="Fournir le mot de passe"
-                                                    id="password"
-                                                    name="password"
-                                                    type="password"
-                                                    value={formik.values.password}
-                                                    onChange={formik.handleChange}
-                                                    onBlur={formik.handleBlur}
-                                                    className={`p-inputtext-sm w-full ${formik.touched.password && formik.errors.password ? 'p-invalid' : ''}`}
-                                                />
-                                                {formik.touched.password && typeof formik.errors.password === 'string' && <small className="p-error">{formik.errors.password}</small>}
-                                            </div>
-
-                                            <div className="field col-6">
-                                                <label htmlFor="confirmPassword"><span className="text-red-600">*</span> Confirmer le mot de passe</label>
-                                                <InputText
-                                                    placeholder="Confirmer le mot de passe"
-                                                    id="conf_password"
-                                                    name="conf_password"
-                                                    type="password"
-                                                    value={formik.values.conf_password}
-                                                    onChange={formik.handleChange}
-                                                    onBlur={formik.handleBlur}
-                                                    className={`p-inputtext-sm w-full ${formik.touched.conf_password && formik.errors.conf_password ? 'p-invalid' : ''}`}
-                                                />
-                                                {formik.touched.conf_password && typeof formik.errors.conf_password && <small className="p-error">{formik.errors.conf_password}</small>}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="formgrid grid">
-                                        <div className="field col-6">
-                                            <Checkbox name="category" value={is_go_by_smtp} onChange={(e) => setIsGoBySmtp(e.checked)} checked={is_go_by_smtp} />
-                                            <span className="ml-2">
-                                                <b>Transmettre les accés pas SMTP ?</b>
-                                            </span>
-                                        </div>
-                                        <div className="field col-6">
-                                            <div>
-                                                <Button severity="success" label="Creer l'accés" className="mr-2" type="submit" />
-                                                {/* <Button severity="danger" label="Delete" icon="pi pi-trash" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} /> */}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                            ,
-                        </Dialog>
 
                         <Dialog visible={codifDialog} style={{ width: '1000px' }} header="Chargement des données" modal className="p-fluid" onHide={hideDialog4}>
                             <div style={{ color: 'red' }}>
@@ -1275,179 +803,6 @@ const CalendarDemo = () => {
                             </div>
                         </Dialog>
 
-                        <Dialog 
-                            visible={productDialog2} 
-                            style={{ width: '65%', maxHeight: '95vh' }} 
-                            header="Panneau d'édition d'un accés" 
-                            modal 
-                            className="p-fluid" onHide={hideDialog2}>
-                            <form onSubmit={formik2.handleSubmit} className="p-0">
-                                <div className="p-0">
-                                    <div className="formgrid grid">
-                                        <div className="field col-4">
-                                            <label htmlFor="quantity"><span className="text-red-600">*</span> Login</label>
-
-                                            <InputText
-                                                disabled={isAdmin}
-                                                placeholder="Fournir un login"
-                                                autoComplete='off'
-                                                id="login"
-                                                name="login"
-                                                value={formik2.values.login}
-                                                onChange={(e) => formik2.setFieldValue('login', e.target.value)}
-                                                onBlur={formik2.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik2.touched.login && formik2.errors.login ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik2.touched.login && typeof formik2.errors.login === 'string' && <small className="p-error">{formik2.errors.login}</small>}
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-                                        <div className="field col-8">
-                                            <label htmlFor="price"><span className="text-red-600">*</span> Prénom (s)</label>
-                                            <InputText
-                                                placeholder="Saisir le prénom (s)"
-                                                autoCapitalize='on'
-                                                autoComplete='off'
-                                                id="firstname"
-                                                name="firstname"
-                                                value={formik2.values.firstname}
-                                                onChange={(e) => formik2.setFieldValue('firstname', e.target.value)}
-                                                onBlur={formik2.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik2.touched.firstname && formik2.errors.firstname ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik2.touched.firstname && typeof formik2.errors.firstname === 'string' && <small className="p-error">{formik2.errors.firstname}</small>}
-                                        </div>
-
-                                        <div className="field col-4">
-                                            <label htmlFor="quantity"><span className="text-red-600">*</span> Nom</label>
-                                            <InputText
-                                                placeholder="Saisir le nom"
-                                                autoCapitalize='on'
-                                                autoComplete='off'
-                                                id="lastname"
-                                                name="lastname"
-                                                value={formik2.values.lastname}
-                                                onChange={(e) => formik2.setFieldValue('lastname', e.target.value)}
-                                                onBlur={formik2.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik2.touched.lastname && formik2.errors.lastname ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik2.touched.lastname && typeof formik2.errors.lastname === 'string' && <small className="p-error">{formik2.errors.lastname}</small>}
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-                                        
-                                        <div className="field col-8">
-                                            <label htmlFor="email"><span className="text-red-600">*</span> Email</label>
-                                            <InputText
-                                                placeholder="Email"
-                                                autoComplete='off'
-                                                id="email"
-                                                name="email"
-                                                value={formik2.values.email}
-                                                onChange={formik2.handleChange}
-                                                onBlur={formik2.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik2.touched.email && formik2.errors.email ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik2.touched.email && typeof formik2.errors.email === 'string' && <small className="p-error">{formik2.errors.email}</small>}
-                                        </div>
-                                        <div className="field col-4">
-                                            <label htmlFor="quantity">Téléphone (Portable)</label>
-                                             <InputText
-                                                autoComplete='off'
-                                                id="phone"
-                                                name="phone"
-                                                value={formik2.values.phone}
-                                                onChange={formik2.handleChange}
-                                                onBlur={formik2.handleBlur}
-                                                className={`p-inputtext-sm w-full ${formik2.touched.phone && formik2.errors.phone ? 'p-invalid' : ''}`}
-                                            />
-                                            {/* {formik2.touched.phone && typeof formik2.errors.phone === 'string' && <small className="p-error">{formik2.errors.phone}</small>} */}
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-
-                                        {formik2.values.profil === 'AGENT_DE_SAISIE' && (
-                                            <div className="field col-8">
-                                                <label htmlFor="email"><span className="text-red-600">*</span> Précisez l&apos;établissement</label>
-                                                <Dropdown
-                                                    showClear
-                                                    id="etablissement"
-                                                    name="etablissement"
-                                                    value={formik2.values.etablissement}
-                                                    onChange={(e) => formik2.setFieldValue('etablissement', e.value)}
-                                                    options={etabs}
-                                                    optionLabel="name" // adapter si ton objet contient un champ "libelle"
-                                                    placeholder="Sélectionner l'etablissement"
-                                                    filter
-                                                    virtualScrollerOptions={{ itemSize: 30 }}
-                                                    className={`p-inputtext-sm w-full ${formik2.touched.etablissement && formik2.errors.etablissement ? 'p-invalid' : ''}`}
-                                                />
-                                                {formik2.touched.etablissement && typeof formik2.errors.etablissement === 'string' && <small className="p-error">{formik2.errors.email}</small>}
-                                            </div>
-                                        )}
-
-                                        <div className="field col-4">
-                                            <label htmlFor="quantity"><span className="text-red-600">*</span> Choisissez un profil</label>
-                                            <Dropdown
-                                                disabled={isAdmin}
-                                                id="profil"
-                                                name="profil"
-                                                value={formik2.values.profil}
-                                                onChange={(e) => formik2.setFieldValue('profil', e.value)}
-                                                options={profilsOptions}
-                                                // optionLabel="code" // adapter si ton objet contient un champ "libelle"
-                                                placeholder="Sélectionner le profil"
-                                                className={`p-inputtext-sm w-full ${formik2.touched.profil && formik2.errors.profil ? 'p-invalid' : ''}`}
-                                            />
-                                            {formik2.touched.profil && typeof formik2.errors.profil === 'string' && <small className="p-error">{formik2.errors.email}</small>}
-                                        </div>
-                                    </div>
-                                    <div className="formgrid grid">
-                                        <div className="field col-8"></div>
-                                        <div className="field col-4">
-                                            <div>
-                                                <Button severity="success" label="Modifier les infos de l'accés" className="mr-2" type="submit" />
-                                                {/* <Button severity="danger" label="Delete" icon="pi pi-trash" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} /> */}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                            ,
-                        </Dialog>
-
-                        <Dialog visible={deleteProductDialog} style={{ width: '550px' }} header="Réinitialisation du mot de passe" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
-                            <form onSubmit={formik.handleSubmit} className="p-0">
-                                <div className="flex align-items-center justify-content-center">
-                                    <i className="pi pi-exclamation-circle mr-3" style={{ fontSize: '2rem', color: 'orange' }} />
-                                    <span>
-                                        Êtes-vous sûr(e) de vouloir réinitialiser le mot de passe du compte <br /><b>{formik.values.login}</b> ?<br />
-                                    </span>
-                                </div>
-                            </form>
-                        </Dialog>
-
-                        <Dialog visible={supprimerDialog} style={{ width: '550px' }} header="Suppression d'un compte" modal footer={deleteProductDialogFooter_} onHide={hideDeleteProductDialog_}>
-                            <form onSubmit={formik.handleSubmit}>
-                                <div className="flex align-items-center justify-content-center">
-                                    <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem', color: 'red' }} />
-                                    <span>
-                                        Êtes-vous sûr(e) de vouloir supprimer le compte rattaché à l&apos;email <br /><b>{formik.values.email}</b> ?<br />
-                                    </span>
-                                </div>
-                            </form>
-                        </Dialog>
-
-                        <Dialog visible={desactiveAccessDialog} style={{ width: '550px' }} header="Gestion de l'activité d'un compte" modal footer={deleteProductDialogFooter__} onHide={hideDeleteProductDialog__}>
-                            <form onSubmit={formik.handleSubmit}>
-                                <div className="flex align-items-center justify-content-center">
-                                    <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem', color:'red' }} />
-                                    <span>
-                                        Êtes-vous sûr de vouloir modifier le statut du compte rattaché à l&apos;email <br /><b>{formik.values.email}</b> ?<br />
-                                    </span>
-                                </div>
-                            </form>
-                        </Dialog>
 
                         <Dialog 
                             visible={getResultDialog} 

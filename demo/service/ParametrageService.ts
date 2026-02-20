@@ -196,6 +196,56 @@ export interface EtabDTO {
 }
 
 
+export interface Candidat {
+  _id: string;
+  firstname: string;
+  lastname: string;
+  date_birth: string;
+  place_birth: string;
+  nationality: string;
+  age: number;
+  tableNum: number;
+  session: number;
+  jury: number;
+  serie: string;
+  gender: string;
+  etablissement: string;
+  centreEcritPrincipal: string;
+  centreExamen: string;
+  matiere1?: string;
+  matiere2?: string;
+  matiere3?: string;
+  acaEtab: string;
+  acaCentEcrit: string;
+}
+
+export interface CandidatPage {
+  content: Candidat[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export interface CandidatGrouped {
+  [aca: string]: CandidatPage;
+}
+
+export interface RespCandidats {
+  data: CandidatGrouped;
+  total: number;
+  totalPages: number;
+  size: number;
+  page: number;
+}
+
+export interface LazyParams {
+  page?: number;
+  rows?: number;
+}
+
+
+
 
 
 export const ParametrageService = {
@@ -233,30 +283,28 @@ export const ParametrageService = {
     });
   },
 
-  getCandidats(page: number, size: number) {
-      return axiosInstance
-          .get(`/import-data/candidats-by-aca/${page}/${size}`)
-          .then(response => {
-              console.log('Données reçues:', response.data);
-
-              // ✅ On récupère les candidats groupés et les informations de pagination
-              return {
-                  data: response.data.content || {},      // grouped Map<string, SourceCandidat[]>
-                  total: response.data.totalElements || 0,
-                  totalPages: response.data.totalPages || 0,
-                  size: response.data.size || size,
-                  page: response.data.page || page
-              };
-          })
-          .catch(error => {
-              console.error('Erreur Axios:', error);
-              console.error('Code HTTP:', error.response?.status);
-              console.error('Message:', error.response?.data);
-
-              // ✅ fallback pour éviter crash
-              return { data: {}, total: 0, totalPages: 0, size, page };
-          });
+  getAllCandidats(page: number, size: number) 
+  {
+  
+        return axiosInstance.get(`/import-data/get-all-candidats/${page}/${size}`, {})
+            .then(response => {
+                console.log('Archives trouvées avec succès:', response.data);
+  
+                return {
+                    data: response.data.content,
+                    total: response.data.totalElements
+                };
+            })
+            .catch(error => {
+                console.error('❌ Erreur chargement archives:', error);
+                console.error('Code HTTP:', error.response?.status);
+                console.error('Message serveur:', error.response?.data);
+                throw error;
+            });
   },
+
+
+
 
   getDataRepCP() {
     // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
@@ -366,9 +414,9 @@ export const ParametrageService = {
   },
 
 
-  doDecompteFeuilleCEP(session : number) {
+  doDecompteFeuilleCEP() {
       // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
-      return axiosInstance.post(`/import-data/feuille-cep/${session}`)
+      return axiosInstance.post(`/import-data/feuille-cep`)
       .then(response => {
           console.log('Données reçues:', response.data);
           return response.data; // <-- ici, on retourne les données
@@ -381,9 +429,9 @@ export const ParametrageService = {
       });
   },
 
-  doDecompteFeuilleCS(session : number) {
+  doDecompteFeuilleCS() {
       // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
-      return axiosInstance.post(`/import-data/feuille-cs/${session}`)
+      return axiosInstance.post(`/import-data/feuille-cs`)
       .then(response => {
           console.log('Données reçues:', response.data);
           return response.data; // <-- ici, on retourne les données

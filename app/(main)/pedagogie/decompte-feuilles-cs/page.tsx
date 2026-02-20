@@ -300,13 +300,13 @@ const CalendarDemo = () => {
 
     const handleClick = async () => {
 
-        const data = await ParametrageService.doDecompteFeuilleCS(2025);
+        const data = await ParametrageService.doDecompteFeuilleCS();
         setResultat(data);
         window.location.replace('/pedagogie/decompte-feuilles-cs')
     };
 
     const handleClick2 = async () => {
-        const data = await ParametrageService.doRepCS(2025);
+        const data = await ParametrageService.doRepCS();
         setResultat_(data);
     };
 

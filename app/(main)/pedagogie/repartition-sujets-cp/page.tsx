@@ -318,7 +318,7 @@ const CalendarDemo = () => {
 
     const handleClick = async () => {
 
-        const data = await ParametrageService.doRepCEP(2025);
+        const data = await ParametrageService.doRepCEP();
         setResultat(data);
         console.log(setGroupedUsers)
         window.location.replace('/pedagogie/repartition-sujets-cp')
@@ -389,6 +389,11 @@ const CalendarDemo = () => {
                     "Russe": row.russe,
                     "PC L": row.pcL,
                     "SVT L": row.svtL,
+                    "MO": row.mo,
+                    "SES": row.ses,
+                    "GCF": row.gcf,
+                    "GELEC": row.gelec,
+                    "GEMECA": row.gemec
 
 
 
@@ -1021,6 +1026,48 @@ const CalendarDemo = () => {
         );
     };
 
+    const gElTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.gelec}
+            </>
+        );
+    };
+
+
+    const gMcTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.gemec}
+            </>
+        );
+    };
+
+    const mOTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.mo}
+            </>
+        );
+    };
+
+    const sESTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.ses}
+            </>
+        );
+    };
+
+    const gCFTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.gcf}
+            </>
+        );
+    };
+
+
     
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
@@ -1378,6 +1425,14 @@ const CalendarDemo = () => {
                                                 <Column field="rus" header="Russe (LV2)" body={rusTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
                                                 <Column field="pcL" header="PC/L" body={pcLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
                                                 <Column field="svtL" header="SVT/L" body={svtLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+
+
+                                                <Column field="mo" header="Man. Org." body={mOTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="ses" header="Sc. Eco. Soc." body={sESTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="gcf" header="Ges. Compta. Fina." body={gCFTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                
+                                                <Column field="gelec" header="Genie Electrique" body={gElTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="gemec" header="Genie Mécanique" body={gMcTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
                                                                                     
                                                 
 
