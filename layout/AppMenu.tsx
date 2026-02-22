@@ -37,6 +37,17 @@ const AppMenu = () => {
         },
         { separator: true },
         hasAccess(['ADMIN']) && {
+            label: 'Programmation',
+            items: [
+                {
+                    label: 'Calendrier',
+                    icon: 'pi pi-fw pi-calendar',
+                    to: '/pedagogie/programmation-calendrier',
+                } 
+            ]
+        },
+        { separator: true },
+        hasAccess(['ADMIN']) && {
             label: 'Gestion des données',
             icon: 'pi pi-home',
             items: [
@@ -59,6 +70,11 @@ const AppMenu = () => {
                             label: 'Centre Secondaire',
                             // icon: 'pi pi-fw pi-tags',
                             to: '/pedagogie/repartition-sujets-cs'
+                        },
+                        {
+                            label: 'Fusion Répartition',
+                            // icon: 'pi pi-fw pi-tags',
+                            to: '/pedagogie/fusion-repartition'
                         }
                         // {
                         //     label: 'Université',

@@ -321,6 +321,21 @@ export const ParametrageService = {
     });
   },
 
+  getFusionRep() {
+    // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+    return axiosInstance.get('/import-data/get-all-fusion-tirage')
+    .then(response => {
+        console.log('Données reçues:', response.data);
+        return response.data; // <-- ici, on retourne les données
+    })
+    .catch(error => {
+        console.error('Erreur Axios:', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        return []; // on peut retourner un tableau vide pour éviter un crash
+    });
+  },
+
 
 
   getDataRepCS() {
@@ -413,6 +428,52 @@ export const ParametrageService = {
       });
   },
 
+  fusionRep() {
+      // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+      return axiosInstance.post(`/import-data/fusion-repartition`)
+      .then(response => {
+          console.log('Données reçues:', response.data);
+          return response.data; // <-- ici, on retourne les données
+      })
+      .catch(error => {
+          console.error('Erreur Axios:', error);
+          console.error('Code HTTP:', error.response?.status);
+          console.error('Message:', error.response?.data);
+          return []; // on peut retourner un tableau vide pour éviter un crash
+      });
+  },
+
+  doProg(data) {
+      return axiosInstance
+          .put(`/import-data/prog-tirage-etiquette`, data)
+          .then(response => {
+              console.log('✅ Réponse serveur:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur Axios:', error);
+
+              const message =
+                  error.response?.data ||
+                  "Erreur lors de la mise à jour des horaires";
+              throw message; // 👉 important pour que Formik catch l’erreur
+          });
+  },
+
+  getHoraires() {
+    // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+    return axiosInstance.get(`/import-data/horaires`)
+    .then(response => {
+        console.log('Données reçues:', response.data);
+        return response.data; // <-- ici, on retourne les données
+    })
+    .catch(error => {
+        console.error('Erreur Axios:', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        return []; // on peut retourner un tableau vide pour éviter un crash
+    });
+  },
 
   doDecompteFeuilleCEP() {
       // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
