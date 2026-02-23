@@ -110,6 +110,62 @@ const CalendarDemo = () => {
         //{ label: 'STATISTIQUES', value: 'STATISTIQUES' }
     ];
 
+    const [selectedMatiere, setSelectedMatiere] = useState(null);
+
+    const matiereOptions = [
+            { label: "Français (L)", value: "FRANCAIS L" },
+            { label: "Français (S)", value: "FRANCAIS S" },
+            { label: "Français (LA)", value: "FRANCAIS L (A)" },
+            { label: "Français (S1A, S2A)", value: "FRANCAIS S (A)" },
+    
+            { label: "Anglais (S)", value: "ANGLAIS S" },
+    
+            { label: "Maths (L)", value: "MATH L" },
+            { label: "Maths (S1, S1A, S3)", value: "MATH S (SM)" },
+            { label: "Maths (S2, S2A, S4, S5)", value: "MATH S (SE)" },
+    
+            { label: "PC (S1, S1A, S3)", value: "PC S (SM)" },
+            { label: "PC (S2, S2A, S4, S5)", value: "PC S (SE)" },
+            { label: "PC/L", value: "PC L" },
+    
+            { label: "SVT (S2, S2A, S4, S5)", value: "SVT S (SE)" },
+            { label: "SVT (S1, S1A, S3)", value: "SVT S (SM)" },
+            { label: "SVT/L", value: "SVT L" },
+    
+            { label: "Philo (L)", value: "PHILO L" },
+            { label: "Philo (S)", value: "PHILO S" },
+    
+            { label: "HG", value: "HISTOIRE-GEO" },
+            { label: "LLA", value: "LLA" },
+    
+            { label: "Allemand (LV1)", value: "ALLEMAND LV1" },
+            { label: "Allemand (LV2)", value: "ALLEMAND LV2" },
+    
+            { label: "Anglais (LV1)", value: "ANGLAIS LV1" },
+            { label: "Anglais (LV2)", value: "ANGLAIS LV2" },
+    
+            { label: "Arabe Moderne (LV1)", value: "ARABE MODERNE LV1" },
+            { label: "Arabe Moderne (LV2)", value: "ARABE MODERNE LV2" },
+    
+            { label: "Espagnol (LV1)", value: "ESPAGNOL LV1" },
+            { label: "Espagnol (LV2)", value: "ESPAGNOL LV2" },
+    
+            { label: "Portugais (LV1)", value: "PORTUGAIS LV1" },
+            { label: "Portugais (LV2)", value: "PORTUGAIS LV2" },
+    
+            { label: "Italien", value: "ITALIEN" },
+            { label: "Latin", value: "LATIN" },
+            { label: "Russe", value: "RUSSE" },
+    
+            { label: "Economie", value: "ECONOMIE" },
+            { label: "Sc. Eco. Soc.", value: "SES" },
+            { label: "Ges. Compta. Fina.", value: "GCF" },
+            { label: "Man. Org.", value: "MO" },
+    
+            { label: "Genie Electrique", value: "GELEC" },
+            { label: "Genie Mécanique", value: "GEMEC" }
+        ];
+
     useEffect(() => {
         ProductService.getProducts().then((data) => setProducts(data));
     }, []);
@@ -428,6 +484,37 @@ const CalendarDemo = () => {
     };
 
 
+    const exportEtiquettes = async () => {
+        console.log("fila")
+
+        try {
+            setExporting(true);
+            setExportStep('📡 Récupération des données...');
+            // 1. Appel API : s'assurer que le backend renvoie juste le nécessaire (projection)
+            const allCandidats = await ParametrageService.getEtiquettes(selectedMatiere);
+
+            if (!allCandidats || allCandidats.length === 0) {
+                setExportStep('✅ Aucune donnée à exporter');
+                setTimeout(() => setExporting(false), 1000);
+                return;
+            }
+
+            setExportStep('🔄 Préparation des données...');
+            setExportStep('💾 Génération des étiquettes...');
+            setExportStep('✅ Export terminé avec succés !');
+            setTimeout(() => setExporting(false), 1500);
+
+        } 
+        catch (error) 
+        {
+            console.error("❌ Erreur export :", error);
+            setExportStep('❌ Erreur lors de l’export');
+            setTimeout(() => setExporting(false), 2000);
+        }
+
+    };
+
+
     const deleteProduct = async (values, { setSubmitting, resetForm }) => {
         setDeleteProductDialog(false);
         console.log('PUT');
@@ -630,6 +717,26 @@ const CalendarDemo = () => {
                                                                         onClick={exportAllCandidats}
                                                                         className="p-button p-button-primary ml-2"
                                                                     />
+
+
+                <div className="card flex justify-content-center">
+                        <Dropdown
+                            value={selectedMatiere}
+                            options={matiereOptions}
+                            onChange={(e) => setSelectedMatiere(e.value)}
+                            placeholder="Sélectionner une matière"
+                            className="w-full md:w-14rem"
+                            />
+                        <Button
+                                                                        type="button"
+                                                                        icon="pi pi-file-excel"
+                                                                        severity="info"
+                                                                        label="Générer les étiquettes"
+                                                                        onClick={exportEtiquettes}
+                                                                        className="p-button p-button-primary ml-2"
+                                                                    />
+                </div>
+        
 
 
                                                                     

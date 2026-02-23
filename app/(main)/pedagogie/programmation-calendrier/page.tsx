@@ -56,19 +56,27 @@ const PlanningForm = () => {
     // 🔹 State global du formulaire
     const [formData, setFormData] = useState({});
     const [loading, setLoading] = useState(true);
+    const [selectedMatiere, setSelectedMatiere] = useState(null);
 
     // 🔹 Charger les anciennes valeurs depuis le backend
     useEffect(() => {
         const fetchHoraires = async () => {
             try {
                 setLoading(true);
-                const response = await ParametrageService.getHoraires(); // méthode backend pour récupérer les horaires
-                // response.horaires doit être un objet { "FRANCAIS L": {date1, heure1, ...}, ... }
-                if (response?.horaires) {
+
+                const response = await ParametrageService.getHoraires();
+                console.log("Horaires reçus:", response);
+
+                // ✅ sécurité maximale
+                if (response?.horaires && typeof response.horaires === 'object') {
                     setFormData(response.horaires);
+                } else {
+                    setFormData({});
                 }
+
             } catch (error) {
-                toast.current.show({
+                console.error(error);
+                toast.current?.show({
                     severity: 'error',
                     summary: 'Office du Bac',
                     detail: 'Impossible de charger les horaires',
@@ -113,6 +121,60 @@ const PlanningForm = () => {
             });
         }
     };
+
+    const matiereOptions = [
+        { label: "Français (L)", value: "FRANCAIS L" },
+        { label: "Français (S)", value: "FRANCAIS S" },
+        { label: "Français (LA)", value: "FRANCAIS LA" },
+        { label: "Français (S1A, S2A)", value: "FRANCAIS SA" },
+
+        { label: "Anglais (S)", value: "ANGLAIS S" },
+
+        { label: "Maths (L)", value: "MATH L" },
+        { label: "Maths (S1, S1A, S3)", value: "MATH SM" },
+        { label: "Maths (S2, S2A, S4, S5)", value: "MATH SE" },
+
+        { label: "PC (S1, S1A, S3)", value: "PC SM" },
+        { label: "PC (S2, S2A, S4, S5)", value: "PC SE" },
+        { label: "PC/L", value: "PC L" },
+
+        { label: "SVT (S2, S2A, S4, S5)", value: "SVT SE" },
+        { label: "SVT (S1, S1A, S3)", value: "SVT SM" },
+        { label: "SVT/L", value: "SVT L" },
+
+        { label: "Philo (L)", value: "PHILO L" },
+        { label: "Philo (S)", value: "PHILO S" },
+
+        { label: "HG", value: "HG" },
+        { label: "LLA", value: "LLA" },
+
+        { label: "Allemand (LV1)", value: "ALLEMAND LV1" },
+        { label: "Allemand (LV2)", value: "ALLEMAND LV2" },
+
+        { label: "Anglais (LV1)", value: "ANGLAIS LV1" },
+        { label: "Anglais (LV2)", value: "ANGLAIS LV2" },
+
+        { label: "Arabe Moderne (LV1)", value: "ARABE MODERNE LV1" },
+        { label: "Arabe Moderne (LV2)", value: "ARABE MODERNE LV2" },
+
+        { label: "Espagnol (LV1)", value: "ESPAGNOL LV1" },
+        { label: "Espagnol (LV2)", value: "ESPAGNOL LV2" },
+
+        { label: "Portugais (LV1)", value: "PORTUGAIS LV1" },
+        { label: "Portugais (LV2)", value: "PORTUGAIS LV2" },
+
+        { label: "Italien", value: "ITALIEN" },
+        { label: "Latin", value: "LATIN" },
+        { label: "Russe", value: "RUSSE" },
+
+        { label: "Economie", value: "ECONOMIE" },
+        { label: "Sc. Eco. Soc.", value: "SES" },
+        { label: "Ges. Compta. Fina.", value: "GCF" },
+        { label: "Man. Org.", value: "MO" },
+
+        { label: "Genie Electrique", value: "GELEC" },
+        { label: "Genie Mécanique", value: "GEMEC" }
+    ];
 
     const renderRow = (epreuve) => (
         <tr key={epreuve}>

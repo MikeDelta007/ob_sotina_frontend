@@ -1,4 +1,5 @@
 import axiosInstance from "@/app/api/axiosInstance";
+import { saveAs } from 'file-saver';
 
 
 export interface RegionDTO {
@@ -366,6 +367,30 @@ export const ParametrageService = {
         console.error('Message:', error.response?.data);
         return []; // on peut retourner un tableau vide pour éviter un crash
     });
+  },
+
+
+
+  getEtiquettes(matieres: string) 
+  {
+  return axiosInstance.get('/pdf/generate-etiquette-paysage', {
+    params: {
+      matieres: matieres
+    },
+    responseType: 'blob'
+    })
+      .then(response => {
+        const filename = `Etiquettes_${matieres}.pdf`;
+        saveAs(response.data, filename);
+        console.log('PDF téléchargé avec succès');
+        return filename;
+      })
+      .catch(error => {
+        console.error('Erreur lors du téléchargement du PDF :', error);
+        console.error('Code HTTP :', error.response?.status);
+        console.error('Message :', error.response?.data);
+        throw error;
+      });
   },
 
   getDataFeuilleCP() {
