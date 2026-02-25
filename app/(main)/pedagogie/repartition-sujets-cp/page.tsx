@@ -8,7 +8,7 @@ import { InputText } from 'primereact/inputtext';
 import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Demo } from '@/types';
 import { ProductService } from '@/demo/service/ProductService';
 import { Dropdown } from 'primereact/dropdown';
@@ -33,6 +33,15 @@ import { MdLockReset } from 'react-icons/md';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { classNames } from 'primereact/utils';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { data } from 'react-router-dom';
+
+type Repartition = {
+    jury: number;
+    centreEcrit: string;
+    session: number;
+    effectif: number;
+    matieres?: Record<string, number>;
+};
 
 const CalendarDemo = () => {
     const [is_update, setIsUpdate] = useState(false); // <== valeur persistante entre les appels
@@ -44,6 +53,7 @@ const CalendarDemo = () => {
     const [is_go_by_smtp, setIsGoBySmtp] = useState(false); // <== valeur persistante entre les appels
     const [groupedUsers, setGroupedUsers] = useState([]);
     const { user } = useContext(UserContext);
+    const [data, setData] = useState<Repartition[]>([]);
 
     let emptyProduct: Demo.Product = {
         id: null,
@@ -83,6 +93,7 @@ const CalendarDemo = () => {
     const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
+    const [resultat__, setResultat__] = useState([]);
 
     const [users, setUsers] = useState([]);
 
@@ -316,13 +327,28 @@ const CalendarDemo = () => {
         setDeleteProductDialog(true);
     };
 
-    const handleClick = async () => {
 
-        const data = await ParametrageService.doRepCEP();
-        setResultat(data);
-        console.log(setGroupedUsers)
-        window.location.replace('/pedagogie/repartition-sujets-cp')
+    const handleClick = async () => {
+        setLoading(true);
+        try {
+            const [data, data_, data__] = await Promise.all([
+                ParametrageService.doRepCEP(),
+                ParametrageService.doRepCS(),
+                ParametrageService.fusionRep()
+            ]);
+
+            setResultat(data);
+            setResultat_(data_);
+            setResultat__(data__);
+
+            if (data.length && data_.length && data__.length) {
+                window.location.replace('/pedagogie/repartition-sujets-cp');
+            }
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     const exportAllCandidats = async () => {
         console.log("fila")
@@ -511,7 +537,7 @@ const CalendarDemo = () => {
         setError(null);
         try 
         {
-            const data = await ParametrageService.getDataRepCP();
+            const data = await ParametrageService.getFusionRep();
             if (data && typeof data === 'object') {
                 const result = Object.entries(data).map(([aca, cdt]) => ({
                     aca,
@@ -735,6 +761,25 @@ const CalendarDemo = () => {
                 {rowData.effectif}
             </>
         );
+    };
+
+
+    const getMatiereColumns = (rows: Repartition[]) => {
+        const set = new Set<string>();
+
+        if (!Array.isArray(rows)) return [];
+
+        rows.forEach(item => {
+            if (item.matieres) {
+                Object.keys(item.matieres).forEach(k => set.add(k));
+            }
+        });
+
+        return Array.from(set).sort();
+    };
+
+    const matiereBody = (rowData, code) => {
+        return rowData.matieres?.[code] ?? 0;
     };
 
     const cpTemplate = (rowData) => {
@@ -1367,78 +1412,47 @@ const CalendarDemo = () => {
                         <Toast ref={toast} />
                         <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
-                            {groupedUsers && Object.keys(groupedUsers).length > 0 && (
+                            {(loading || (groupedUsers && groupedUsers.length > 0)) && (
                                 <TabView>
-                                    {groupedUsers.map(({ aca, cdt }) => (
-                                        <TabPanel key={aca} header={aca}>
-                                            <DataTable
-                                                ref={dt}
-                                                stripedRows
-                                                showGridlines
-                                                value={Array.isArray(cdt) ? cdt : []}
-                                                paginator
-                                                rows={10}
-                                                rowsPerPageOptions={[5, 10, 25]}
-                                                className="p-datatable-sm"
-                                                currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
-                                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                                globalFilter={globalFilter}
-                                                emptyMessage="Aucune donnée n'a été trouvée"
-                                                header={header}
+                                    {groupedUsers.map(({ aca, cdt }) => {
+                                        const matiereColumns = getMatiereColumns(cdt);
+
+                                        return (
+                                            <TabPanel key={aca} header={aca}>
+                                                <DataTable
+                                                    ref={dt}
+                                                    loading={loading}
+                                                    loadingIcon="pi pi-spin pi-spinner"
+                                                    stripedRows
+                                                    showGridlines
+                                                    value={Array.isArray(cdt) ? cdt : []}
+                                                    paginator
+                                                    rows={10}
+                                                    rowsPerPageOptions={[5, 10, 25]}
+                                                    className="p-datatable-sm"
+                                                    currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
+                                                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                                    globalFilter={globalFilter}
+                                                    emptyMessage="Aucune donnée n'a été trouvée"
+                                                    header={header}
                                                 >
-                                                <Column field="jury" header="Jury" body={juryTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
-                                                <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="effectif" header="Effectif du jury" body={effTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="frenchL" header="Français (L)" body={frenchLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="frenchS" header="Français (S)" body={frenchSTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="frenchLA" header="Français (LA)" body={frenchLATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="frenchSA" header="Français (S1A, S2A)" body={frenchSATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="englishS" header="Anglais (S)" body={englishSTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="mathL" header="Maths (L)" body={mathLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="mathSM" header="Maths (S1, S1A, S3)" body={mathSMTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="pcSM" header="PC (S1, S1A, S3)" body={pcSMTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="mathSE" header="Maths (S2, S2A, S4, S5)" body={mathSETemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="pcSE" header="PC (S2, S2A, S4, S5)" body={pcSETemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="svt" header="SVT (S2, S2A, S4, S5)" body={svtSETemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="svt" header="SVT (S1, S1A, S3)" body={svtSMTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="philoL" header="Philo (L)" body={philoLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="philoS" header="Philo (S)" body={philoSTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="hg" header="HG" body={hgTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="lla" header="LLA" body={llaTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                    <Column field="jury" header="Jury" body={juryTemplate} />
+                                                    <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} />
+                                                    <Column field="session" header="Session" body={sessionTemplate} />
+                                                    <Column field="effectif" header="Effectif du jury" body={effTemplate} />
 
-                                                <Column field="allLV1" header="Allemand (LV1)" body={allLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="angLV1" header="Anglais (LV1)" body={angLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="aramLV1" header="Arabe Moderne (LV1)" body={araMLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="espLV1" header="Espagnol (LV1)" body={espLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="portLV1" header="Portugais (LV1)" body={portLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-
-                                                <Column field="allLV2" header="Allemand (LV2)" body={allLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="angLV2" header="Anglais (LV2)" body={angLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="aramLV2" header="Arabe Moderne (LV2)" body={araMLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="espLV2" header="Espagnol (LV2)" body={espLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="portLV2" header="Portugais (LV2)" body={portLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-
-                                                <Column field="eco" header="Economie (LV2)" body={ecoTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="ita" header="Italien (LV2)" body={itaTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="lat" header="Latin (LV2)" body={latTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="rus" header="Russe (LV2)" body={rusTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="pcL" header="PC/L" body={pcLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="svtL" header="SVT/L" body={svtLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-
-
-                                                <Column field="mo" header="Man. Org." body={mOTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="ses" header="Sc. Eco. Soc." body={sESTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="gcf" header="Ges. Compta. Fina." body={gCFTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                
-                                                <Column field="gelec" header="Genie Electrique" body={gElTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="gemec" header="Genie Mécanique" body={gMcTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                                                    
-                                                
-
-                                            </DataTable>
-                                       </TabPanel>
-                                    ))}
+                                                    {matiereColumns.map((code: string) => (
+                                                        <Column
+                                                            key={code}
+                                                            header={code}
+                                                            body={(rowData) => matiereBody(rowData, code)}
+                                                            headerStyle={{ minWidth: '3rem' }}
+                                                        />
+                                                    ))}
+                                                </DataTable>
+                                            </TabPanel>
+                                        );
+                                    })}
                                 </TabView>
                             )}
 

@@ -251,6 +251,66 @@ export interface LazyParams {
 
 export const ParametrageService = {
 
+  // 🔹 Récupérer toutes les règles
+  getAllRegles() {
+      return axiosInstance.get('/regleMatiere/all-regles')
+          .then(response => {
+              console.log('Règles récupérées avec succès:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur chargement règles:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              return []; // évite crash DataTable
+          });
+  },
+
+  // 🔹 Créer une règle
+  createRegle(data: any) {
+      return axiosInstance.post('/regleMatiere/create-regle', data)
+          .then(response => {
+              console.log('✅ Règle créée avec succès:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur création règle:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              throw error;
+          });
+  },
+
+  // 🔹 Mettre à jour
+  updateRegle(id: string, data: any) {
+      return axiosInstance.put(`/regleMatiere/regles/${id}`, data)
+          .then(response => {
+              console.log('✅ Règle mise à jour:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur mise à jour règle:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              throw error;
+          });
+  },
+
+  // 🔹 Supprimer
+  deleteRegle(id: string) {
+      return axiosInstance.delete(`/regleMatiere/${id}`)
+          .then(response => {
+              console.log('✅ Règle supprimée:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur suppression règle:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              throw error;
+          });
+  },
+
   uploadFile(file) 
   {
     const formData = new FormData();
