@@ -82,6 +82,7 @@ const CalendarDemo = () => {
     const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
+    const [resultat__, setResultat__] = useState([]);
 
     const [users, setUsers] = useState([]);
 
@@ -298,10 +299,33 @@ const CalendarDemo = () => {
         setDeleteProductDialog(true);
     };
 
+    const handleClick = async () => {
+            setLoading(true);
+            try {
+                // 🔹 Étape 1 : doRepCEP
+                const data = await ParametrageService.doDecompteFeuilleCEP();
+                setResultat(data);
+    
+                // 🔹 Étape 2 : doRepCS
+                const data_ = await ParametrageService.doDecompteFeuilleCS();
+                setResultat_(data_);
+    
+                // 🔹 Étape 3 : fusionRep
+                const data__ = await ParametrageService.fusionRepFeuille();
+                setResultat__(data__);
+    
+                // 🔹 Redirection si toutes les étapes ont produit un résultat
+                if (data.length && data_.length && data__.length) {
+                    window.location.replace('/pedagogie/repartition-feuille');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
     const handleClick2 = async () => {
         const data = await ParametrageService.doRepCS();
         setResultat_(data);
-        window.location.replace('/pedagogie/repartition-sujets-cs')
     };
 
     const deleteProduct = async (values, { setSubmitting, resetForm }) => {
@@ -387,7 +411,7 @@ const CalendarDemo = () => {
         setError(null);
         try 
         {
-            const data = await ParametrageService.getDataRepCS();
+            const data = await ParametrageService.getDataFeuille();
             if (data && typeof data === 'object') {
                 const result = Object.entries(data).map(([aca, cdt]) => ({
                     aca,
@@ -480,66 +504,24 @@ const CalendarDemo = () => {
 
     const leftToolbarTemplate = () => {
         return (
-            <div className="flex align-items-center justify-content-start gap-3 my-2">
-                {/* Boutons */}
-                {/* <Button 
-                    size="small"
-                    severity="success" 
-                    label="Créer un nouvel accès" 
-                    icon="pi pi-plus" 
-                    onClick={openNew} 
-                /> */}
-
-                <Button
-                    size="small"
-                    severity="success" 
-                    onClick={handleClick2}
-                    icon="pi pi-download" 
-                    label="Générer Répartition CS" 
-                    className="p-button p-button-primary ml-2"
-                />
+            <div className="flex flex-column">
     
-
-                {/* <Button 
-                    size="small"
-                    severity="warning" 
-                    label="Télécharger les états de connexion" 
-                    icon="pi pi-download" 
-                    onClick={openNew3} 
-                /> */}
-
-                {/* Carte alignée avec les boutons */}
-                {/* <div
-                    className="card flex flex-column justify-content-center p-3 shadow-2 border-round-lg"
-                    style={{
-                        width: '350px',
-                        minWidth: '250px',
-                        backgroundColor: 'var(--surface-card)',
-                    }}
-                >
-                    <div className="w-full mb-2">
-                        <div
-                            className="border-round-xl bg-blue-300"
-                            style={{ height: '6px', overflow: 'hidden' }}
-                        >
-                            <div
-                                className="h-full border-round-xl bg-green-500 transition-all"
-                                style={{ width: `${(infosUsers?.UsersConnected / infosUsers?.totalUsers) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div className="flex align-items-center justify-content-between text-sm">
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-users text-green-500 mr-2"></i>
-                            <b>{infosUsers?.UsersConnected} connecté (s)</b>
-                        </div>
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-user-plus text-blue-500 mr-2"></i>
-                            <b>{infosUsers?.totalUsers} créé (s)</b>
-                        </div>
-                    </div>
-                </div> */}
+                <div>
+                    <h3>Gestion de la répartition des feuilles de composition</h3>
+                </div>
+    
+                <div className="flex align-items-center gap-1 flex-wrap">
+                    <Button
+                        severity="success"
+                        onClick={handleClick}
+                        icon="pi pi-download"
+                        label="Lancer toutes les répartitions"
+                        className="p-button-primary"
+                    />
+    
+                    
+                </div>
+    
             </div>
         );
     };
@@ -585,10 +567,10 @@ const CalendarDemo = () => {
         );
     };
 
-    const juryTemplate = (rowData) => {
+    const acaTemplate = (rowData) => {
         return (
             <>
-                {rowData.jury}
+                {rowData.academia}
             </>
         );
     };
@@ -625,6 +607,16 @@ const CalendarDemo = () => {
         );
     };
 
+    
+    const cexTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.centreExamen}
+            </>
+        );
+    };
+
+
     const sessionTemplate = (rowData) => {
         return (
             <>
@@ -634,309 +626,178 @@ const CalendarDemo = () => {
     };
 
 
-    const frenchLTemplate = (rowData) => {
+    const f6Template = (rowData) => {
         return (
             <>
-                {rowData.frenchL}
+                {rowData.f6}
             </>
         );
     };
 
-    const frenchSTemplate = (rowData) => {
+    const lprimeTemplate = (rowData) => {
         return (
             <>
-                {rowData.frenchS}
+                {rowData.lprime}
             </>
         );
     };
 
-    const frenchLATemplate = (rowData) => {
+    const l1ATemplate = (rowData) => {
         return (
             <>
-                {rowData.frenchLA}
+                {rowData.l1A}
             </>
         );
     };
 
-    const frenchSATemplate = (rowData) => {
+    const l1BTemplate = (rowData) => {
         return (
             <>
-                {rowData.frenchSA}
+                {rowData.l1B}
             </>
         );
     };
 
-    const englishSTemplate = (rowData) => {
+    const l2Template = (rowData) => {
         return (
             <>
-                {rowData.englishS}
+                {rowData.l2}
             </>
         );
     };
 
-    const mathLTemplate = (rowData) => {
+    const lATemplate = (rowData) => {
         return (
             <>
-                {rowData.mathL}
+                {rowData.la}
             </>
         );
     };
 
-    const mathSMTemplate = (rowData) => {
+    const lARTemplate = (rowData) => {
         return (
             <>
-                {rowData.mathSM}
+                {rowData.lar}
             </>
         );
     };
 
-    const pcSMTemplate = (rowData) => {
+    const s1Template = (rowData) => {
         return (
             <>
-                {rowData.pcSM}
+                {rowData.s1}
             </>
         );
     };
 
-    const mathSETemplate = (rowData) => {
+    const s1ATemplate = (rowData) => {
         return (
             <>
-                {rowData.mathSE}
+                {rowData.s1A}
             </>
         );
     };
 
-    const pcSETemplate = (rowData) => {
+    const s2Template = (rowData) => {
         return (
             <>
-                {rowData.pcSE}
+                {rowData.s2}
             </>
         );
     };
 
-    const svtSETemplate = (rowData) => {
+    const s2ATemplate = (rowData) => {
         return (
             <>
-                {rowData.svt}
+                {rowData.s2A}
             </>
         );
     };
 
-    const svtSMTemplate = (rowData) => {
+    const s3Template = (rowData) => {
         return (
             <>
-                {rowData.svtSM}
+                {rowData.s3}
             </>
         );
     };
 
-    const philoLTemplate = (rowData) => {
+    const s4Template = (rowData) => {
         return (
             <>
-                {rowData.philoL}
+                {rowData.s4}
             </>
         );
     };
 
-    const philoSTemplate = (rowData) => {
+    const s5Template = (rowData) => {
         return (
             <>
-                {rowData.philoS}
+                {rowData.s5}
             </>
         );
     };
 
-    const hgTemplate = (rowData) => {
+    const stegTemplate = (rowData) => {
         return (
             <>
-                {rowData.hg}
+                {rowData.steg}
             </>
         );
     };
 
-    const llaTemplate = (rowData) => {
+    const stiddTemplate = (rowData) => {
         return (
             <>
-                {rowData.lla}
+                {rowData.stidd}
             </>
         );
     };
 
-     const allLV1Template = (rowData) => {
+    const t1Template = (rowData) => {
         return (
             <>
-                {rowData.allemendLV1}
+                {rowData.t1}
             </>
         );
     };
 
-    const angLV1Template = (rowData) => {
+    const t2Template = (rowData) => {
         return (
             <>
-                {rowData.anglaisLV1}
+                {rowData.t2}
             </>
         );
     };
 
-    const araMLV1Template = (rowData) => {
+    const fdTemplate = (rowData) => {
         return (
             <>
-                {rowData.arabeModerneLV1}
+                {rowData.feuille_double}
             </>
         );
     };
 
-    const espLV1Template = (rowData) => {
+    const fiTemplate = (rowData) => {
         return (
             <>
-                {rowData.espagnolLV1}
+                {rowData.feuille_intercalaire}
             </>
         );
     };
 
-    const portLV1Template = (rowData) => {
+    const fbTemplate = (rowData) => {
         return (
             <>
-                {rowData.portugaisLV1}
+                {rowData.feuille_brouillon}
             </>
         );
     };
 
-    const allLV2Template = (rowData) => {
-        return (
-            <>
-                {rowData.allemendLV2}
-            </>
-        );
-    };
-
-    const angLV2Template = (rowData) => {
-        return (
-            <>
-                {rowData.anglaisLV2}
-            </>
-        );
-    };
-
-    const araMLV2Template = (rowData) => {
-        return (
-            <>
-                {rowData.arabeModerneLV2}
-            </>
-        );
-    };
-
-    const espLV2Template = (rowData) => {
-        return (
-            <>
-                {rowData.espagnolLV2}
-            </>
-        );
-    };
-
-    const portLV2Template = (rowData) => {
-        return (
-            <>
-                {rowData.portugaisLV2}
-            </>
-        );
-    };
-
-    const ecoTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.economie}
-            </>
-        );
-    };
-
-    const itaTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.italien}
-            </>
-        );
-    };
-
-    const latTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.latin}
-            </>
-        );
-    };
-
-    const rusTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.russe}
-            </>
-        );
-    };
-
-    const pcLTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.pcL}
-            </>
-        );
-    };
-
-    const svtLTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.svtL}
-            </>
-        );
-    };
-
-
-    const gElTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.gelec}
-            </>
-        );
-    };
-
-
-    const gMcTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.gemec}
-            </>
-        );
-    };
-
-    const mOTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.mo}
-            </>
-        );
-    };
-
-    const sESTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.ses}
-            </>
-        );
-    };
-
-    const gCFTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.gcf}
-            </>
-        );
-    };
-
-
-
+       
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Répartition par centre d'ecrit secondaire et par discipline</h5>
+            <h5 className="m-0">Répartition par centre d'ecrit principal et par discipline</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onChange={(e) => setGlobalFilter((e.target as HTMLInputElement).value)} placeholder="Recherche..." />
@@ -1228,73 +1089,54 @@ const CalendarDemo = () => {
                         <Toast ref={toast} />
                         <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
-                            {groupedUsers && Object.keys(groupedUsers).length > 0 && (
+                            {(loading || (groupedUsers && groupedUsers.length > 0)) && (
                                 <TabView>
                                     {groupedUsers.map(({ aca, cdt }) => (
                                         <TabPanel key={aca} header={aca}>
-                                                <DataTable
-                                                    ref={dt}
-                                                    stripedRows
-                                                    showGridlines
-                                                    value={Array.isArray(cdt) ? cdt : []}
-                                                    paginator
-                                                    rows={10}
-                                                    rowsPerPageOptions={[5, 10, 25]}
-                                                    className="p-datatable-sm"
-                                                    currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
-                                                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                                    globalFilter={globalFilter}
-                                                    emptyMessage="Aucune donnée n'a été trouvée"
-                                                    header={header}
-                                                    >
-                                                    <Column field="jury" header="Jury" body={juryTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                    <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
-                                                    <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                    <Column field="effectif" header="Effectif du jury" body={effTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                    <Column field="frenchL" header="Français (L)" body={frenchLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="frenchS" header="Français (S)" body={frenchSTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="frenchLA" header="Français (LA)" body={frenchLATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="frenchSA" header="Français (S1A, S2A)" body={frenchSATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="englishS" header="Anglais (S)" body={englishSTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="mathL" header="Maths (L)" body={mathLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="mathSM" header="Maths (S1, S1A, S3)" body={mathSMTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="pcSM" header="PC (S1, S1A, S3)" body={pcSMTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="mathSE" header="Maths (S2, S2A, S4, S5)" body={mathSETemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="pcSE" header="PC (S2, S2A, S4, S5)" body={pcSETemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="svt" header="SVT (S2, S2A, S4, S5)" body={svtSETemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="svt" header="SVT (S1, S1A, S3)" body={svtSMTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="philoL" header="Philo (L)" body={philoLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="philoS" header="Philo (S)" body={philoSTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="hg" header="HG" body={hgTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="lla" header="LLA" body={llaTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-    
-                                                    <Column field="allLV1" header="Allemand (LV1)" body={allLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="angLV1" header="Anglais (LV1)" body={angLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="aramLV1" header="Arabe Moderne (LV1)" body={araMLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="espLV1" header="Espagnol (LV1)" body={espLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="portLV1" header="Portugais (LV1)" body={portLV1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-    
-                                                    <Column field="allLV2" header="Allemand (LV2)" body={allLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="angLV2" header="Anglais (LV2)" body={angLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="aramLV2" header="Arabe Moderne (LV2)" body={araMLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="espLV2" header="Espagnol (LV2)" body={espLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="portLV2" header="Portugais (LV2)" body={portLV2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-    
-                                                    <Column field="eco" header="Economie (LV2)" body={ecoTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="ita" header="Italien (LV2)" body={itaTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="lat" header="Latin (LV2)" body={latTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="rus" header="Russe (LV2)" body={rusTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="pcL" header="PC/L" body={pcLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="svtL" header="SVT/L" body={svtLTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                            <DataTable
+                                                ref={dt}
+                                                stripedRows
+                                                showGridlines
+                                                loading={loading}
+                                                value={Array.isArray(cdt) ? cdt : []}
+                                                paginator
+                                                rows={10}
+                                                rowsPerPageOptions={[5, 10, 25]}
+                                                className="p-datatable-sm"
+                                                currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
+                                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                                globalFilter={globalFilter}
+                                                emptyMessage="Aucune donnée n'a été trouvée"
+                                                header={header}
+                                                >
+                                                <Column field="academia" header="Académie" body={acaTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
+                                                <Column field="centreExam" header="Centre d'Examen" body={cexTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
+                                                <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
+                                                <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
+                                                <Column field="effectif" header="Effectif du centre" body={effTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
+                                                <Column field="f6" header="F6" body={f6Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="lprime" header="L'" body={lprimeTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="l1A" header="L1A" body={l1ATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="l1B" header="L1B" body={l1BTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="l2" header="L2" body={l2Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="lA" header="LA" body={lATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="lAR" header="L-AR" body={lARTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s1" header="S1" body={s1Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s1A" header="S1A" body={s1ATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s2" header="S2" body={s2Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s2A" header="S2A" body={s2ATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s3" header="S3" body={s3Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s4" header="S4" body={s4Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="s5" header="S5" body={s5Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="steg" header="STEG" body={stegTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="stidd" header="STIDD" body={stiddTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="t1" header="T1" body={t1Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="t2" header="T2" body={t2Template} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="fd" header="Feuille double" body={fdTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="fi" header="Feuille intercalaire" body={fiTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                                <Column field="fb" header="Feuille brouillon" body={fbTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
 
-                                                    <Column field="mo" header="Man. Org." body={mOTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="ses" header="Sc. Eco. Soc." body={sESTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="gcf" header="Ges. Compta. Fina." body={gCFTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-
-                                                    <Column field="gelec" header="Genie Electrique" body={gElTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                    <Column field="gemec" header="Genie Mécanique" body={gMcTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-
-                                                </DataTable>
+                                            </DataTable>
                                        </TabPanel>
                                     ))}
                                 </TabView>

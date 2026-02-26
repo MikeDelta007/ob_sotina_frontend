@@ -59,51 +59,12 @@ const AppMenu = () => {
                 {
                     label: 'Répartition',
                     icon: 'pi pi-fw pi-sitemap',
-                    items : 
-                    [
-                        {
-                            label: 'Centre Principal',
-                            // icon: 'pi pi-fw pi-tags',
-                            to: '/pedagogie/repartition-sujets-cp'
-                        },
-                        {
-                            label: 'Centre Secondaire',
-                            // icon: 'pi pi-fw pi-tags',
-                            to: '/pedagogie/repartition-sujets-cs'
-                        },
-                        {
-                            label: 'Fusion Répartition',
-                            // icon: 'pi pi-fw pi-tags',
-                            to: '/pedagogie/fusion-repartition'
-                        }
-                        // {
-                        //     label: 'Université',
-                        //     // icon: 'pi pi-fw pi-tags',
-                        //     to: '/editions-systeme/structures/universite'
-                        // },
-                    ]
+                    to: '/pedagogie/repartition-tirage-sujets',
                 },
                 {
                     label: 'Feuilles',
-                    icon: 'pi pi-fw pi-database',
-                    items : 
-                    [
-                        {
-                            label: 'Centre Principal',
-                            // icon: 'pi pi-fw pi-tags',
-                            to: '/pedagogie/decompte-feuilles-cp'
-                        },
-                        {
-                            label: 'Centre Secondaire',
-                            // icon: 'pi pi-fw pi-tags',
-                            to: '/pedagogie/decompte-feuilles-cs'
-                        }
-                        // {
-                        //     label: 'Université',
-                        //     // icon: 'pi pi-fw pi-tags',
-                        //     to: '/editions-systeme/structures/universite'
-                        // },
-                    ]
+                    icon: 'pi pi-fw pi-copy',
+                    to: '/pedagogie/repartition-feuille'
                 },
                 
             ]

@@ -8,7 +8,7 @@ import { InputText } from 'primereact/inputtext';
 import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Demo } from '@/types';
 import { ProductService } from '@/demo/service/ProductService';
 import { Dropdown } from 'primereact/dropdown';
@@ -17,6 +17,7 @@ import { Calendar } from 'primereact/calendar';
 import { Carousel } from 'primereact/carousel';
 import { ActeurDTO, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, UserDTO } from '@/demo/service/ParametrageService';
 import * as Yup from 'yup';
+import { saveAs } from 'file-saver';
 
 import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
@@ -32,6 +33,15 @@ import { MdLockReset } from 'react-icons/md';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { classNames } from 'primereact/utils';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { data } from 'react-router-dom';
+
+type Repartition = {
+    jury: number;
+    centreEcrit: string;
+    session: number;
+    effectif: number;
+    matieres?: Record<string, number>;
+};
 
 const CalendarDemo = () => {
     const [is_update, setIsUpdate] = useState(false); // <== valeur persistante entre les appels
@@ -43,6 +53,7 @@ const CalendarDemo = () => {
     const [is_go_by_smtp, setIsGoBySmtp] = useState(false); // <== valeur persistante entre les appels
     const [groupedUsers, setGroupedUsers] = useState([]);
     const { user } = useContext(UserContext);
+    const [data, setData] = useState<Repartition[]>([]);
 
     let emptyProduct: Demo.Product = {
         id: null,
@@ -82,6 +93,7 @@ const CalendarDemo = () => {
     const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
+    const [resultat__, setResultat__] = useState([]);
 
     const [users, setUsers] = useState([]);
 
@@ -90,6 +102,11 @@ const CalendarDemo = () => {
     const [infosUsers, setInfosUsers] = useState(null);
 
     const [errorMessage, setErrorMessage] = useState('');
+
+    const [exporting, setExporting] = useState(false);
+    const [exportStep, setExportStep] = useState('');
+    const [seconds, setSeconds] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null)
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -125,6 +142,19 @@ const CalendarDemo = () => {
             setInfosUsers(response);
         });
     }, []);
+
+    useEffect(() => {
+        if (exporting) {
+            setSeconds(0);
+            timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [exporting]);
 
     const formatCurrency = (value) => {
         return value.toLocaleString('en-US', {
@@ -255,7 +285,6 @@ const CalendarDemo = () => {
         formik2.setValues(accesFormatted);
     };
 
-    console.log(is_update);
 
     const generateSimplePassword = () => {
         const letters = 'abcdefghijklmnopqrstuvwxyz';
@@ -298,17 +327,135 @@ const CalendarDemo = () => {
         setDeleteProductDialog(true);
     };
 
+
     const handleClick = async () => {
+        setLoading(true);
+        try {
+            // 🔹 Étape 1 : doRepCEP
+            const data = await ParametrageService.doRepCEP();
+            setResultat(data);
 
-        const data = await ParametrageService.doDecompteFeuilleCEP();
-        setResultat(data);
-        window.location.replace('/pedagogie/decompte-feuilles-cp')
+            // 🔹 Étape 2 : doRepCS
+            const data_ = await ParametrageService.doRepCS();
+            setResultat_(data_);
+
+            // 🔹 Étape 3 : fusionRep
+            const data__ = await ParametrageService.fusionRep();
+            setResultat__(data__);
+
+            // 🔹 Redirection si toutes les étapes ont produit un résultat
+            if (data.length && data_.length && data__.length) {
+                window.location.replace('/pedagogie/repartition-tirage-sujets');
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleClick2 = async () => {
-        const data = await ParametrageService.doRepCS();
-        setResultat_(data);
+
+    const exportAllCandidats = async () => {
+        console.log("fila")
+
+        try {
+            setExporting(true);
+            setExportStep('📡 Récupération des données...');
+            // 1. Appel API : s'assurer que le backend renvoie juste le nécessaire (projection)
+            const allCandidats = await ParametrageService.getAllDataCP();
+
+            if (!allCandidats || allCandidats.length === 0) {
+                setExportStep('✅ Aucune donnée à exporter');
+                setTimeout(() => setExporting(false), 1000);
+                return;
+            }
+
+            setExportStep('🔄 Préparation des données...');
+
+            // 2. Import dynamique de XLSX (déjà bien, mais on peut extraire utils)
+            const { utils, write } = await import('xlsx');
+
+            // 3. Transformation performante (éviter toLocaleString en boucle)
+            const worksheetData = [];
+            
+            // On utilise une boucle for classique (plus rapide que map pour de gros volumes)
+            for (let i = 0; i < allCandidats.length; i++) {
+                const row = allCandidats[i];
+                
+                worksheetData.push({
+                    "Session": row.session,
+                    "Jury": row.jury,
+                    "Centre d'Ecrit Principal": row.centreEcrit,
+                    "Code Académie": row.academia,
+                    "Effectif du jury": row.effectif,
+                    "Français (L)": row.frenchL,
+                    "Français (S)": row.frenchS,
+                    "Français (LA)": row.frenchLA,
+                    "Français (S1A, S2A)": row.frenchSA,
+                    "Anglais (S)": row.englishS,
+                    "Maths (L)": row.mathL,
+                    "Maths (S1, S1A, S3)": row.mathSM,
+                    "PC (S1, S1A, S3)": row.pcSM,
+                    "Maths (S2, S2A, S4, S5)": row.mathSE,
+                    "PC (S2, S2A, S4, S5)": row.pcSE,
+                    "SVT (S2, S2A, S4, S5)": row.svtSE,
+                    "SVT (S1)": row.svtSM,
+                    "Philo (L)": row.philoL,
+                    "Philo (S)": row.philoS,
+                    "HG": row.hg,
+                    "LLA": row.lla,
+                    "Anglais (LV1)": row.anglaisLV1,
+                    "Allemand (LV1)": row.allemendLV1,
+                    "Arabe Moderne (LV1)": row.arabeModerneLV1,
+                    "Espagnol (LV1)": row.espagnolLV1,
+                    "Portugais (LV1)": row.portugaisLV1,
+                    "Anglais (LV2)": row.anglaisLV2,
+                    "Allemand (LV2)": row.allemendLV2,
+                    "Arabe Moderne (LV2)": row.arabeModerneLV2,
+                    "Espagnol (LV2)": row.espagnolLV2,
+                    "Portugais (LV2)": row.portugaisLV2,
+                    "Economie": row.economie,
+                    "Italien": row.italien,
+                    "Latin": row.latin,
+                    "Russe": row.russe,
+                    "PC L": row.pcL,
+                    "SVT L": row.svtL,
+                    "MO": row.mo,
+                    "SES": row.ses,
+                    "GCF": row.gcf,
+                    "GELEC": row.gelec,
+                    "GEMECA": row.gemec
+
+
+
+
+                });
+            }
+
+            setExportStep('💾 Génération du fichier Excel...');
+
+            // 4. Création du fichier
+            const worksheet = utils.json_to_sheet(worksheetData);
+            const workbook = utils.book_new();
+            utils.book_append_sheet(workbook, worksheet, 'Répartition des tirages CP');
+
+            // 5. Génération du buffer (type 'array' est correct pour Blob)
+            const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
+
+            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `Export_repartition_tirage_sujet_BAC_2026.xlsx`);
+
+            setExportStep('✅ Export terminé avec succés !');
+            setTimeout(() => setExporting(false), 1500);
+
+        } 
+        catch (error) 
+        {
+            console.error("❌ Erreur export :", error);
+            setExportStep('❌ Erreur lors de l’export');
+            setTimeout(() => setExporting(false), 2000);
+        }
+
     };
+
 
     const deleteProduct = async (values, { setSubmitting, resetForm }) => {
         setDeleteProductDialog(false);
@@ -393,7 +540,7 @@ const CalendarDemo = () => {
         setError(null);
         try 
         {
-            const data = await ParametrageService.getDataFeuilleCP();
+            const data = await ParametrageService.getFusionRep();
             if (data && typeof data === 'object') {
                 const result = Object.entries(data).map(([aca, cdt]) => ({
                     aca,
@@ -485,70 +632,35 @@ const CalendarDemo = () => {
     };
 
     const leftToolbarTemplate = () => {
-        return (
-            <div className="flex align-items-center justify-content-start gap-3 my-2">
-                {/* Boutons */}
-                {/* <Button 
-                    size="small"
-                    severity="success" 
-                    label="Créer un nouvel accès" 
-                    icon="pi pi-plus" 
-                    onClick={openNew} 
-                /> */}
+    return (
+        <div className="flex flex-column">
+
+            <div>
+                <h3>Gestion de la répartition des tirages</h3>
+            </div>
+
+            <div className="flex align-items-center gap-1 flex-wrap">
+                <Button
+                    severity="success"
+                    onClick={handleClick}
+                    icon="pi pi-download"
+                    label="Lancer toutes les répartitions"
+                    className="p-button-primary"
+                />
 
                 <Button
-                    size="small"
-                    severity="success" 
-                    onClick={handleClick}
-                    icon="pi pi-download" 
-                    label="Générer le décompte des feuilles CEP" 
-                    className="p-button p-button-primary ml-2"
+                    type="button"
+                    icon="pi pi-file-excel"
+                    severity="success"
+                    label="Exporter"
+                    onClick={exportAllCandidats}
+                    className="p-button-primary"
                 />
-    
-
-                {/* <Button 
-                    size="small"
-                    severity="warning" 
-                    label="Télécharger les états de connexion" 
-                    icon="pi pi-download" 
-                    onClick={openNew3} 
-                /> */}
-
-                {/* Carte alignée avec les boutons */}
-                {/* <div
-                    className="card flex flex-column justify-content-center p-3 shadow-2 border-round-lg"
-                    style={{
-                        width: '350px',
-                        minWidth: '250px',
-                        backgroundColor: 'var(--surface-card)',
-                    }}
-                >
-                    <div className="w-full mb-2">
-                        <div
-                            className="border-round-xl bg-blue-300"
-                            style={{ height: '6px', overflow: 'hidden' }}
-                        >
-                            <div
-                                className="h-full border-round-xl bg-green-500 transition-all"
-                                style={{ width: `${(infosUsers?.UsersConnected / infosUsers?.totalUsers) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div className="flex align-items-center justify-content-between text-sm">
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-users text-green-500 mr-2"></i>
-                            <b>{infosUsers?.UsersConnected} connecté (s)</b>
-                        </div>
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-user-plus text-blue-500 mr-2"></i>
-                            <b>{infosUsers?.totalUsers} créé (s)</b>
-                        </div>
-                    </div>
-                </div> */}
             </div>
-        );
-    };
+
+        </div>
+    );
+};
 
 
     const rightToolbarTemplate = () => {
@@ -591,10 +703,10 @@ const CalendarDemo = () => {
         );
     };
 
-    const acaTemplate = (rowData) => {
+    const juryTemplate = (rowData) => {
         return (
             <>
-                {rowData.academia}
+                {rowData.jury}
             </>
         );
     };
@@ -605,6 +717,25 @@ const CalendarDemo = () => {
                 {rowData.effectif}
             </>
         );
+    };
+
+
+    const getMatiereColumns = (rows: Repartition[]) => {
+        const set = new Set<string>();
+
+        if (!Array.isArray(rows)) return [];
+
+        rows.forEach(item => {
+            if (item.matieres) {
+                Object.keys(item.matieres).forEach(k => set.add(k));
+            }
+        });
+
+        return Array.from(set).sort();
+    };
+
+    const matiereBody = (rowData, code) => {
+        return rowData.matieres?.[code] ?? 0;
     };
 
     const cpTemplate = (rowData) => {
@@ -631,16 +762,6 @@ const CalendarDemo = () => {
         );
     };
 
-    
-    const cexTemplate = (rowData) => {
-        return (
-            <>
-                {rowData.centreExamen}
-            </>
-        );
-    };
-
-
     const sessionTemplate = (rowData) => {
         return (
             <>
@@ -650,175 +771,305 @@ const CalendarDemo = () => {
     };
 
 
-    const f6Template = (rowData) => {
+    const frenchLTemplate = (rowData) => {
         return (
             <>
-                {rowData.f6}
+                {rowData.frenchL}
             </>
         );
     };
 
-    const lprimeTemplate = (rowData) => {
+    const frenchSTemplate = (rowData) => {
         return (
             <>
-                {rowData.lprime}
+                {rowData.frenchS}
             </>
         );
     };
 
-    const l1ATemplate = (rowData) => {
+    const frenchLATemplate = (rowData) => {
         return (
             <>
-                {rowData.l1A}
+                {rowData.frenchLA}
             </>
         );
     };
 
-    const l1BTemplate = (rowData) => {
+    const frenchSATemplate = (rowData) => {
         return (
             <>
-                {rowData.l1B}
+                {rowData.frenchSA}
             </>
         );
     };
 
-    const l2Template = (rowData) => {
+    const englishSTemplate = (rowData) => {
         return (
             <>
-                {rowData.l2}
+                {rowData.englishS}
             </>
         );
     };
 
-    const lATemplate = (rowData) => {
+    const mathLTemplate = (rowData) => {
         return (
             <>
-                {rowData.la}
+                {rowData.mathL}
             </>
         );
     };
 
-    const lARTemplate = (rowData) => {
+    const mathSMTemplate = (rowData) => {
         return (
             <>
-                {rowData.lar}
+                {rowData.mathSM}
             </>
         );
     };
 
-    const s1Template = (rowData) => {
+    const pcSMTemplate = (rowData) => {
         return (
             <>
-                {rowData.s1}
+                {rowData.pcSM}
             </>
         );
     };
 
-    const s1ATemplate = (rowData) => {
+    const mathSETemplate = (rowData) => {
         return (
             <>
-                {rowData.s1A}
+                {rowData.mathSE}
             </>
         );
     };
 
-    const s2Template = (rowData) => {
+    const pcSETemplate = (rowData) => {
         return (
             <>
-                {rowData.s2}
+                {rowData.pcSE}
             </>
         );
     };
 
-    const s2ATemplate = (rowData) => {
+    const svtSMTemplate = (rowData) => {
         return (
             <>
-                {rowData.s2A}
+                {rowData.svtSM}
             </>
         );
     };
 
-    const s3Template = (rowData) => {
+    const svtSETemplate = (rowData) => {
         return (
             <>
-                {rowData.s3}
+                {rowData.svtSE}
             </>
         );
     };
 
-    const s4Template = (rowData) => {
+    const philoLTemplate = (rowData) => {
         return (
             <>
-                {rowData.s4}
+                {rowData.philoL}
             </>
         );
     };
 
-    const s5Template = (rowData) => {
+    const philoSTemplate = (rowData) => {
         return (
             <>
-                {rowData.s5}
+                {rowData.philoS}
             </>
         );
     };
 
-    const stegTemplate = (rowData) => {
+    const hgTemplate = (rowData) => {
         return (
             <>
-                {rowData.steg}
+                {rowData.hg}
             </>
         );
     };
 
-    const stiddTemplate = (rowData) => {
+    const llaTemplate = (rowData) => {
         return (
             <>
-                {rowData.stidd}
+                {rowData.lla}
             </>
         );
     };
 
-    const t1Template = (rowData) => {
+    const allLV1Template = (rowData) => {
         return (
             <>
-                {rowData.t1}
+                {rowData.allemendLV1}
             </>
         );
     };
 
-    const t2Template = (rowData) => {
+    const angLV1Template = (rowData) => {
         return (
             <>
-                {rowData.t2}
+                {rowData.anglaisLV1}
             </>
         );
     };
 
-    const fdTemplate = (rowData) => {
+    const araMLV1Template = (rowData) => {
         return (
             <>
-                {rowData.feuille_double}
+                {rowData.arabeModerneLV1}
             </>
         );
     };
 
-    const fiTemplate = (rowData) => {
+    const espLV1Template = (rowData) => {
         return (
             <>
-                {rowData.feuille_intercalaire}
+                {rowData.espagnolLV1}
             </>
         );
     };
 
-    const fbTemplate = (rowData) => {
+    const portLV1Template = (rowData) => {
         return (
             <>
-                {rowData.feuille_brouillon}
+                {rowData.portugaisLV1}
             </>
         );
     };
 
-       
+    const allLV2Template = (rowData) => {
+        return (
+            <>
+                {rowData.allemendLV2}
+            </>
+        );
+    };
+
+    const angLV2Template = (rowData) => {
+        return (
+            <>
+                {rowData.anglaisLV2}
+            </>
+        );
+    };
+
+    const araMLV2Template = (rowData) => {
+        return (
+            <>
+                {rowData.arabeModerneLV2}
+            </>
+        );
+    };
+
+    const espLV2Template = (rowData) => {
+        return (
+            <>
+                {rowData.espagnolLV2}
+            </>
+        );
+    };
+
+    const portLV2Template = (rowData) => {
+        return (
+            <>
+                {rowData.portugaisLV2}
+            </>
+        );
+    };
+
+    const ecoTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.economie}
+            </>
+        );
+    };
+
+    const itaTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.italien}
+            </>
+        );
+    };
+
+    const latTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.latin}
+            </>
+        );
+    };
+
+    const rusTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.russe}
+            </>
+        );
+    };
+
+    const pcLTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.pcL}
+            </>
+        );
+    };
+
+    const svtLTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.svtL}
+            </>
+        );
+    };
+
+    const gElTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.gelec}
+            </>
+        );
+    };
+
+
+    const gMcTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.gemec}
+            </>
+        );
+    };
+
+    const mOTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.mo}
+            </>
+        );
+    };
+
+    const sESTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.ses}
+            </>
+        );
+    };
+
+    const gCFTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.gcf}
+            </>
+        );
+    };
+
+
+    
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Répartition par centre d'ecrit principal et par discipline</h5>
@@ -1092,6 +1343,10 @@ const CalendarDemo = () => {
     };
 
 
+    
+
+
+
     //console.log(is_update);
 
     return (
@@ -1113,55 +1368,47 @@ const CalendarDemo = () => {
                         <Toast ref={toast} />
                         <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
-                            {groupedUsers && Object.keys(groupedUsers).length > 0 && (
+                            {(loading || (groupedUsers && groupedUsers.length > 0)) && (
                                 <TabView>
-                                    {groupedUsers.map(({ aca, cdt }) => (
-                                        <TabPanel key={aca} header={aca}>
-                                            <DataTable
-                                                ref={dt}
-                                                stripedRows
-                                                showGridlines
-                                                value={Array.isArray(cdt) ? cdt : []}
-                                                paginator
-                                                rows={10}
-                                                rowsPerPageOptions={[5, 10, 25]}
-                                                className="p-datatable-sm"
-                                                currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
-                                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                                globalFilter={globalFilter}
-                                                emptyMessage="Aucune donnée n'a été trouvée"
-                                                header={header}
-                                                >
-                                                <Column field="academia" header="Académie" body={acaTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="centreExam" header="Centre d'Examen" body={cexTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
-                                                <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} headerStyle={{ minWidth: '3rem' }}></Column>
-                                                <Column field="session" header="Session" body={sessionTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="effectif" header="Effectif du centre" body={effTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
-                                                <Column field="f6" header="F6" body={f6Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="lprime" header="L'" body={lprimeTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="l1A" header="L1A" body={l1ATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="l1B" header="L1B" body={l1BTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="l2" header="L2" body={l2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="lA" header="LA" body={lATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="lAR" header="L-AR" body={lARTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s1" header="S1" body={s1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s1A" header="S1A" body={s1ATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s2" header="S2" body={s2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s2A" header="S2A" body={s2ATemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s3" header="S3" body={s3Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s4" header="S4" body={s4Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="s5" header="S5" body={s5Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="steg" header="STEG" body={stegTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="stidd" header="STIDD" body={stiddTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="t1" header="T1" body={t1Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="t2" header="T2" body={t2Template} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="fd" header="Feuille double" body={fdTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="fi" header="Feuille intercalaire" body={fiTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
-                                                <Column field="fb" header="Feuille brouillon" body={fbTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
+                                    {groupedUsers.map(({ aca, cdt }) => {
+                                        const matiereColumns = getMatiereColumns(cdt);
 
-                                            </DataTable>
-                                       </TabPanel>
-                                    ))}
+                                        return (
+                                            <TabPanel key={aca} header={aca}>
+                                                <DataTable
+                                                    ref={dt}
+                                                    loading={loading}
+                                                    loadingIcon="pi pi-spin pi-spinner"
+                                                    stripedRows
+                                                    showGridlines
+                                                    value={Array.isArray(cdt) ? cdt : []}
+                                                    paginator
+                                                    rows={10}
+                                                    rowsPerPageOptions={[5, 10, 25]}
+                                                    className="p-datatable-sm"
+                                                    currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
+                                                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                                    globalFilter={globalFilter}
+                                                    emptyMessage="Aucune donnée n'a été trouvée"
+                                                    header={header}
+                                                >
+                                                    <Column field="jury" header="Jury" body={juryTemplate} />
+                                                    <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} />
+                                                    <Column field="session" header="Session" body={sessionTemplate} />
+                                                    <Column field="effectif" header="Effectif du jury" body={effTemplate} />
+
+                                                    {matiereColumns.map((code: string) => (
+                                                        <Column
+                                                            key={code}
+                                                            header={code}
+                                                            body={(rowData) => matiereBody(rowData, code)}
+                                                            headerStyle={{ minWidth: '3rem' }}
+                                                        />
+                                                    ))}
+                                                </DataTable>
+                                            </TabPanel>
+                                        );
+                                    })}
                                 </TabView>
                             )}
 
@@ -1503,6 +1750,16 @@ const CalendarDemo = () => {
                             ,
                         </Dialog>
 
+                        <Dialog visible={exporting} onHide={() => {}} modal closable={false} header="Préparation du fichier">
+                            <div className="flex flex-column align-items-center justify-content-center">
+                                <ProgressSpinner style={{ width: '50px', height: '50px' }} />
+                                <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>{exportStep}</p>
+                                <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>
+                                    Veuillez patienter... ⏱ {seconds} seconde{seconds > 1 ? 's' : ''}
+                                </p>
+                            </div>
+                        </Dialog>
+
                         <Dialog visible={deleteProductDialog} style={{ width: '550px' }} header="Réinitialisation du mot de passe" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
                             <form onSubmit={formik.handleSubmit} className="p-0">
                                 <div className="flex align-items-center justify-content-center">
@@ -1565,6 +1822,7 @@ const CalendarDemo = () => {
                                             onClick={hideBatchCreatedDialog} 
                                             className="mt-3"
                                         />
+                                        
                                     </div>
                                 )}
                             </div>

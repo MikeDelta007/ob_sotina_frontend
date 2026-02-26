@@ -438,65 +438,26 @@ const CalendarDemo = () => {
 
     const leftToolbarTemplate = () => {
         return (
-            <div className="flex align-items-center justify-content-start gap-3 my-2">
-                {/* Boutons */}
-                {/* <Button 
-                    size="small"
-                    severity="success" 
-                    label="Créer un nouvel accès" 
-                    icon="pi pi-plus" 
-                    onClick={openNew} 
-                /> */}
-                <Button 
-                    size="small"
-                    severity="success" 
-                    label="Télécharger la liste des candidats" 
-                    icon="pi pi-download" 
-                    onClick={openNew3} 
-                />
-                {/* <Button 
-                    size="small"
-                    severity="warning" 
-                    label="Télécharger les états de connexion" 
-                    icon="pi pi-download" 
-                    onClick={openNew3} 
-                /> */}
-
-                {/* Carte alignée avec les boutons */}
-                {/* <div
-                    className="card flex flex-column justify-content-center p-3 shadow-2 border-round-lg"
-                    style={{
-                        width: '350px',
-                        minWidth: '250px',
-                        backgroundColor: 'var(--surface-card)',
-                    }}
-                >
-                    <div className="w-full mb-2">
-                        <div
-                            className="border-round-xl bg-blue-300"
-                            style={{ height: '6px', overflow: 'hidden' }}
-                        >
-                            <div
-                                className="h-full border-round-xl bg-green-500 transition-all"
-                                style={{ width: `${(infosUsers?.UsersConnected / infosUsers?.totalUsers) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div className="flex align-items-center justify-content-between text-sm">
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-users text-green-500 mr-2"></i>
-                            <b>{infosUsers?.UsersConnected} connecté (s)</b>
-                        </div>
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-user-plus text-blue-500 mr-2"></i>
-                            <b>{infosUsers?.totalUsers} créé (s)</b>
-                        </div>
-                    </div>
-                </div> */}
+            <div className="flex flex-column">
+    
+                <div>
+                    <h3>Gestion des données sources</h3>
+                </div>
+    
+                <div className="flex align-items-center gap-1 flex-wrap">
+                    <Button 
+                        size="small"
+                        severity="success" 
+                        label="Charger la liste de tous les candidats" 
+                        icon="pi pi-eject" 
+                        onClick={openNew3} 
+                    />
+                </div>
+    
             </div>
         );
     };
+
 
 
     const rightToolbarTemplate = () => {

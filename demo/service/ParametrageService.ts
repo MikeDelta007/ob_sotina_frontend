@@ -453,9 +453,9 @@ export const ParametrageService = {
       });
   },
 
-  getDataFeuilleCP() {
+  getDataFeuille() {
     // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
-    return axiosInstance.get('/import-data/feuilleCP-by-aca')
+    return axiosInstance.get('/import-data/all-feuille-by-aca')
     .then(response => {
         console.log('Données reçues:', response.data);
         return response.data; // <-- ici, on retourne les données
@@ -516,6 +516,21 @@ export const ParametrageService = {
   fusionRep() {
       // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
       return axiosInstance.post(`/import-data/fusion-repartition`)
+      .then(response => {
+          console.log('Données reçues:', response.data);
+          return response.data; // <-- ici, on retourne les données
+      })
+      .catch(error => {
+          console.error('Erreur Axios:', error);
+          console.error('Code HTTP:', error.response?.status);
+          console.error('Message:', error.response?.data);
+          return []; // on peut retourner un tableau vide pour éviter un crash
+      });
+  },
+
+  fusionRepFeuille() {
+      // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+      return axiosInstance.post(`/import-data/fusion-feuille`)
       .then(response => {
           console.log('Données reçues:', response.data);
           return response.data; // <-- ici, on retourne les données

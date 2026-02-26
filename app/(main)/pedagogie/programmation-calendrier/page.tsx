@@ -279,6 +279,7 @@ const PlanningRegleMatiere = () => {
                                 <label className="col-4 mb-0">Champ concerné</label>
                                 <div className="col-8">
                                     <Dropdown
+                                        showClear
                                         value={regle.champ}
                                         options={champs}
                                         onChange={(e) =>
@@ -293,6 +294,8 @@ const PlanningRegleMatiere = () => {
                                 <label className="col-4 mb-0">Matière concernée</label>
                                 <div className="col-8">
                                     <Dropdown
+                                        showClear
+                                        filter
                                         value={regle.valeur}
                                         options={matieres}
                                         optionLabel="name"
