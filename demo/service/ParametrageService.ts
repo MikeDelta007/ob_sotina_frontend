@@ -283,7 +283,7 @@ export const ParametrageService = {
 
   // 🔹 Mettre à jour
   updateRegle(id: string, data: any) {
-      return axiosInstance.put(`/regleMatiere/regles/${id}`, data)
+      return axiosInstance.put(`/regleMatiere/${id}`, data)
           .then(response => {
               console.log('✅ Règle mise à jour:', response.data);
               return response.data;
@@ -414,22 +414,26 @@ export const ParametrageService = {
     });
   },
 
-  getAllDataCP() {
-    // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
-    return axiosInstance.get('/import-data/repCP-all')
-    .then(response => {
-        console.log('Données reçues:', response.data);
-        return response.data; // <-- ici, on retourne les données
-    })
-    .catch(error => {
-        console.error('Erreur Axios:', error);
-        console.error('Code HTTP:', error.response?.status);
-        console.error('Message:', error.response?.data);
-        return []; // on peut retourner un tableau vide pour éviter un crash
-    });
+  getAllDataCP(codeMatiere, groupeChoisi)
+  {
+      // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+      return axiosInstance.get('/import-data/repTirage-all', {
+          params: {
+              codeMatiere,
+              groupeChoisi
+          }
+      })
+      .then(response => {
+          console.log('Données reçues:', response.data);
+          return response.data; // retourne les données
+      })
+      .catch(error => {
+          console.error('Erreur Axios:', error);
+          console.error('Code HTTP:', error.response?.status ?? 'N/A');
+          console.error('Message:', error.response?.data ?? error.message);
+          return []; // retourne un tableau vide pour éviter un crash
+      });
   },
-
-
 
   getEtiquettes(matieres: string) 
   {

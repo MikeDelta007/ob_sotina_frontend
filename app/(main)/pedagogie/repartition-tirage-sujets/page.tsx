@@ -43,6 +43,20 @@ type Repartition = {
     matieres?: Record<string, number>;
 };
 
+interface RegleMatiere {
+    id?: string;
+    code: string;
+    type: string;
+    champ?: string;
+    valeur?: string;
+    series?: string[];
+    groupe?: string;
+    date1?: string;
+    heure1?: string;
+    date2?: string;
+    heure2?: string;
+}
+
 const CalendarDemo = () => {
     const [is_update, setIsUpdate] = useState(false); // <== valeur persistante entre les appels
     var id_acces = useRef(null); // <== même chose pour l'ID du candidat
@@ -90,6 +104,8 @@ const CalendarDemo = () => {
     const [fileId, setFileId] = useState(null);
     const [fileUrl, setFileUrl] = useState(null);
 
+    const [dialogVisible, setDialogVisible] = useState(false);
+
     const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
@@ -106,7 +122,11 @@ const CalendarDemo = () => {
     const [exporting, setExporting] = useState(false);
     const [exportStep, setExportStep] = useState('');
     const [seconds, setSeconds] = useState(0);
-    const timerRef = useRef<NodeJS.Timeout | null>(null)
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [regles, setRegles] = useState<RegleMatiere[]>([]);
+    const [regle, setRegle] = useState('');
+    const [groupe, setGroupe] = useState('');
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -127,6 +147,7 @@ const CalendarDemo = () => {
 
     useEffect(() => {
         loadData();
+        loadData2()
     }, []);
 
     useEffect(() => {
@@ -156,25 +177,17 @@ const CalendarDemo = () => {
         };
     }, [exporting]);
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        });
-    };
-
-    const openNew = () => {
-        setProduct(emptyProduct);
-        setSubmitted(false);
-        setProductDialog(true);
-        setIsUpdate(false);
-        formik.resetForm();
-    };
+    
 
     const hideDialog = () => {
         setSubmitted(false);
         setProductDialog(false);
     };
+
+    const typeOptions = [
+        { label: '1er Groupe', value: '1ER' },
+        { label: '2nd Groupe', value: '2ND' }
+    ];
 
     const hideDialog2 = () => {
         setSubmitted(false);
@@ -354,107 +367,74 @@ const CalendarDemo = () => {
 
 
     const exportAllCandidats = async () => {
-        console.log("fila")
+    try {
+        console.log("Début export...");
+        setExporting(true);
+        setExportStep('📡 Récupération des données...');
 
-        try {
-            setExporting(true);
-            setExportStep('📡 Récupération des données...');
-            // 1. Appel API : s'assurer que le backend renvoie juste le nécessaire (projection)
-            const allCandidats = await ParametrageService.getAllDataCP();
+        // 1. Appel API : récupère les données avec le groupe choisi
+        const allCandidats = await ParametrageService.getAllDataCP(regle, groupe);
 
-            if (!allCandidats || allCandidats.length === 0) {
-                setExportStep('✅ Aucune donnée à exporter');
-                setTimeout(() => setExporting(false), 1000);
-                return;
-            }
-
-            setExportStep('🔄 Préparation des données...');
-
-            // 2. Import dynamique de XLSX (déjà bien, mais on peut extraire utils)
-            const { utils, write } = await import('xlsx');
-
-            // 3. Transformation performante (éviter toLocaleString en boucle)
-            const worksheetData = [];
-            
-            // On utilise une boucle for classique (plus rapide que map pour de gros volumes)
-            for (let i = 0; i < allCandidats.length; i++) {
-                const row = allCandidats[i];
-                
-                worksheetData.push({
-                    "Session": row.session,
-                    "Jury": row.jury,
-                    "Centre d'Ecrit Principal": row.centreEcrit,
-                    "Code Académie": row.academia,
-                    "Effectif du jury": row.effectif,
-                    "Français (L)": row.frenchL,
-                    "Français (S)": row.frenchS,
-                    "Français (LA)": row.frenchLA,
-                    "Français (S1A, S2A)": row.frenchSA,
-                    "Anglais (S)": row.englishS,
-                    "Maths (L)": row.mathL,
-                    "Maths (S1, S1A, S3)": row.mathSM,
-                    "PC (S1, S1A, S3)": row.pcSM,
-                    "Maths (S2, S2A, S4, S5)": row.mathSE,
-                    "PC (S2, S2A, S4, S5)": row.pcSE,
-                    "SVT (S2, S2A, S4, S5)": row.svtSE,
-                    "SVT (S1)": row.svtSM,
-                    "Philo (L)": row.philoL,
-                    "Philo (S)": row.philoS,
-                    "HG": row.hg,
-                    "LLA": row.lla,
-                    "Anglais (LV1)": row.anglaisLV1,
-                    "Allemand (LV1)": row.allemendLV1,
-                    "Arabe Moderne (LV1)": row.arabeModerneLV1,
-                    "Espagnol (LV1)": row.espagnolLV1,
-                    "Portugais (LV1)": row.portugaisLV1,
-                    "Anglais (LV2)": row.anglaisLV2,
-                    "Allemand (LV2)": row.allemendLV2,
-                    "Arabe Moderne (LV2)": row.arabeModerneLV2,
-                    "Espagnol (LV2)": row.espagnolLV2,
-                    "Portugais (LV2)": row.portugaisLV2,
-                    "Economie": row.economie,
-                    "Italien": row.italien,
-                    "Latin": row.latin,
-                    "Russe": row.russe,
-                    "PC L": row.pcL,
-                    "SVT L": row.svtL,
-                    "MO": row.mo,
-                    "SES": row.ses,
-                    "GCF": row.gcf,
-                    "GELEC": row.gelec,
-                    "GEMECA": row.gemec
-
-
-
-
-                });
-            }
-
-            setExportStep('💾 Génération du fichier Excel...');
-
-            // 4. Création du fichier
-            const worksheet = utils.json_to_sheet(worksheetData);
-            const workbook = utils.book_new();
-            utils.book_append_sheet(workbook, worksheet, 'Répartition des tirages CP');
-
-            // 5. Génération du buffer (type 'array' est correct pour Blob)
-            const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
-
-            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            saveAs(blob, `Export_repartition_tirage_sujet_BAC_2026.xlsx`);
-
-            setExportStep('✅ Export terminé avec succés !');
-            setTimeout(() => setExporting(false), 1500);
-
-        } 
-        catch (error) 
-        {
-            console.error("❌ Erreur export :", error);
-            setExportStep('❌ Erreur lors de l’export');
-            setTimeout(() => setExporting(false), 2000);
+        if (!allCandidats || allCandidats.length === 0) {
+            setExportStep('✅ Aucune donnée à exporter');
+            setTimeout(() => setExporting(false), 1000);
+            return;
         }
 
-    };
+        setExportStep('🔄 Préparation des données...');
+
+        // 2. Import dynamique XLSX
+        const { utils, write } = await import('xlsx');
+
+        // 3. Transformation des données
+        const worksheetData = [];
+
+        // Boucle sur toutes les lignes récupérées
+        for (let i = 0; i < allCandidats.length; i++) {
+            const row = allCandidats[i];
+
+            // Objet de base avec les infos principales
+            let data = {
+                "Matière": row.matiere,
+                "Session": row.session,
+                "Jury": row.jury,
+                "Centre d'Ecrit": row.centreEcrit,
+                "Académie": row.academia,
+                "Effectif": row.effectif,
+                "NT": (1.05 * row.effectif)
+            };
+
+            worksheetData.push(data);
+        }
+
+        setExportStep('💾 Génération du fichier Excel...');
+
+        // 4. Création du workbook
+        const worksheet = utils.json_to_sheet(worksheetData);
+        const workbook = utils.book_new();
+        utils.book_append_sheet(workbook, worksheet, 'Répartition des tirages CP');
+
+        // 5. Génération du fichier
+        const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `Export_repartition_tirage_${regle}_${groupe}_GROUPE.xlsx`);
+
+        setExportStep('✅ Export terminé avec succès !');
+        setTimeout(() => setExporting(false), 1500);
+
+    } catch (error) {
+        console.error("❌ Erreur export :", error);
+        setExportStep('❌ Erreur lors de l’export');
+        setTimeout(() => setExporting(false), 2000);
+    }
+};
+
+    const dialogFooter = (
+            <>
+                <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible(false)} />
+                <Button label="Enregistrer" icon="pi pi-check" onClick={exportAllCandidats} />
+            </>
+    );
 
 
     const deleteProduct = async (values, { setSubmitting, resetForm }) => {
@@ -567,6 +547,22 @@ const CalendarDemo = () => {
         }
     };
 
+    const loadData2 = async () => {
+            try {
+                setLoading(true);
+                const data = await ParametrageService.getAllRegles();
+                setRegles(data || []);
+            } catch (e) {
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Erreur',
+                    detail: 'Chargement Régles impossible'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
     const findIndexById = (id) => {
         let index = -1;
         for (let i = 0; i < products.length; i++) {
@@ -653,7 +649,7 @@ const CalendarDemo = () => {
                     icon="pi pi-file-excel"
                     severity="success"
                     label="Exporter"
-                    onClick={exportAllCandidats}
+                    onClick={() => setDialogVisible(true)}
                     className="p-button-primary"
                 />
             </div>
@@ -734,8 +730,17 @@ const CalendarDemo = () => {
         return Array.from(set).sort();
     };
 
-    const matiereBody = (rowData, code) => {
-        return rowData.matieres?.[code] ?? 0;
+   const matiereBody = (rowData: any, code: string) => {
+        const matiere = rowData.matieres?.[code];
+        const premier = matiere?.premierGroupe ?? 0;
+        const second = matiere?.secondGroupe ?? 0;
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.3', justifyContent: 'left' }}>
+                <span style={{ fontWeight: 600, color: '#333' }}>1er Grp : {premier}</span>
+                <span style={{ fontWeight: 600, color: '#555' }}>2nd Grp : {second}</span>
+            </div>
+        );
     };
 
     const cpTemplate = (rowData) => {
@@ -1381,10 +1386,11 @@ const CalendarDemo = () => {
                                                     loadingIcon="pi pi-spin pi-spinner"
                                                     stripedRows
                                                     showGridlines
+                                                    scrollable
                                                     value={Array.isArray(cdt) ? cdt : []}
                                                     paginator
                                                     rows={10}
-                                                    rowsPerPageOptions={[5, 10, 25]}
+                                                    rowsPerPageOptions={[5, 10]}
                                                     className="p-datatable-sm"
                                                     currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
                                                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -1392,17 +1398,18 @@ const CalendarDemo = () => {
                                                     emptyMessage="Aucune donnée n'a été trouvée"
                                                     header={header}
                                                 >
-                                                    <Column field="jury" header="Jury" body={juryTemplate} />
-                                                    <Column field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} />
-                                                    <Column field="session" header="Session" body={sessionTemplate} />
-                                                    <Column field="effectif" header="Effectif du jury" body={effTemplate} />
+                                                    <Column frozen alignFrozen="left" field="jury" header="Jury" body={juryTemplate} />
+                                                    <Column frozen alignFrozen="left" field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} />
+                                                    <Column frozen alignFrozen="left" field="session" header="Session" body={sessionTemplate} />
+                                                    <Column frozen alignFrozen="left" field="effectif" header="Effectif du jury" body={effTemplate} />
 
                                                     {matiereColumns.map((code: string) => (
                                                         <Column
                                                             key={code}
                                                             header={code}
                                                             body={(rowData) => matiereBody(rowData, code)}
-                                                            headerStyle={{ minWidth: '3rem' }}
+                                                            headerStyle={{ minWidth: '9rem', textAlign: 'left' }} // plus large et centré
+                                                            bodyStyle={{ minWidth: '9rem', textAlign: 'left' }}   // applique aussi au corps
                                                         />
                                                     ))}
                                                 </DataTable>
@@ -1827,6 +1834,57 @@ const CalendarDemo = () => {
                                 )}
                             </div>
                         </Dialog>
+
+
+                        <Dialog
+                                        header="Règle matière"
+                                        visible={dialogVisible}
+                                        style={{ width: '520px' }}
+                                        footer={dialogFooter}
+                                        onHide={() => setDialogVisible(false)}
+                                    >
+                                        <div className="p-fluid">
+                        
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Liste des Matières</label>
+                                                <div className="col-5">
+                                                    <Dropdown
+                                                        value={regle}
+                                                        optionLabel="code"
+                                                        optionValue="code"
+                                                        options={regles}
+                                                        onChange={(e) =>
+                                                            setRegle(e.value)
+                                                        }
+                                                        placeholder="Sélectionner"
+                                                    />
+
+                                                    
+                                                </div>
+                                            </div>
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Groupe</label>
+                                                <div className="col-5">
+                                                    <Dropdown
+                                                        value={groupe}
+                                                        optionLabel="label"
+                                                        optionValue="value"
+                                                        options={typeOptions}
+                                                        onChange={(e) =>
+                                                            setGroupe(e.value)
+                                                        }
+                                                        placeholder="Sélectionner"
+                                                    />
+
+                                                    
+                                                </div>
+                                            </div>
+
+                                          
+                                        </div>
+                                    </Dialog>
 
                     </div>
                 </div>

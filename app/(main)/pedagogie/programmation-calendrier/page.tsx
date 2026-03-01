@@ -20,6 +20,7 @@ interface RegleMatiere {
     champ?: string;
     valeur?: string;
     series?: string[];
+    groupe?: string;
     date1?: string;
     heure1?: string;
     date2?: string;
@@ -35,6 +36,7 @@ const PlanningRegleMatiere = () => {
         champ: '',
         valeur: '',
         series: [],
+        groupe: '',
         date1: '',
         heure1: '',
         date2: '',
@@ -51,8 +53,13 @@ const PlanningRegleMatiere = () => {
 
     const typeOptions = [
         { label: 'OBLIGATOIRE', value: 'SERIE' },
-        { label: 'OPTION', value: 'OPTION' },
+        { label: 'OPTIONNELLE', value: 'OPTION' },
         { label: 'FACULTATIVE', value: 'FACULTATIVE' }
+    ];
+
+    const groupes = [
+        { label: 'PREMIER GROUPE', value: '1ERGRP' },
+        { label: 'PREMIER GROUPE & SECOND GROUPE', value: '1ER2NDGRP' }
     ];
 
     const champs = [
@@ -237,7 +244,7 @@ const PlanningRegleMatiere = () => {
                     {/* Type */}
                     <div className="field grid">
                         <label className="col-4 mb-0">Type Matière</label>
-                        <div className="col-3">
+                        <div className="col-5">
                             <Dropdown
                                 value={regle.type}
                                 options={typeOptions}
@@ -321,52 +328,72 @@ const PlanningRegleMatiere = () => {
                                     />
                                 </div>
                             </div>
-                        
-                    {/* Dates */}
-                    <div className="formgrid grid">
-                        <div className="field col-6">
-                            <label>Date 1</label>
-                            <InputText
-                                value={regle.date1}
-                                onChange={(e) =>
-                                    setRegle(prev => ({ ...prev, date1: e.target.value }))
-                                }
-                            />
-                        </div>
 
-                        <div className="field col-6">
-                            <label>Heure 1</label>
-                            <InputText
-                                value={regle.heure1}
+                    <div className="field grid">
+                        <label className="col-4 mb-0">Groupe concerné</label>
+                        <div className="col-8">
+                            <Dropdown
+                                value={regle.groupe}
+                                options={groupes}
                                 onChange={(e) =>
-                                    setRegle(prev => ({ ...prev, heure1: e.target.value }))
+                                    setRegle(prev => ({ ...prev, groupe: e.value }))
                                 }
+                                placeholder="Sélectionner"
                             />
                         </div>
                     </div>
 
-                    <div className="formgrid grid">
-                        <div className="field col-6">
-                            <label>Date 2</label>
-                            <InputText
-                                value={regle.date2}
-                                onChange={(e) =>
-                                    setRegle(prev => ({ ...prev, date2: e.target.value }))
-                                }
-                            />
-                        </div>
+                    
+                    {/* Bloc 1 visible pour les deux groupes */}
+                    {(regle.groupe === '1ERGRP' || regle.groupe === '1ER2NDGRP') && (
+                        <div className="formgrid grid">
+                            <div className="field col-6">
+                                <label>Date 1</label>
+                                <InputText
+                                    value={regle.date1}
+                                    onChange={(e) =>
+                                        setRegle(prev => ({ ...prev, date1: e.target.value }))
+                                    }
+                                />
+                            </div>
 
-                        <div className="field col-6">
-                            <label>Heure 2</label>
-                            <InputText
-                                value={regle.heure2}
-                                onChange={(e) =>
-                                    setRegle(prev => ({ ...prev, heure2: e.target.value }))
-                                }
-                            />
+                            <div className="field col-6">
+                                <label>Heure 1</label>
+                                <InputText
+                                    value={regle.heure1}
+                                    onChange={(e) =>
+                                        setRegle(prev => ({ ...prev, heure1: e.target.value }))
+                                    }
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
+                    {/* Bloc 2 seulement pour 1ER2NDGRP */}
+                    {regle.groupe === '1ER2NDGRP' && (
+                        <div className="formgrid grid">
+                            <div className="field col-6">
+                                <label>Date 2</label>
+                                <InputText
+                                    value={regle.date2}
+                                    onChange={(e) =>
+                                        setRegle(prev => ({ ...prev, date2: e.target.value }))
+                                    }
+                                />
+                            </div>
+
+                            <div className="field col-6">
+                                <label>Heure 2</label>
+                                <InputText
+                                    value={regle.heure2}
+                                    onChange={(e) =>
+                                        setRegle(prev => ({ ...prev, heure2: e.target.value }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                    )}
+                  
                 </div>
             </Dialog>
         </div>

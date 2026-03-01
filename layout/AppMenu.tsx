@@ -40,7 +40,7 @@ const AppMenu = () => {
             label: 'Programmation',
             items: [
                 {
-                    label: 'Calendrier',
+                    label: 'Programmation',
                     icon: 'pi pi-fw pi-calendar',
                     to: '/pedagogie/programmation-calendrier',
                 } 
