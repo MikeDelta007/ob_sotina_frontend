@@ -435,7 +435,7 @@ export const ParametrageService = {
       });
   },
 
-  getEtiquettes(matieres: string) 
+  getEtiquettes_(matieres: string) 
   {
   return axiosInstance.get('/pdf/generate-etiquette-paysage', {
     params: {

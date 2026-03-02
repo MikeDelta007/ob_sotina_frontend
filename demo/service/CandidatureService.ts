@@ -483,6 +483,29 @@ export const CandidatureService = {
       });
   },
 
+  // SOTINA
+  getEtiquettes(matiere, groupe) {
+  return axiosInstance.get('/pdf/generate-etiquette-paysage', {
+    params: {
+      matiere: matiere,
+      groupe: groupe
+    },
+    responseType: 'blob'
+    })
+      .then(response => {
+        const filename = `etiquettes_epreuve_${matiere}_du_${groupe}_groupe.pdf`;
+        saveAs(response.data, filename);
+        console.log('PDF téléchargé avec succès');
+        return filename;
+      })
+      .catch(error => {
+        console.error('Erreur lors du téléchargement du PDF :', error);
+        console.error('Code HTTP :', error.response?.status);
+        console.error('Message :', error.response?.data);
+        throw error;
+      });
+  },
+
   getSujetsByEtab(etablissementId, session, etablissementName, login, sujet) {
   return axiosInstance.get('/pdf/generate-cdts-with-sujets', {
     params: {

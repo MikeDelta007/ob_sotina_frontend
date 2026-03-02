@@ -34,6 +34,7 @@ import { TabView, TabPanel } from 'primereact/tabview';
 import { classNames } from 'primereact/utils';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { data } from 'react-router-dom';
+import { CandidatureService } from '@/demo/service/CandidatureService';
 
 type Repartition = {
     jury: number;
@@ -105,6 +106,8 @@ const CalendarDemo = () => {
     const [fileUrl, setFileUrl] = useState(null);
 
     const [dialogVisible, setDialogVisible] = useState(false);
+
+    const [dialogVisible_, setDialogVisible_] = useState(false);
 
     const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
@@ -400,8 +403,8 @@ const CalendarDemo = () => {
                 "Jury": row.jury,
                 "Centre d'Ecrit": row.centreEcrit,
                 "Académie": row.academia,
-                "Effectif": row.effectif,
-                "NT": (1.05 * row.effectif)
+                "Effectif": Math.round(row.effectif),
+                "NT": Math.round(1.05 * row.effectif)
             };
 
             worksheetData.push(data);
@@ -412,7 +415,7 @@ const CalendarDemo = () => {
         // 4. Création du workbook
         const worksheet = utils.json_to_sheet(worksheetData);
         const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, 'Répartition des tirages CP');
+        utils.book_append_sheet(workbook, worksheet, `${regle}_${groupe}_GRP`);
 
         // 5. Génération du fichier
         const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
@@ -423,16 +426,53 @@ const CalendarDemo = () => {
         setTimeout(() => setExporting(false), 1500);
 
     } catch (error) {
-        console.error("❌ Erreur export :", error);
         setExportStep('❌ Erreur lors de l’export');
         setTimeout(() => setExporting(false), 2000);
     }
-};
+    };
+
+    const exportAllEtiquettes = async () => {
+        try {
+            console.log("Début export...");
+            setExporting(true);
+            setExportStep('📡 Récupération des données...');
+
+            // 1. Appel API : récupère les données avec le groupe choisi
+            const allCandidats = await CandidatureService.getEtiquettes(regle, groupe);
+
+            if (!allCandidats || allCandidats.length === 0) {
+                setExportStep('✅ Aucune donnée à exporter');
+                setTimeout(() => setExporting(false), 1000);
+                return;
+            }
+
+            setExportStep('🔄 Préparation des données...');
+
+            setExportStep('💾 Génération du fichier Excel...');
+
+            setExportStep('✅ Export terminé avec succès !');
+            setTimeout(() => setExporting(false), 1500);
+
+        } catch (error) {
+            console.error("❌ Erreur export :", error);
+            setExportStep('❌ Erreur lors de l’export');
+            setTimeout(() => setExporting(false), 2000);
+        }
+    };
+
+
 
     const dialogFooter = (
             <>
                 <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible(false)} />
-                <Button label="Enregistrer" icon="pi pi-check" onClick={exportAllCandidats} />
+                <Button label="Valider" icon="pi pi-check" onClick={exportAllCandidats} />
+            </>
+    );
+
+    const dialogFooter_ = (
+            <>
+                <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible_(false)} />
+                <Button label="Valider" icon="pi pi-check" onClick={exportAllEtiquettes} />
             </>
     );
 
@@ -637,7 +677,7 @@ const CalendarDemo = () => {
 
             <div className="flex align-items-center gap-1 flex-wrap">
                 <Button
-                    severity="success"
+                    severity="info"
                     onClick={handleClick}
                     icon="pi pi-download"
                     label="Lancer toutes les répartitions"
@@ -646,9 +686,18 @@ const CalendarDemo = () => {
 
                 <Button
                     type="button"
+                    icon="pi pi-tag"
+                    severity="help"
+                    label="Exporter les etiquettes"
+                    onClick={() => setDialogVisible_(true)}
+                    className="p-button-primary"
+                />
+
+                <Button
+                    type="button"
                     icon="pi pi-file-excel"
                     severity="success"
-                    label="Exporter"
+                    label="Exporter le chiffrage"
                     onClick={() => setDialogVisible(true)}
                     className="p-button-primary"
                 />
@@ -733,7 +782,7 @@ const CalendarDemo = () => {
    const matiereBody = (rowData: any, code: string) => {
         const matiere = rowData.matieres?.[code];
         const premier = matiere?.premierGroupe ?? 0;
-        const second = matiere?.secondGroupe ?? 0;
+        const second = Math.round(matiere?.secondGroupe) ?? 0;
 
         return (
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.3', justifyContent: 'left' }}>
@@ -1837,7 +1886,7 @@ const CalendarDemo = () => {
 
 
                         <Dialog
-                                        header="Règle matière"
+                                        header="Chiffrage des tirages"
                                         visible={dialogVisible}
                                         style={{ width: '520px' }}
                                         footer={dialogFooter}
@@ -1850,6 +1899,7 @@ const CalendarDemo = () => {
                                                 <label className="col-4 mb-0">Liste des Matières</label>
                                                 <div className="col-5">
                                                     <Dropdown
+                                                        filter
                                                         value={regle}
                                                         optionLabel="code"
                                                         optionValue="code"
@@ -1884,7 +1934,59 @@ const CalendarDemo = () => {
 
                                           
                                         </div>
-                                    </Dialog>
+                        </Dialog>
+
+
+                         <Dialog
+                                        header="Export des etiquettes"
+                                        visible={dialogVisible_}
+                                        style={{ width: '520px' }}
+                                        footer={dialogFooter_}
+                                        onHide={() => setDialogVisible_(false)}
+                                    >
+                                        <div className="p-fluid">
+                        
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Liste des Matières</label>
+                                                <div className="col-5">
+                                                    <Dropdown
+                                                        filter
+                                                        value={regle}
+                                                        optionLabel="code"
+                                                        optionValue="code"
+                                                        options={regles}
+                                                        onChange={(e) =>
+                                                            setRegle(e.value)
+                                                        }
+                                                        placeholder="Sélectionner"
+                                                    />
+
+                                                    
+                                                </div>
+                                            </div>
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Groupe</label>
+                                                <div className="col-5">
+                                                    <Dropdown
+                                                        value={groupe}
+                                                        optionLabel="label"
+                                                        optionValue="value"
+                                                        options={typeOptions}
+                                                        onChange={(e) =>
+                                                            setGroupe(e.value)
+                                                        }
+                                                        placeholder="Sélectionner"
+                                                    />
+
+                                                    
+                                                </div>
+                                            </div>
+
+                                          
+                                        </div>
+                        </Dialog>
 
                     </div>
                 </div>
