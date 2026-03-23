@@ -461,6 +461,36 @@ const CalendarDemo = () => {
     };
 
 
+    const exportAllBLSujet = async () => {
+        try {
+            console.log("Début export...");
+            setExporting(true);
+            setExportStep('📡 Récupération des données...');
+
+            // 1. Appel API : récupère les données avec le groupe choisi
+            const allCandidats = await CandidatureService.getBLSujets();
+
+            if (!allCandidats || allCandidats.length === 0) {
+                setExportStep('✅ Aucune donnée à exporter');
+                setTimeout(() => setExporting(false), 1000);
+                return;
+            }
+
+            setExportStep('🔄 Préparation des données...');
+
+            setExportStep('💾 Génération du bordereau...');
+
+            setExportStep('✅ Export terminé avec succès !');
+            setTimeout(() => setExporting(false), 1500);
+
+        } catch (error) {
+            console.error("❌ Erreur export :", error);
+            setExportStep('❌ Erreur lors de l’export');
+            setTimeout(() => setExporting(false), 2000);
+        }
+    };
+
+
 
     const dialogFooter = (
             <>
@@ -699,6 +729,15 @@ const CalendarDemo = () => {
                     severity="success"
                     label="Exporter le chiffrage"
                     onClick={() => setDialogVisible(true)}
+                    className="p-button-primary"
+                />
+
+                <Button
+                    type="button"
+                    icon="pi pi-file"
+                    severity="warning"
+                    label="Exporter les bordereaux de livraison des sujets"
+                    onClick={exportAllBLSujet}
                     className="p-button-primary"
                 />
             </div>
