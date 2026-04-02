@@ -37,20 +37,14 @@ const AppMenu = () => {
         },
         { separator: true },
         hasAccess(['ADMIN']) && {
-            label: 'Programmation',
+            label: 'Gestion des données BAC',
+            icon: 'pi pi-home',
             items: [
                 {
                     label: 'Programmation',
                     icon: 'pi pi-fw pi-calendar',
                     to: '/pedagogie/programmation-calendrier',
-                } 
-            ]
-        },
-        { separator: true },
-        hasAccess(['ADMIN']) && {
-            label: 'Gestion des données',
-            icon: 'pi pi-home',
-            items: [
+                },
                 {
                     label: 'Données',
                     icon: 'pi pi-fw pi-database',
@@ -65,6 +59,34 @@ const AppMenu = () => {
                     label: 'Feuilles',
                     icon: 'pi pi-fw pi-copy',
                     to: '/pedagogie/repartition-feuille'
+                },
+                
+            ]
+        },
+        { separator: true },
+        hasAccess(['ADMIN']) && {
+            label: 'Gestion des données CGS',
+            icon: 'pi pi-home',
+            items: [
+                {
+                    label: 'Programmation',
+                    icon: 'pi pi-fw pi-calendar',
+                    to: '/pedagogie-cgs/programmation-calendrier',
+                },
+                {
+                    label: 'Données',
+                    icon: 'pi pi-fw pi-database',
+                    to: '/pedagogie-cgs/gestion-donnees',
+                },
+                {
+                    label: 'Répartition',
+                    icon: 'pi pi-fw pi-sitemap',
+                    to: '/pedagogie-cgs/repartition-tirage-sujets',
+                },
+                {
+                    label: 'Feuilles',
+                    icon: 'pi pi-fw pi-copy',
+                    to: '/pedagogie-cgs/repartition-feuille'
                 },
                 
             ]

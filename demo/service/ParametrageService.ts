@@ -311,12 +311,107 @@ export const ParametrageService = {
           });
   },
 
+
+  getAllReglesCGS() {
+      return axiosInstance.get('/regleMatiereCGS/all-regles')
+          .then(response => {
+              console.log('Règles récupérées avec succès:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur chargement règles:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              return []; // évite crash DataTable
+          });
+  },
+
+  // 🔹 Créer une règle
+  createRegleCGS(data: any) {
+      return axiosInstance.post('/regleMatiereCGS/create-regle', data)
+          .then(response => {
+              console.log('✅ Règle créée avec succès:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur création règle:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              throw error;
+          });
+  },
+
+  // 🔹 Mettre à jour
+  updateRegleCGS(id: string, data: any) {
+      return axiosInstance.put(`/regleMatiereCGS/${id}`, data)
+          .then(response => {
+              console.log('✅ Règle mise à jour:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur mise à jour règle:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              throw error;
+          });
+  },
+
+  // 🔹 Supprimer
+  deleteRegleCGS(id: string) {
+      return axiosInstance.delete(`/regleMatiereCGS/${id}`)
+          .then(response => {
+              console.log('✅ Règle supprimée:', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur suppression règle:', error);
+              console.error('Code HTTP:', error.response?.status);
+              console.error('Message serveur:', error.response?.data);
+              throw error;
+          });
+  },
+
+  getMatieresCGS(level) {
+    return axiosInstance.get('/regleMatiereCGS/matiereCGS-by-level', {
+      params: { level: level }
+    })
+    .then(response => {
+      console.log('Données reçues:', response.data);
+      return response.data;
+    })
+    .catch(error => {
+      console.error('Erreur Axios:', error);
+      console.error('Code HTTP:', error.response?.status);
+      console.error('Message:', error.response?.data);
+      return [];
+    });
+  },
+
   uploadFile(file) 
   {
     const formData = new FormData();
     formData.append('file', file);
 
     return axiosInstance.post(`/import-data/data-candidats`, formData, {headers: {'Content-Type': 'multipart/form-data'}})
+      .then(response => {
+        console.log('Fichier uploadé avec succès:', response.data);
+        return response.data; // ID du fichier ou autre réponse
+      })
+      .catch(error => {
+        console.error('Erreur lors de l’upload du fichier :', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        return null; // ou {} ou throw error selon le choix
+      });
+  },
+
+
+  uploadFileCGS(file) 
+  {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return axiosInstance.post(`/import-data/data-candidatsCGS`, formData, {headers: {'Content-Type': 'multipart/form-data'}})
       .then(response => {
         console.log('Fichier uploadé avec succès:', response.data);
         return response.data; // ID du fichier ou autre réponse
@@ -363,7 +458,43 @@ export const ParametrageService = {
                 throw error;
             });
   },
+  
 
+  getAllCandidatsCGS(page: number, size: number) 
+  {
+  
+        return axiosInstance.get(`/import-data/get-all-candidatsCGS/${page}/${size}`, {})
+            .then(response => {
+                console.log('Archives trouvées avec succès:', response.data);
+  
+                return {
+                    data: response.data.content,
+                    total: response.data.totalElements
+                };
+            })
+            .catch(error => {
+                console.error('❌ Erreur chargement archives:', error);
+                console.error('Code HTTP:', error.response?.status);
+                console.error('Message serveur:', error.response?.data);
+                throw error;
+            });
+  },
+
+
+  doRepCGS() {
+      // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+      return axiosInstance.post(`/import-data/repartition-cgs`)
+      .then(response => {
+          console.log('Données reçues:', response.data);
+          return response.data; // <-- ici, on retourne les données
+      })
+      .catch(error => {
+          console.error('Erreur Axios:', error);
+          console.error('Code HTTP:', error.response?.status);
+          console.error('Message:', error.response?.data);
+          return []; // on peut retourner un tableau vide pour éviter un crash
+      });
+  },
 
 
 
@@ -385,6 +516,21 @@ export const ParametrageService = {
   getFusionRep() {
     // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
     return axiosInstance.get('/import-data/get-all-fusion-tirage')
+    .then(response => {
+        console.log('Données reçues:', response.data);
+        return response.data; // <-- ici, on retourne les données
+    })
+    .catch(error => {
+        console.error('Erreur Axios:', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        return []; // on peut retourner un tableau vide pour éviter un crash
+    });
+  },
+
+  getFusionRepCGS() {
+    // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
+    return axiosInstance.get('/import-data/get-all-fusion-tirageCGS')
     .then(response => {
         console.log('Données reçues:', response.data);
         return response.data; // <-- ici, on retourne les données
