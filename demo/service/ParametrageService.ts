@@ -530,7 +530,7 @@ export const ParametrageService = {
 
   getFusionRepCGS() {
     // axiosInstance utilise déjà baseURL, donc on met juste le path relatif
-    return axiosInstance.get('/import-data/get-all-fusion-tirageCGS')
+    return axiosInstance.get('/import-data/repTirageCGS-all')
     .then(response => {
         console.log('Données reçues:', response.data);
         return response.data; // <-- ici, on retourne les données

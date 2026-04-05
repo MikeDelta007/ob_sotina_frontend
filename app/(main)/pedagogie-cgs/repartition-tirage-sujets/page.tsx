@@ -580,31 +580,26 @@ const CalendarDemo = () => {
     const loadData = async () => {
         setLoading(true);
         setError(null);
-        try 
-        {
+
+        try {
             const data = await ParametrageService.getFusionRepCGS();
-            if (data && typeof data === 'object') {
-                const result = Object.entries(data).map(([aca, cdt]) => ({
-                    aca,
-                    cdt
-                }));
-                console.log('OHHH :', result);
-                setGroupedUsers(result);
-            }
-            else 
-            {
+
+            if (Array.isArray(data)) {
+                console.log('✅ Data OK :', data);
+
+                // 🔥 On garde directement la structure backend
+                setGroupedUsers(data);
+
+            } else {
                 console.warn('Données inattendues :', data);
-                setGroupedUsers([]); // fallback sécurité
+                setGroupedUsers([]);
             }
-        } 
-        catch (err) 
-        {
+
+        } catch (err) {
             console.error('❌ Erreur chargement données :', err);
             setError('Erreur lors du chargement');
             setGroupedUsers([]);
-        } 
-        finally 
-        {
+        } finally {
             setLoading(false);
         }
     };
@@ -796,18 +791,62 @@ const CalendarDemo = () => {
     };
 
 
-    const getMatiereColumns = (rows: Repartition[]) => {
-        const set = new Set<string>();
+    const getMatiereColumns = (centres) => {
+        const set = new Set();
 
-        if (!Array.isArray(rows)) return [];
-
-        rows.forEach(item => {
-            if (item.matieres) {
-                Object.keys(item.matieres).forEach(k => set.add(k));
-            }
-        });
+        centres.forEach(c =>
+            c.disciplines.forEach(d => set.add(d.discipline))
+        );
 
         return Array.from(set).sort();
+    };
+
+    const transformCentres = (centres) => {
+        const rows = [];
+
+        centres.forEach((centre) => {
+            // Ligne TOTAL du centre
+            const totalRow: any = {
+                centreEcrit: centre.centreEcrit,
+                niveau: "TOTAL",
+                effectif: 0
+            };
+
+            // Ligne PREMIERE
+            const premiereRow: any = {
+                centreEcrit: "", // vide pour sous-ligne
+                niveau: "PREMIERE",
+                effectif: 0
+            };
+
+            // Ligne TERMINALE
+            const terminaleRow: any = {
+                centreEcrit: "",
+                niveau: "TERMINALE",
+                effectif: 0
+            };
+
+            centre.disciplines.forEach((d: any) => {
+                const eff1 = d.eff1ere || 0;
+                const effT = d.effTle || 0;
+                const total = eff1 + effT;
+
+                // Ajouter valeurs par discipline
+                totalRow[d.discipline] = total;
+                premiereRow[d.discipline] = eff1;
+                terminaleRow[d.discipline] = effT;
+
+                // Totaux globaux
+                totalRow.effectif += total;
+                premiereRow.effectif += eff1;
+                terminaleRow.effectif += effT;
+            });
+
+            // Ajouter toutes les lignes
+            rows.push(totalRow, premiereRow, terminaleRow);
+        });
+
+        return rows;
     };
 
    const matiereBody = (rowData: any, code: string) => {
@@ -1455,41 +1494,38 @@ const CalendarDemo = () => {
 
                             {(loading || (groupedUsers && groupedUsers.length > 0)) && (
                                 <TabView>
-                                    {groupedUsers.map(({ aca, cdt }) => {
-                                        const matiereColumns = getMatiereColumns(cdt);
+                                    {groupedUsers.map(({ academia, centres }) => {
+
+                                        const rows = transformCentres(centres);
+                                        const matiereColumns = getMatiereColumns(centres);
 
                                         return (
-                                            <TabPanel key={aca} header={aca}>
+                                            <TabPanel key={academia} header={academia}>
                                                 <DataTable
                                                     ref={dt}
                                                     loading={loading}
-                                                    loadingIcon="pi pi-spin pi-spinner"
                                                     stripedRows
                                                     showGridlines
                                                     scrollable
-                                                    value={Array.isArray(cdt) ? cdt : []}
+                                                    value={rows}
                                                     paginator
                                                     rows={10}
                                                     rowsPerPageOptions={[5, 10]}
                                                     className="p-datatable-sm"
-                                                    currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
-                                                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                                                     globalFilter={globalFilter}
                                                     emptyMessage="Aucune donnée n'a été trouvée"
                                                     header={header}
                                                 >
-                                                    <Column frozen alignFrozen="left" field="jury" header="Jury" body={juryTemplate} />
-                                                    <Column frozen alignFrozen="left" field="centreEcrit" header="Centre d'Ecrit" body={cecTemplate} />
-                                                    <Column frozen alignFrozen="left" field="session" header="Session" body={sessionTemplate} />
-                                                    <Column frozen alignFrozen="left" field="effectif" header="Effectif du jury" body={effTemplate} />
-
+                                                    <Column frozen field="centreEcrit" header="Centre d'Ecrit" />
+                                                    <Column field="niveau" header="Niveau" />
+                                                    <Column frozen field="effectif" header="Effectif" />
+                                                    
                                                     {matiereColumns.map((code: string) => (
                                                         <Column
                                                             key={code}
                                                             header={code}
-                                                            body={(rowData) => matiereBody(rowData, code)}
-                                                            headerStyle={{ minWidth: '9rem', textAlign: 'left' }} // plus large et centré
-                                                            bodyStyle={{ minWidth: '9rem', textAlign: 'left' }}   // applique aussi au corps
+                                                            body={(rowData: any) => rowData[code] || ""}
+                                                            style={{ minWidth: '8rem' }}
                                                         />
                                                     ))}
                                                 </DataTable>
