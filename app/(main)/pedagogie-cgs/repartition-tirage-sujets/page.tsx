@@ -19,9 +19,6 @@ import { ActeurDTO, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, U
 import * as Yup from 'yup';
 import { saveAs } from 'file-saver';
 
-import 'primereact/resources/themes/lara-light-blue/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { useFormik } from 'formik';
 import { UserContext } from '@/app/userContext';
@@ -430,7 +427,7 @@ const CalendarDemo = () => {
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getEtiquettes(regle, groupe);
+            const allCandidats = await CandidatureService.getEtiquettes_();
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -460,7 +457,7 @@ const CalendarDemo = () => {
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getBLSujets();
+            const allCandidats = await CandidatureService.getBLSujets_();
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -706,7 +703,7 @@ const CalendarDemo = () => {
                     icon="pi pi-tag"
                     severity="help"
                     label="Exporter les etiquettes"
-                    onClick={() => setDialogVisible_(true)}
+                    onClick={exportAllEtiquettes}
                     className="p-button-primary"
                 />
 

@@ -506,9 +506,46 @@ export const CandidatureService = {
       });
   },
 
+  getEtiquettes_() {
+  return axiosInstance.get('/pdf/generate-etiquetteCGS-paysage', {
+    
+    responseType: 'blob'
+    })
+      .then(response => {
+        const filename = `Etiquettes_epreuves_CGS_.pdf`;
+        saveAs(response.data, filename);
+        console.log('PDF téléchargé avec succès');
+        return filename;
+      })
+      .catch(error => {
+        console.error('Erreur lors du téléchargement du PDF :', error);
+        console.error('Code HTTP :', error.response?.status);
+        console.error('Message :', error.response?.data);
+        throw error;
+      });
+  },
+
   // SOTINA
   getBLSujets() {
   return axiosInstance.get('/pdf/generate-bdr', {
+    responseType: 'blob'
+    })
+      .then(response => {
+        const filename = `bordereau_de_livraison_des_sujets.pdf`;
+        saveAs(response.data, filename);
+        console.log('PDF téléchargé avec succès');
+        return filename;
+      })
+      .catch(error => {
+        console.error('Erreur lors du téléchargement du PDF :', error);
+        console.error('Code HTTP :', error.response?.status);
+        console.error('Message :', error.response?.data);
+        throw error;
+      });
+  },
+
+  getBLSujets_() {
+  return axiosInstance.get('/pdf/generate-bdr-cgs', {
     responseType: 'blob'
     })
       .then(response => {
