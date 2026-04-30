@@ -11,9 +11,9 @@ import { jwtDecode } from 'jwt-decode';
 // const API_URL = 'https://196.1.95.120/ob/api/v1/authentification/sign-in';
 // const REFRESH_URL = 'https://196.1.95.120/ob/api/v1/authentification/refresh-token';
 
-const API_URL = 'http://localhost:8080/ob/api/v1/authentification/sign-in';
-const REFRESH_URL = 'http://localhost:8080/ob/api/v1/authentification/refresh-token';
-const PSW_FORGOT_URL = 'http://localhost:8080/ob/api/v1/authentification/update-password-for-public';
+const API_URL = 'http://192.168.60.51/ob/api/v1/authentification/sign-in';
+const REFRESH_URL = 'http://192.168.60.51/ob/api/v1/authentification/refresh-token';
+const PSW_FORGOT_URL = 'http://192.168.60.51/ob/api/v1/authentification/update-password-for-public';
 
 export const authService = {
     getToken(): string | null {
