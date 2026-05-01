@@ -19,9 +19,6 @@ import { ActeurDTO, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, U
 import * as Yup from 'yup';
 import { saveAs } from 'file-saver';
 
-import 'primereact/resources/themes/lara-light-blue/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { useFormik } from 'formik';
 import { UserContext } from '@/app/userContext';

@@ -544,6 +544,24 @@ export const CandidatureService = {
       });
   },
 
+  getBLFeuilles() {
+  return axiosInstance.get('/pdf/generate-bdr-feuilles', {
+    responseType: 'blob'
+    })
+      .then(response => {
+        const filename = `bordereau_de_livraison_des_sujets.pdf`;
+        saveAs(response.data, filename);
+        console.log('PDF téléchargé avec succès');
+        return filename;
+      })
+      .catch(error => {
+        console.error('Erreur lors du téléchargement du PDF :', error);
+        console.error('Code HTTP :', error.response?.status);
+        console.error('Message :', error.response?.data);
+        throw error;
+      });
+  },
+
   getBLSujets_() {
   return axiosInstance.get('/pdf/generate-bdr-cgs', {
     responseType: 'blob'
