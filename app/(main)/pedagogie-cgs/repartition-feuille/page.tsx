@@ -17,10 +17,9 @@ import { Calendar } from 'primereact/calendar';
 import { Carousel } from 'primereact/carousel';
 import { ActeurDTO, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, UserDTO } from '@/demo/service/ParametrageService';
 import * as Yup from 'yup';
+import { CandidatureService } from '@/demo/service/CandidatureService';
 
-import 'primereact/resources/themes/lara-light-blue/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
+
 import { InputTextarea } from 'primereact/inputtextarea';
 import { useFormik } from 'formik';
 import { UserContext } from '@/app/userContext';
@@ -91,6 +90,11 @@ const CalendarDemo = () => {
     const [infosUsers, setInfosUsers] = useState(null);
 
     const [errorMessage, setErrorMessage] = useState('');
+
+    const [exporting, setExporting] = useState(false);
+    const [exportStep, setExportStep] = useState('');
+    const [seconds, setSeconds] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -323,6 +327,35 @@ const CalendarDemo = () => {
             }
         };
 
+    const exportAllBLSujet = async () => {
+            try {
+                console.log("Début export...");
+                setExporting(true);
+                setExportStep('📡 Récupération des données...');
+    
+                // 1. Appel API : récupère les données avec le groupe choisi
+                const allCandidats = await CandidatureService.getBLFeuilles();
+    
+                if (!allCandidats || allCandidats.length === 0) {
+                    setExportStep('✅ Aucune donnée à exporter');
+                    setTimeout(() => setExporting(false), 1000);
+                    return;
+                }
+    
+                setExportStep('🔄 Préparation des données...');
+    
+                setExportStep('💾 Génération du bordereau...');
+    
+                setExportStep('✅ Export terminé avec succès !');
+                setTimeout(() => setExporting(false), 1500);
+    
+            } catch (error) {
+                console.error("❌ Erreur export :", error);
+                setExportStep('❌ Erreur lors de l’export');
+                setTimeout(() => setExporting(false), 2000);
+            }
+        };
+
     const handleClick2 = async () => {
         const data = await ParametrageService.doRepCS();
         setResultat_(data);
@@ -518,6 +551,15 @@ const CalendarDemo = () => {
                         label="Lancer toutes les répartitions"
                         className="p-button-primary"
                     />
+
+                    <Button
+                                        type="button"
+                                        icon="pi pi-file"
+                                        severity="warning"
+                                        label="Exporter les bordereaux de livraison des feuilles"
+                                        onClick={exportAllBLSujet}
+                                        className="p-button-primary"
+                                    />
     
                     
                 </div>
@@ -797,7 +839,7 @@ const CalendarDemo = () => {
        
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Répartition par centre d'ecrit principal et par discipline</h5>
+            <h5 className="m-0">Répartition par centre d&apos;ecrit principal et par discipline</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onChange={(e) => setGlobalFilter((e.target as HTMLInputElement).value)} placeholder="Recherche..." />

@@ -10,21 +10,21 @@ import { authService } from '@/demo/service/AuthService'; // Chemin à adapter
 //   },
 // });
 
-// const axiosInstance: AxiosInstance = axios.create({
-//   baseURL: 'https://196.1.95.120/ob/api/v1/',
-//   headers: {
-//     'Content-Type': 'application/json',
-//     'Accept': '*/*',
-//   },
-// });
-
 const axiosInstance: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/ob/api/v1/',
+  baseURL: 'http://192.168.60.51/ob/api/v1/',
   headers: {
     'Content-Type': 'application/json',
     'Accept': '*/*',
   },
 });
+
+// const axiosInstance: AxiosInstance = axios.create({
+//   baseURL: 'http://localhost:8080/ob/api/v1/',
+//   headers: {
+//     'Content-Type': 'application/json',
+//     'Accept': '*/*',
+//   },
+// });
 
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig  {
   _retry?: boolean;
