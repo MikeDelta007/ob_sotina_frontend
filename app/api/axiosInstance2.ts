@@ -63,16 +63,8 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequ
 import { authService } from '@/demo/service/AuthService'; // Chemin à adapter
 
 // EN PROD DECOMMENTER CETTE PARTIE
-// const axiosInstance2: AxiosInstance = axios.create({
-//   baseURL: 'https://portailbac.ucad.sn/ob/api/v1/',
-//   // headers: {
-//   //   'Content-Type': 'application/json',
-//   //   'Accept': '*/*',
-//   // },
-// });
-
 const axiosInstance2: AxiosInstance = axios.create({
-  baseURL: 'http://192.168.60.51/ob/api/v1/',
+  baseURL: 'http://localhost:8080/ob/api/v1/',
   // headers: {
   //   'Content-Type': 'application/json',
   //   'Accept': '*/*',
@@ -80,7 +72,7 @@ const axiosInstance2: AxiosInstance = axios.create({
 });
 
 // const axiosInstance2: AxiosInstance = axios.create({
-//   baseURL: 'http://localhost:8080/ob/api/v1/',
+//   baseURL: 'http://192.168.60.51/ob/api/v1/',
 //   // headers: {
 //   //   'Content-Type': 'application/json',
 //   //   'Accept': '*/*',

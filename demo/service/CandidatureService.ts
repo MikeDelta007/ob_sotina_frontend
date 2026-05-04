@@ -549,11 +549,7 @@ export const CandidatureService = {
     responseType: 'blob'
     })
       .then(response => {
-<<<<<<< HEAD
-        const filename = `bordereau_de_livraison_des_sujets.pdf`;
-=======
         const filename = `bordereau_de_livraison_des_feuilles.pdf`;
->>>>>>> e0d196735fd217e73d8cfb121c2ebb387d582593
         saveAs(response.data, filename);
         console.log('PDF téléchargé avec succès');
         return filename;

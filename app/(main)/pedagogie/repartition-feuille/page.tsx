@@ -554,11 +554,10 @@ const CalendarDemo = () => {
                                         type="button"
                                         icon="pi pi-file"
                                         severity="warning"
-                                        label="Exporter les bordereaux de livraison des sujets"
+                                        label="Exporter les bordereaux de livraison des feuilles"
                                         onClick={exportAllBLFeuille}
                                         className="p-button-primary"
                                     />
-    
                     
                 </div>
     
