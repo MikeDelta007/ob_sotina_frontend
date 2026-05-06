@@ -394,6 +394,10 @@ const CalendarDemo = () => {
             const row = allCandidats[i];
 
             // Objet de base avec les infos principales
+            let ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
+
+            let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
+
             let data = {
                 "Matière": row.matiere,
                 "Session": row.session,
@@ -401,7 +405,7 @@ const CalendarDemo = () => {
                 "Centre d'Ecrit": row.centreEcrit,
                 "Académie": row.academia,
                 "Effectif": Math.round(row.effectif),
-                "NT": Math.round(1.05 * row.effectif)
+                [ntTitle]: ntValue  // Titre dynamique
             };
 
             worksheetData.push(data);
