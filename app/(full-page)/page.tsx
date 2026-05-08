@@ -55,30 +55,20 @@ const Login: React.FC = () => {
                     if (response.token) 
                         {
                         localStorage.setItem('token', response.token);
-                        if (response.user.profil.name === 'SCOLARITE') {
-                            // console.log('IF-SCO');
-                            window.location.replace('/tableau-de-bord');
-                        }
-                        if (response.user.profil.name === 'VIGNETTES_COUPONS') {
-                            // console.log('IF-VC');
-                            window.location.replace('/scolarite/vignettes-coupons');
-                        }
-                        if (response.user.profil.name === 'AUTORISATION_RECEPTION') {
-                            // console.log('IF-AR');
-                            window.location.replace('/scolarite/autorisation-reception');
-                        }
-                        if (response.user.profil.name === 'RECEPTIONNISTE') {
-                            // console.log('IF-SCO');
-                            window.location.replace('/scolarite/reception-candidats');
-                        }
+
                         if (response.user.profil.name === 'ADMIN') {
                             // console.log('IF-ADM');
                             window.location.replace('/pedagogie/gestion-donnees');
                         }
-                        if (response.user.profil.name === 'AGENT_DE_SAISIE' || response.user.profil.name === 'CHEF_ETABLISSEMENT') {
-                            // console.log('IF-SCO');
-                            window.location.replace('/scolarite/enrolement-candidat');
+                        if (response.user.profil.name === 'PEDAGOGIE') {
+                            // console.log('IF-ADM');
+                            window.location.replace('/pedagogie/repartition-tirage-sujets');
                         }
+                        if (response.user.profil.name === 'PLANIFICATION') {
+                            // console.log('IF-ADM');
+                            window.location.replace('/pedagogie/repartition-feuille');
+                        }
+                       
                     } else {
                         window.location.replace('/');
                     }
@@ -152,11 +142,11 @@ const Login: React.FC = () => {
                         {errors.password && <small className="p-error">{errors.password}</small>}
                     </div>
 
-                    <div className="text-left py-2">
+                    {/* <div className="text-left py-2">
                         <Link href="/mot-de-passe-oublie" className="text-white font-bold text-sm hover:underline">
                             Mot de passe oublié ?
                         </Link>
-                    </div>
+                    </div> */}
 
                     <div className="py-3">
                         <Button label="Connexion" className="w-full text-xl font-bold" onClick={login} loading={loading} />

@@ -180,7 +180,7 @@ const PlanningRegleMatiere = () => {
             <Toast ref={toast} />
 
             <div className="flex justify-content-between mb-3">
-                <h3>Gestion des règles matières & Programmation</h3>
+                <h3>Gestion des règles matières & Programmation au CGS</h3>
                 <Button label="Nouvelle règle" icon="pi pi-plus" onClick={openNew} />
             </div>
 

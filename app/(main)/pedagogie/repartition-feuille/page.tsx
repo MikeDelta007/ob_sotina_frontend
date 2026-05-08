@@ -1110,7 +1110,7 @@ const CalendarDemo = () => {
     //console.log(is_update);
 
     return (
-        <ProtectedRoute allowedRoles={['ADMIN']}>
+        <ProtectedRoute allowedRoles={['ADMIN', 'PLANIFICATION']}>
             <div className="grid crud-demo">
                 <div className="col-12">
                     <div className="card">

@@ -396,7 +396,7 @@ const CalendarDemo = () => {
             // Objet de base avec les infos principales
             let ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
 
-            let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
+            let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) + 1 : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
 
             let data = {
                 "Matière": row.matiere,
@@ -1444,7 +1444,7 @@ const CalendarDemo = () => {
     //console.log(is_update);
 
     return (
-        <ProtectedRoute allowedRoles={['ADMIN']}>
+        <ProtectedRoute allowedRoles={['ADMIN', 'PEDAGOGIE']}>
             <div className="grid crud-demo">
                 <div className="col-12">
                     <div className="card">
