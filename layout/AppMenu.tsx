@@ -4,102 +4,144 @@ import { useContext } from 'react';
 import { UserContext } from '@/app/userContext';
 import "primeicons/primeicons.css";
 
-type Role = 'ADMIN' | 'AGENT_DE_SAISIE' | 'SCOLARITE' | 'CHEF_ETABLISSEMENT' | 'RECEPTIONNISTE' | 'AUTORISATION_RECEPTION' | 'VIGNETTES_COUPONS';
-
-interface User {
-  username: string;
-  role: Role;
-}
+type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE';
 
 const AppMenu = () => {
+
     const { user } = useContext(UserContext);
 
     const isRole = (value: string): value is Role => {
-        return ['ADMIN', 'AGENT_DE_SAISIE', 'SCOLARITE', 'CHEF_ETABLISSEMENT', 'RECEPTIONNISTE', 'VIGNETTES_COUPONS', 'AUTORISATION_RECEPTION'].includes(value);
+        return ['ADMIN', 'PLANIFICATION', 'PEDAGOGIE'].includes(value);
     };
 
     const hasAccess = (roles: Role[]): boolean => {
         const roleName = user?.profil?.name;
-        return isRole(roleName) && roles.includes(roleName);
+        return !!roleName && isRole(roleName) && roles.includes(roleName);
     };
 
-    const model: MenuModal[] = [
-        hasAccess(['AGENT_DE_SAISIE', 'SCOLARITE', 'ADMIN']) && {
-            //label: 'Dashboards',
+    const model: MenuModal[] = [];
+
+    // =========================
+    // TABLEAU DE BORD
+    // =========================
+    if (hasAccess(['ADMIN'])) {
+
+        model.push({
             icon: 'pi pi-home',
             items: [
                 {
-                    label: 'Tableau de bord',
+                    label: 'Relevé Statistique',
                     icon: 'pi pi-fw pi-home',
                     to: '/tableau-de-bord'
                 }
             ]
-        },
-        { separator: true },
-        hasAccess(['ADMIN']) && {
-            label: 'Gestion des données BAC',
-            icon: 'pi pi-home',
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // ADMINISTRATION
+    // =========================
+    if (hasAccess(['ADMIN'])) {
+
+        model.push({
+            label: 'ADMINISTRATION',
+            icon: 'pi pi-cog',
             items: [
                 {
-                    label: 'Programmation',
-                    icon: 'pi pi-fw pi-calendar',
-                    to: '/pedagogie/programmation-calendrier',
+                    label: 'Acces',
+                    icon: 'pi pi-fw pi-users',
+                    to: '/editions-systeme/acces',
                 },
                 {
-                    label: 'Données',
+                    label: 'Données BAC',
                     icon: 'pi pi-fw pi-database',
                     to: '/pedagogie/gestion-donnees',
                 },
                 {
-                    label: 'Répartition',
-                    icon: 'pi pi-fw pi-sitemap',
-                    to: '/pedagogie/repartition-tirage-sujets',
-                },
-                {
-                    label: 'Feuilles',
-                    icon: 'pi pi-fw pi-copy',
-                    to: '/pedagogie/repartition-feuille'
-                },
-                
-            ]
-        },
-        { separator: true },
-        hasAccess(['ADMIN']) && {
-            label: 'Gestion des données CGS',
-            icon: 'pi pi-home',
-            items: [
-                {
-                    label: 'Programmation',
+                    label: 'Programmation BAC',
                     icon: 'pi pi-fw pi-calendar',
-                    to: '/pedagogie-cgs/programmation-calendrier',
+                    to: '/pedagogie/programmation-calendrier',
                 },
                 {
-                    label: 'Données',
+                    label: 'Données CGS',
                     icon: 'pi pi-fw pi-database',
                     to: '/pedagogie-cgs/gestion-donnees',
                 },
                 {
-                    label: 'Répartition',
+                    label: 'Programmation CGS',
+                    icon: 'pi pi-fw pi-calendar',
+                    to: '/pedagogie-cgs/programmation-calendrier',
+                }
+            ]
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // PEDAGOGIE
+    // =========================
+    if (hasAccess(['ADMIN', 'PEDAGOGIE'])) {
+
+        model.push({
+            label: 'ESPACE PEDAGOGIE',
+            icon: 'pi pi-book',
+            items: [
+                {
+                    label: 'Répartition Tirage BAC',
                     icon: 'pi pi-fw pi-sitemap',
-                    to: '/pedagogie-cgs/repartition-tirage-sujets',
+                    to: '/pedagogie/repartition-tirage-sujets',
                 },
                 {
-                    label: 'Feuilles',
-                    icon: 'pi pi-fw pi-copy',
-                    to: '/pedagogie-cgs/repartition-feuille'
-                },
-                
+                    label: 'Répartition Tirage CGS',
+                    icon: 'pi pi-fw pi-sitemap',
+                    to: '/pedagogie-cgs/repartition-tirage-sujets',
+                }
             ]
-        }
-        
-];
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // PLANIFICATION
+    // =========================
+    if (hasAccess(['ADMIN', 'PLANIFICATION'])) {
+
+        model.push({
+            label: 'ESPACE PLANIFICATION',
+            icon: 'pi pi-calendar',
+            items: [
+                {
+                    label: 'Répartition Feuille BAC',
+                    icon: 'pi pi-fw pi-copy',
+                    to: '/pedagogie/repartition-feuille'
+                }
+
+                // {
+                //     label: 'Répartition Feuille CGS',
+                //     icon: 'pi pi-fw pi-copy',
+                //     to: '/pedagogie-cgs/repartition-feuille'
+                // }
+            ]
+        });
+    }
+
+    // =========================
+    // SUPPRIMER LE DERNIER SEPARATEUR
+    // =========================
+    if (
+        model.length > 0 &&
+        model[model.length - 1]?.separator
+    ) {
+        model.pop();
+    }
 
     return (
-    // <ProtectedRoute allowedRoles={['ADMIN', 'AGENT_DE_SAISIE', 'SCOLARITE', 'CHEF_ETABLISSEMENT']}>
-    //   <AppSubMenu model={model} />
-    // </ProtectedRoute>
-     <AppSubMenu model={model} />
-  );
+        <AppSubMenu model={model} />
+    );
 };
 
 export default AppMenu;

@@ -89,15 +89,8 @@ const CalendarDemo = () => {
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
-        { label: 'AGENT DE SAISIE', value: 'AGENT_DE_SAISIE' },
-        // { label: 'CHEF D\'ETABLISSEMENT', value: 'CHEF_ETABLISSEMENT' },
-        // { label: 'PLANIFICATION', value: 'PLANIFICATION' },
-        //{ label: 'PEDAGOGIE', value: 'PEDAGOGIE' },
-        { label: 'SCOLARITE', value: 'SCOLARITE' },
-        { label: 'VIGNETTES ET COUPONS', value: 'VIGNETTES_COUPONS' },
-        { label: 'AUTORISATION RECEPTION', value: 'AUTORISATION_RECEPTION' },
-        { label: 'RECEPTIONNISTE', value: 'RECEPTIONNISTE' }
-        //{ label: 'STATISTIQUES', value: 'STATISTIQUES' }
+        { label: 'PLANIFICATION', value: 'PLANIFICATION' },
+        { label: 'PEDAGOGIE', value: 'PEDAGOGIE' }
     ];
 
     useEffect(() => {
@@ -479,14 +472,7 @@ const CalendarDemo = () => {
                     icon="pi pi-plus" 
                     onClick={openNew} 
                 />
-                <Button 
-                    size="small"
-                    severity="success" 
-                    label="Créer des accès pour établissement" 
-                    icon="pi pi-plus" 
-                    onClick={openNew3} 
-                />
-
+               
                 {/* <Button 
                     size="small"
                     severity="warning" 
@@ -496,39 +482,7 @@ const CalendarDemo = () => {
                 /> */}
 
                 {/* Carte alignée avec les boutons */}
-                <div
-                    className="card flex flex-column justify-content-center p-3 shadow-2 border-round-lg"
-                    style={{
-                        width: '350px',
-                        minWidth: '250px',
-                        backgroundColor: 'var(--surface-card)',
-                    }}
-                >
-                    {/* Titre ou barre de progression */}
-                    <div className="w-full mb-2">
-                        <div
-                            className="border-round-xl bg-blue-300"
-                            style={{ height: '6px', overflow: 'hidden' }}
-                        >
-                            <div
-                                className="h-full border-round-xl bg-green-500 transition-all"
-                                style={{ width: `${(infosUsers?.UsersConnected / infosUsers?.totalUsers) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
-
-                    {/* Informations */}
-                    <div className="flex align-items-center justify-content-between text-sm">
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-users text-green-500 mr-2"></i>
-                            <b>{infosUsers?.UsersConnected} connecté (s)</b>
-                        </div>
-                        <div className="text-900 font-medium">
-                            <i className="pi pi-user-plus text-blue-500 mr-2"></i>
-                            <b>{infosUsers?.totalUsers} créé (s)</b>
-                        </div>
-                    </div>
-                </div>
+                
             </div>
         );
     };
@@ -580,7 +534,7 @@ const CalendarDemo = () => {
                                 onClick={() => editProduct(rowData)}
                     />
 
-                    {!(rowData.login === "ADMIN CENTRAL") && (
+                    {!(rowData.profil.name === "ADMIN") && (
                             <Button
                                     icon="pi pi-history"
                                     tooltip="Réinitialiser le mot de passe"
@@ -591,7 +545,7 @@ const CalendarDemo = () => {
                         />
                     )}
                     
-                    {!(rowData.login === "ADMIN CENTRAL") && (
+                    {!(rowData.profil.name === "ADMIN") && (
                     <Button
                                 icon="pi pi-trash"
                                 tooltip="Supprimer le compte"
@@ -602,7 +556,7 @@ const CalendarDemo = () => {
                     />
                     )}
 
-                    {!(rowData.login === "ADMIN CENTRAL") && (
+                    {!(rowData.profil.name === "ADMIN") && (
                     <Button
                                 icon="pi pi-eject"
                                 tooltip="Activé ou Désactivé le compte"
@@ -1118,12 +1072,12 @@ const CalendarDemo = () => {
                                     )}
 
                                     <div className="formgrid grid">
-                                        <div className="field col-6">
+                                        {/* <div className="field col-6">
                                             <Checkbox name="category" value={is_go_by_smtp} onChange={(e) => setIsGoBySmtp(e.checked)} checked={is_go_by_smtp} />
                                             <span className="ml-2">
                                                 <b>Transmettre les accés pas SMTP ?</b>
                                             </span>
-                                        </div>
+                                        </div> */}
                                         <div className="field col-6">
                                             <div>
                                                 <Button severity="success" label="Creer l'accés" className="mr-2" type="submit" />
