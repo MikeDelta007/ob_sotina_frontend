@@ -392,11 +392,16 @@ const CalendarDemo = () => {
         // Boucle sur toutes les lignes récupérées
         for (let i = 0; i < allCandidats.length; i++) {
             const row = allCandidats[i];
+            //let totalEffectif = 0;
+            //let totalNt = 0;
 
             // Objet de base avec les infos principales
             let ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
 
-            let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) + 1 : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
+            // let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) + 1 : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
+
+            //totalEffectif += Math.round(row.effectif);
+            //totalNt += ntValue;
 
             let data = {
                 "Matière": row.matiere,
@@ -404,8 +409,8 @@ const CalendarDemo = () => {
                 "Jury": row.jury,
                 "Centre d'Ecrit": row.centreEcrit,
                 "Académie": row.academia,
-                "Effectif": Math.round(row.effectif),
-                [ntTitle]: ntValue  // Titre dynamique
+                "Effectif": row.effectif,
+                [ntTitle]: row.effectif_tirage,
             };
 
             worksheetData.push(data);
