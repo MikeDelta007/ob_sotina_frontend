@@ -129,6 +129,32 @@ const AppMenu = () => {
         });
     }
 
+    if (hasAccess(['ADMIN'])) {
+
+        model.push({
+            label: 'ESPACE BOTTINS',
+            icon: 'pi pi-calendar',
+            items: [
+                {
+                    label: 'Programmation Gabarit',
+                    icon: 'pi pi-fw pi-copy',
+                    to: '/bottins/gabarit-serie-matiere/listing'
+                },
+                {
+                    label: 'Bottins',
+                    icon: 'pi pi-fw pi-copy',
+                    to: '/bottins/edition'
+                }
+
+                // {
+                //     label: 'Répartition Feuille CGS',
+                //     icon: 'pi pi-fw pi-copy',
+                //     to: '/pedagogie-cgs/repartition-feuille'
+                // }
+            ]
+        });
+    }
+
     // =========================
     // SUPPRIMER LE DERNIER SEPARATEUR
     // =========================

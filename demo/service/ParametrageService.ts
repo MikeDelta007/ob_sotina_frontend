@@ -245,13 +245,205 @@ export interface LazyParams {
   rows?: number;
 }
 
+export interface SerieReleveDTO {
+  id: string;
+  code: string;
+  libelle: string;
+}
+
+export interface MatiereReferentielDTO {
+  id: string;
+  libelle: string;
+  coefficient: number;
+  ordre: number;
+}
+
+export interface GabaritDTO {
+  serieId: string;
+  code: string;
+  libelle: string;
+  champsEntete: string[];
+  matieresGroupe1: MatiereReferentielDTO[];
+}
+
+export interface LigneNoteForm {
+  groupe: 1 | 2;
+  matiereRefId?: string;
+  libelleMatiere: string;
+  coefficient: number;
+  note: number | null;
+}
+
+export interface ReleveFormValues {
+  serieId: string;
+  nom: string;
+  prenom: string;
+  dateNaissance: string;
+  lieuNaissance: string;
+  centreExamen: string;
+  numeroTable: string;
+  session: string;
+  annee: string;
+  lignesGroupe1: LigneNoteForm[];
+  lignesGroupe2: LigneNoteForm[];
+}
+
+export interface ReleveNotePayload {
+  serieId: string;
+  nom: string;
+  prenom: string;
+  dateNaissance: string | null;
+  lieuNaissance: string;
+  centreExamen: string;
+  numeroTable: string;
+  session: string;
+  annee: string;
+  lignes: Array<{
+    groupe: 1 | 2;
+    matiereRefId: string | null;
+    libelleMatiere: string;
+    coefficient: number;
+    note: number | null;
+  }>;
+}
+
+export interface ReleveNoteResult {
+  id: string;
+  nom: string;
+  prenom: string;
+  serieCode: string;
+  moyenneGenerale: number;
+  mention: string;
+}
+
+export interface MatiereReferentielFormValue {
+  id?: string;      // absent pour une nouvelle matière, présent en édition
+  libelle: string;
+  coefficient: number;
+  ordre: number;
+}
+
+export interface SerieFormValues {
+  code: string;
+  libelle: string;
+  matieresGroupe1: MatiereReferentielFormValue[];
+}
+
+export interface SerieDetailResponse {
+  id: string;
+  code: string;
+  libelle: string;
+  matieresGroupe1: MatiereReferentielDTO[];
+}
 
 
 
 
 export const ParametrageService = {
 
-  // 🔹 Récupérer toutes les règles
+  fetchSeries() {
+      return axiosInstance.get('import-data/series-releve')
+          .then(response => {
+              console.log('Séries récupérées avec succès :', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur chargement des séries :', error);
+              console.error('Code HTTP :', error.response?.status);
+              console.error('Message serveur :', error.response?.data);
+              return [];
+          });
+  },
+
+  fetchGabarit(serieId: string) {
+      return axiosInstance.get(`import-data/${serieId}/gabarit`)
+          .then(response => {
+              console.log('Gabarit récupéré avec succès :', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur chargement du gabarit :', error);
+              console.error('Code HTTP :', error.response?.status);
+              console.error('Message serveur :', error.response?.data);
+              return null;
+          });
+  },
+
+  creerReleve(payload: unknown) {
+      return axiosInstance.post('import-data/create-releve', payload)
+          .then(response => {
+              console.log('Relevé créé avec succès :', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur création du relevé :', error);
+              console.error('Code HTTP :', error.response?.status);
+              console.error('Message serveur :', error.response?.data);
+
+              throw new Error(
+                  error.response?.data?.erreur ||
+                  error.response?.data?.message ||
+                  "Erreur lors de l'enregistrement"
+              );
+          });
+  },
+
+  fetchSerieDetail(id: string) {
+    return axiosInstance.get(`import-data/series-releve/${id}`)
+        .then(response => {
+            console.log('Détail de la série récupéré avec succès :', response.data);
+            return response.data;
+        })
+        .catch(error => {
+            console.error('❌ Erreur lors du chargement du détail de la série :', error);
+            console.error('Code HTTP :', error.response?.status);
+            console.error('Message serveur :', error.response?.data);
+            return null;
+        });
+  },
+
+  creerSerie(payload: SerieFormValues) {
+      return axiosInstance.post(`import-data/create-series-releve`, payload)
+          .then(response => {
+              console.log('Série créée avec succès :', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur lors de la création de la série :', error);
+              console.error('Code HTTP :', error.response?.status);
+              console.error('Message serveur :', error.response?.data);
+              return null;
+          });
+  },
+
+  modifierSerie(id: string, payload: SerieFormValues) {
+      return axiosInstance.put(`import-data/update-series-releve/${id}`, payload)
+          .then(response => {
+              console.log('Série modifiée avec succès :', response.data);
+              return response.data;
+          })
+          .catch(error => {
+              console.error('❌ Erreur lors de la modification de la série :', error);
+              console.error('Code HTTP :', error.response?.status);
+              console.error('Message serveur :', error.response?.data);
+              return null;
+          });
+  },
+
+  supprimerSerie(id: string) {
+      return axiosInstance.delete(`import-data/delete-series-releve/${id}`)
+          .then(() => {
+              console.log('Série supprimée avec succès.');
+              return true;
+          })
+          .catch(error => {
+              console.error('❌ Erreur lors de la suppression de la série :', error);
+              console.error('Code HTTP :', error.response?.status);
+              console.error('Message serveur :', error.response?.data);
+              return false;
+          });
+  },
+
   getAllRegles() {
       return axiosInstance.get('/regleMatiere/all-regles')
           .then(response => {

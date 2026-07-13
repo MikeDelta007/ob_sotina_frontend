@@ -32,6 +32,7 @@ import { classNames } from 'primereact/utils';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { data } from 'react-router-dom';
 import { CandidatureService } from '@/demo/service/CandidatureService';
+import { MultiSelect } from 'primereact/multiselect';
 
 type Repartition = {
     jury: number;
@@ -64,8 +65,10 @@ const CalendarDemo = () => {
     const [resultImport, setResultImport] = useState(false);
     const [is_go_by_smtp, setIsGoBySmtp] = useState(false); // <== valeur persistante entre les appels
     const [groupedUsers, setGroupedUsers] = useState([]);
+    const [juryOptions, setJuryOptions] = useState([]);
     const { user } = useContext(UserContext);
     const [data, setData] = useState<Repartition[]>([]);
+    const [selectedJurys, setSelectedJurys] = useState([]);
 
     let emptyProduct: Demo.Product = {
         id: null,
@@ -105,6 +108,8 @@ const CalendarDemo = () => {
     const [dialogVisible, setDialogVisible] = useState(false);
 
     const [dialogVisible_, setDialogVisible_] = useState(false);
+
+    const [dialogVisible0, setDialogVisible0] = useState(false);
 
     const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
@@ -467,6 +472,36 @@ const CalendarDemo = () => {
     };
 
 
+    const exportAllEtCant = async () => {
+        try {
+            console.log("Début export...");
+            setExporting(true);
+            setExportStep('📡 Récupération des données...');
+
+            // 1. Appel API : récupère les données avec le groupe choisi
+            const allCandidats = await CandidatureService.getEtiquettesCant();
+
+            if (!allCandidats || allCandidats.length === 0) {
+                setExportStep('✅ Aucune donnée à exporter');
+                setTimeout(() => setExporting(false), 1000);
+                return;
+            }
+
+            setExportStep('🔄 Préparation des données...');
+
+            setExportStep('💾 Génération du fichier Excel...');
+
+            setExportStep('✅ Export terminé avec succès !');
+            setTimeout(() => setExporting(false), 1500);
+
+        } catch (error) {
+            console.error("❌ Erreur export :", error);
+            setExportStep('❌ Erreur lors de l’export');
+            setTimeout(() => setExporting(false), 2000);
+        }
+    };
+
+
     const exportAllBLSujet = async () => {
         try {
             console.log("Début export...");
@@ -474,7 +509,7 @@ const CalendarDemo = () => {
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getBLSujets();
+            const allCandidats = await CandidatureService.getBLSujets(selectedJurys);
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -509,6 +544,13 @@ const CalendarDemo = () => {
             <>
                 <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible_(false)} />
                 <Button label="Valider" icon="pi pi-check" onClick={exportAllEtiquettes} />
+            </>
+    );
+
+     const dialogFooter0 = (
+            <>
+                <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible0(false)} />
+                <Button label="Valider" icon="pi pi-check" onClick={exportAllBLSujet} />
             </>
     );
 
@@ -604,6 +646,15 @@ const CalendarDemo = () => {
                 }));
                 console.log('OHHH :', result);
                 setGroupedUsers(result);
+                const jurys = result
+                    .flatMap((item: any) => item.cdt)
+                    .map((centre: any) => centre.jury);
+
+                    const juryOptions_ = jurys.map(jury => ({
+                    code: jury
+                }));
+                console.log(juryOptions_);
+                setJuryOptions(juryOptions_);
             }
             else 
             {
@@ -743,7 +794,14 @@ const CalendarDemo = () => {
                     icon="pi pi-file"
                     severity="warning"
                     label="Exporter les bordereaux de livraison des sujets"
-                    onClick={exportAllBLSujet}
+                    onClick={() => setDialogVisible0(true)}
+                    className="p-button-primary"
+                />
+                <Button
+                    severity="info"
+                    onClick={exportAllEtCant}
+                    icon="pi pi-download"
+                    label="Générez les etiquettes de cantine"
                     className="p-button-primary"
                 />
             </div>
@@ -2026,6 +2084,42 @@ const CalendarDemo = () => {
                                                     />
 
                                                     
+                                                </div>
+                                            </div>
+
+                                          
+                                        </div>
+                        </Dialog>
+
+
+                        <Dialog
+                                        header="Export des bordereaux de convoyage de sujets"
+                                        visible={dialogVisible0}
+                                        style={{ width: '520px' }}
+                                        footer={dialogFooter0}
+                                        onHide={() => setDialogVisible0(false)}
+                                    >
+                                        <div className="p-fluid">
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Jurys à exclure</label>
+                                                <div className="col-5">
+                                                    <MultiSelect
+                                                        value={selectedJurys}
+                                                        options={juryOptions}
+                                                        optionLabel="code"
+                                                        optionValue="code"
+                                                        onChange={(e) => { 
+                                                            setSelectedJurys(e.value) 
+                                                            console.log(e.value);
+                                                        }}
+
+                                                        placeholder="Choisir jury(s)"
+                                                        filter
+                                                        display="chip"
+                                                        className="w-full"
+                                                        filterPlaceholder="Rechercher un jury..."
+                                                    />
                                                 </div>
                                             </div>
 

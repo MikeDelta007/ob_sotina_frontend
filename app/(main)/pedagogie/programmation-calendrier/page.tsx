@@ -59,6 +59,7 @@ const PlanningRegleMatiere = () => {
 
     const groupes = [
         { label: 'PREMIER GROUPE', value: '1ERGRP' },
+        { label: 'SECOND GROUPE', value: '2NDGRP' },
         { label: 'PREMIER GROUPE & SECOND GROUPE', value: '1ER2NDGRP' }
     ];
 
@@ -262,8 +263,8 @@ const PlanningRegleMatiere = () => {
                             <label className="col-4 mb-0">Séries concernées</label>
                             <div className="col-12">
                                 <MultiSelect
-                                    value={regle.series}             // ex: ['L1A']
-                                    options={series}          // ex: [{code:'L1A', name:'Série L1A ...'}]
+                                    value={regle.series}
+                                    options={series}
                                     optionLabel="code"
                                     optionValue="code"
                                     onChange={(e) =>
@@ -370,7 +371,7 @@ const PlanningRegleMatiere = () => {
                     )}
 
                     {/* Bloc 2 seulement pour 1ER2NDGRP */}
-                    {regle.groupe === '1ER2NDGRP' && (
+                    {(regle.groupe === '2NDGRP' || regle.groupe === '1ER2NDGRP') && (
                         <div className="formgrid grid">
                             <div className="field col-6">
                                 <label>Date 2</label>

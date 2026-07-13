@@ -506,6 +506,26 @@ export const CandidatureService = {
       });
   },
 
+  // SOTINA
+  getEtiquettesCant() {
+  return axiosInstance.get('/pdf/generate-etiquetteCantine-paysage', {
+    params: {},
+    responseType: 'blob'
+    })
+      .then(response => {
+        const filename = `etiquettes_de_cantine.pdf`;
+        saveAs(response.data, filename);
+        console.log('PDF téléchargé avec succès');
+        return filename;
+      })
+      .catch(error => {
+        console.error('Erreur lors du téléchargement du PDF :', error);
+        console.error('Code HTTP :', error.response?.status);
+        console.error('Message :', error.response?.data);
+        throw error;
+      });
+  },
+
   getEtiquettes_() {
   return axiosInstance.get('/pdf/generate-etiquetteCGS-paysage', {
     
@@ -526,9 +546,9 @@ export const CandidatureService = {
   },
 
   // SOTINA
-  getBLSujets() {
-  return axiosInstance.get('/pdf/generate-bdr', {
-    responseType: 'blob'
+  getBLSujets(jurysExclus) {
+    return axiosInstance.post('/pdf/generate-bdr', jurysExclus, {
+      responseType: 'blob'
     })
       .then(response => {
         const filename = `bordereau_de_livraison_des_sujets.pdf`;
