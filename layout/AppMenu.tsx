@@ -33,6 +33,11 @@ const AppMenu = () => {
                     label: 'Relevé Statistique',
                     icon: 'pi pi-fw pi-home',
                     to: '/tableau-de-bord'
+                },
+                {
+                    label: "Caisse d'avance",
+                    icon: 'pi pi-fw pi-wallet',
+                    to: '/caisse-avance'
                 }
             ]
         });
