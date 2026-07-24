@@ -91,7 +91,7 @@ export default function SerieForm({ serieExistante }: Props) {
         <legend className="font-medium px-2">Matières du 1er groupe (référentiel fixe)</legend>
 
         {fields.length === 0 ? (
-          <p className="text-sm text-gray-500 mb-3">Aucune matière ajoutée pour l'instant.</p>
+          <p className="text-sm text-gray-500 mb-3">Aucune matière ajoutée pour l&apos;instant.</p>
         ) : (
           <table className="w-full border-collapse mb-3">
             <thead>

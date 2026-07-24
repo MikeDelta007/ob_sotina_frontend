@@ -31,7 +31,7 @@ export default function EnteteFields({
           <input className="border rounded px-2 py-1 w-full" {...register("lieuNaissance")} />
         </div>
         <div>
-          <label className="block text-sm mb-1">Centre d'examen</label>
+          <label className="block text-sm mb-1">Centre d&apos;examen</label>
           <input className="border rounded px-2 py-1 w-full" {...register("centreExamen")} />
         </div>
         <div>
