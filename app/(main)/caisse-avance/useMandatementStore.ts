@@ -12,11 +12,13 @@ interface MandatementStore {
   // Cumulatif : N lignes (chacune = un mandatement simple)
   lignes:         LigneLocale[]
   montantAvance:  number
+  description:    string
 
   openModal:         (type?: TypeMandatement) => void
   closeModal:        () => void
   setType:           (t: TypeMandatement) => void
   setTypePaiement:   (t: TypePaiement) => void
+  setDescription:    (v: string) => void
   // simple
   setLigneSimple:    (patch: Partial<LigneLocale>) => void
   // cumulatif
@@ -36,6 +38,7 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
   ligneSimple:   newLigne(),
   lignes:        [newLigne()],
   montantAvance: 0,
+  description:   '',
 
   openModal: (type = 'SIMPLE') => {
     get().reset()
@@ -44,6 +47,7 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
   closeModal: () => set({ open: false }),
   setType:    (t) => set({ type: t }),
   setTypePaiement: (t) => set({ typePaiement: t }),
+  setDescription: (v) => set({ description: v }),
 
   setLigneSimple: (patch) =>
     set(s => ({ ligneSimple: { ...s.ligneSimple, ...patch } })),
@@ -73,6 +77,6 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
 
   reset: () => set({
     type: 'SIMPLE', typePaiement: 'TOTALITE',
-    ligneSimple: newLigne(), lignes: [newLigne()], montantAvance: 0,
+    ligneSimple: newLigne(), lignes: [newLigne()], montantAvance: 0, description: '',
   }),
 }))

@@ -6,6 +6,7 @@ import { Dialog } from 'primereact/dialog'
 import { Dropdown } from 'primereact/dropdown'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
 import { InputNumber } from 'primereact/inputnumber'
+import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { SelectButton } from 'primereact/selectbutton'
 import { Tag } from 'primereact/tag'
@@ -26,9 +27,9 @@ const TYPE_PAIEMENT_OPTIONS = [
 export default function MandatementModal() {
   const {
     open, type, typePaiement,
-    ligneSimple, lignes, montantAvance,
+    ligneSimple, lignes, montantAvance, description,
     closeModal, setType, setTypePaiement,
-    setLigneSimple, addLigne, setMontantAvance,
+    setLigneSimple, addLigne, setMontantAvance, setDescription,
     getMontantTotal, getMontantReliquat, reset,
   } = useMandatementStore()
 
@@ -61,7 +62,13 @@ export default function MandatementModal() {
     : lignes.length > 0 && lignes.every(l => ligneEstValide(l, soldeCaisse,
         typePaiement === 'AVANCE' ? (total > 0 ? montantAvance * (l.montant / total) : 0) : l.montant))
   const nbFacturesValide = type !== 'CUMULATIF' || lignes.length >= 2
+  // Un mandatement cumulatif regroupe de petites factures destinées à un paiement en
+  // espèces : c'est le CUMUL (total) qui ne doit dépasser ni le seuil chèque, ni ce que
+  // la caisse peut couvrir — pas chaque facture individuellement.
+  const totalSousLeSeuil = type !== 'CUMULATIF' || total <= SEUIL_CHEQUE
+  const totalCouvertParCaisse = type !== 'CUMULATIF' || total <= soldeCaisse
   const formulaireValide = total > 0 && piecesValides && avanceValide && nbFacturesValide
+    && totalSousLeSeuil && totalCouvertParCaisse
 
   const allerApprovisionner = () => {
     closeModal()
@@ -84,6 +91,7 @@ export default function MandatementModal() {
           motifLibelle: ligneSimple.motifLibelle,
           typePaiement,
           montantAvance: typePaiement === 'AVANCE' ? montantAvance : undefined,
+          description: description || undefined,
         })], { type: 'application/json' })
         form.append('data', dataSimple)
         if (ligneSimple.pdfFacture) form.append('pdfFacture', ligneSimple.pdfFacture)
@@ -102,6 +110,7 @@ export default function MandatementModal() {
           })),
           typePaiement,
           montantAvanceGlobal: typePaiement === 'AVANCE' ? montantAvance : undefined,
+          description: description || undefined,
         })], { type: 'application/json' })
         form.append('data', dataCumulatif)
         lignes.forEach(l => {
@@ -228,6 +237,10 @@ export default function MandatementModal() {
               <Message severity="info" className="w-full mb-3"
                 text="Un mandatement cumulatif nécessite au moins deux factures." />
             )}
+            {total > SEUIL_CHEQUE && !totalSousLeSeuil && (
+              <Message severity="error" className="w-full mb-3"
+                text={`Le total du mandatement cumulatif (${fmt(total)}) dépasse ${fmt(SEUIL_CHEQUE)}. Supprimez une ou plusieurs factures, ou utilisez un mandatement simple.`} />
+            )}
             {lignes.map((l, i) => (
               <LigneFactureRow key={l._localId} ligne={l} index={i}
                 canRemove={lignes.length > 1} />
@@ -239,6 +252,21 @@ export default function MandatementModal() {
                 <span className="text-color-secondary">Total {lignes.length} factures</span>
                 <strong>{fmt(total)}</strong>
               </div>
+            )}
+            {total > 0 && !totalCouvertParCaisse && (
+              <Message severity="error" className="w-full mt-3" content={
+                <div className="p-2 flex flex-column gap-2">
+                  <div>
+                    <div className="font-semibold mb-1">Le total dépasse le solde de la caisse</div>
+                    <div className="text-sm">
+                      Total des factures : <strong>{fmt(total)}</strong> — solde disponible : <strong>{fmt(soldeCaisse)}</strong> (dépassement de {fmt(total - soldeCaisse)}).
+                      Supprimez une ou plusieurs factures pour réduire le total, ou approvisionnez la caisse pour couvrir ce montant.
+                    </div>
+                  </div>
+                  <Button label="Approvisionner la caisse" icon="pi pi-wallet" size="small"
+                    className="align-self-start" onClick={allerApprovisionner} />
+                </div>
+              } />
             )}
           </div>
         )}
@@ -268,6 +296,13 @@ export default function MandatementModal() {
             )}
           </div>
         )}
+
+        {/* ── Observations ── */}
+        <div className="field">
+          <label className="block text-sm text-color-secondary mb-1">Observations (optionnel)</label>
+          <InputTextarea value={description} onChange={e => setDescription(e.target.value)}
+            rows={2} className="w-full" placeholder="Remarques éventuelles sur ce mandatement…" />
+        </div>
 
         {/* ── Alerte solde caisse insuffisant ── */}
         {soldeInsuffisant && (

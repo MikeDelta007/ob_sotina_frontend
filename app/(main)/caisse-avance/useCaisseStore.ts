@@ -1,7 +1,10 @@
 // store/useCaisseStore.ts
 import { create } from 'zustand'
 import axiosInstance from '@/app/api/axiosInstance'
-import type { CaisseAvance, Motif, Mandatement, Approvisionnement } from './types'
+import type { CaisseAvance, Motif, Mandatement, Approvisionnement, PeriodeType } from './types'
+import { getISOWeek } from './types'
+
+const NOW = new Date()
 
 interface CaisseStore {
   caisse: CaisseAvance | null
@@ -15,6 +18,17 @@ interface CaisseStore {
   motifLoading: boolean
   reliquatLoadingId: string | null
 
+  // Filtre période partagé (mandatements + approvisionnements, écran + Excel)
+  periodeType:   PeriodeType
+  periodeAnnee:  number
+  periodeMois:   number
+  periodeSemaine: number
+  setPeriodeType:    (t: PeriodeType) => void
+  setPeriodeAnnee:   (v: number) => void
+  setPeriodeMois:    (v: number) => void
+  setPeriodeSemaine: (v: number) => void
+  periodeParams:     () => { annee?: number; mois?: number; semaine?: number }
+
   fetchCaisse:                  () => Promise<void>
   fetchMotifs:                   () => Promise<void>
   fetchAllMotifs:                 () => Promise<void>
@@ -24,7 +38,7 @@ interface CaisseStore {
   fetchMandatements:             () => Promise<void>
   fetchApprovisionnements:       () => Promise<void>
   approvisionner:                (data: { montant: number; date: string; description?: string }) => Promise<void>
-  payerReliquat:                  (id: string) => Promise<void>
+  payerReliquat:                  (id: string, pdfCheque?: File | null, pdfCni?: File | null) => Promise<void>
   openApprovisionnementModal:    () => void
   closeApprovisionnementModal:   () => void
   clearError:                    () => void
@@ -41,6 +55,24 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
   showApprovisionnementModal: false,
   motifLoading: false,
   reliquatLoadingId: null,
+
+  periodeType: 'ANNEE',
+  periodeAnnee: NOW.getFullYear(),
+  periodeMois: NOW.getMonth() + 1,
+  periodeSemaine: getISOWeek(NOW),
+
+  setPeriodeType:    (t) => { set({ periodeType: t }); get().fetchMandatements(); get().fetchApprovisionnements() },
+  setPeriodeAnnee:   (v) => { set({ periodeAnnee: v }); get().fetchMandatements(); get().fetchApprovisionnements() },
+  setPeriodeMois:    (v) => { set({ periodeMois: v }); get().fetchMandatements(); get().fetchApprovisionnements() },
+  setPeriodeSemaine: (v) => { set({ periodeSemaine: v }); get().fetchMandatements(); get().fetchApprovisionnements() },
+
+  periodeParams: () => {
+    const { periodeType, periodeAnnee, periodeMois, periodeSemaine } = get()
+    if (periodeType === 'ANNEE')   return { annee: periodeAnnee }
+    if (periodeType === 'MOIS')    return { annee: periodeAnnee, mois: periodeMois }
+    if (periodeType === 'SEMAINE') return { annee: periodeAnnee, semaine: periodeSemaine }
+    return {}
+  },
 
   fetchCaisse: async () => {
     set({ loading: true, error: null })
@@ -102,7 +134,7 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
   fetchMandatements: async () => {
     set({ loading: true })
     try {
-      const { data } = await axiosInstance.get('mandatement')
+      const { data } = await axiosInstance.get('mandatement', { params: get().periodeParams() })
       set({ mandatements: data })
     } catch { set({ error: 'Erreur chargement mandatements' }) }
     finally { set({ loading: false }) }
@@ -110,7 +142,7 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
 
   fetchApprovisionnements: async () => {
     try {
-      const { data } = await axiosInstance.get('caisse-avance/approvisionnements')
+      const { data } = await axiosInstance.get('caisse-avance/approvisionnements', { params: get().periodeParams() })
       set({ approvisionnements: data })
     } catch { set({ error: 'Erreur chargement des approvisionnements' }) }
   },
@@ -126,10 +158,14 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
     } finally { set({ loading: false }) }
   },
 
-  payerReliquat: async (id) => {
+  payerReliquat: async (id, pdfCheque, pdfCni) => {
     set({ reliquatLoadingId: id, error: null })
     try {
-      await axiosInstance.put(`mandatement/${id}/payer-reliquat`)
+      const form = new FormData()
+      if (pdfCheque) form.append('pdfCheque', pdfCheque)
+      if (pdfCni)    form.append('pdfCni', pdfCni)
+      await axiosInstance.put(`mandatement/${id}/payer-reliquat`, form,
+        { headers: { 'Content-Type': 'multipart/form-data' } })
       await Promise.all([get().fetchCaisse(), get().fetchMandatements()])
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur lors du paiement du reliquat' })

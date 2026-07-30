@@ -6,15 +6,18 @@ import { Button } from 'primereact/button'
 import { Card } from 'primereact/card'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
+import { Dialog } from 'primereact/dialog'
 import { Dropdown } from 'primereact/dropdown'
+import { InputNumber } from 'primereact/inputnumber'
 import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
+import { SelectButton } from 'primereact/selectbutton'
 import { TabPanel, TabView } from 'primereact/tabview'
 import { Tag } from 'primereact/tag'
 import { Toast } from 'primereact/toast'
 import { useCaisseStore } from './useCaisseStore'
 import { useMandatementStore } from './useMandatementStore'
-import { fmt, SEUIL_ALERTE, type Mandatement, type Approvisionnement } from './types'
+import { fmt, SEUIL_ALERTE, MOIS_OPTIONS, type Mandatement, type Approvisionnement } from './types'
 import MandatementModal from './MandatementModal'
 import CaisseGestionModal from './CaisseGestionModal'
 import ReliquatsTab from './ReliquatsTab'
@@ -32,11 +35,23 @@ const MODE_OPTIONS = [
   { label: 'Espèces', value: 'ESPECES' },
   { label: 'Chèque', value: 'CHEQUE' },
 ]
+const PERIODE_OPTIONS = [
+  { label: 'Toutes', value: 'TOUTES' },
+  { label: 'Année', value: 'ANNEE' },
+  { label: 'Mois', value: 'MOIS' },
+  { label: 'Semaine', value: 'SEMAINE' },
+]
+const ANNEE_OPTIONS = Array.from({ length: 10 }, (_, i) => {
+  const y = new Date().getFullYear() - i
+  return { label: String(y), value: y }
+})
 
 export default function CaisseAvancePage() {
   const { caisse, mandatements, approvisionnements, loading, error,
           fetchCaisse, fetchMotifs, fetchAllMotifs, fetchMandatements, fetchApprovisionnements,
-          showApprovisionnementModal, openApprovisionnementModal, closeApprovisionnementModal } = useCaisseStore()
+          showApprovisionnementModal, openApprovisionnementModal, closeApprovisionnementModal,
+          periodeType, periodeAnnee, periodeMois, periodeSemaine,
+          setPeriodeType, setPeriodeAnnee, setPeriodeMois, setPeriodeSemaine, periodeParams } = useCaisseStore()
   const { openModal } = useMandatementStore()
   const [search, setSearch]     = useState('')
   const [filterType, setFilterType] = useState('TOUS')
@@ -44,6 +59,7 @@ export default function CaisseAvancePage() {
   const [exportingApprov, setExportingApprov] = useState(false)
   const [exportingMandatements, setExportingMandatements] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [piecesMandatement, setPiecesMandatement] = useState<Mandatement | null>(null)
   const toast = useRef<Toast>(null)
 
   useEffect(() => {
@@ -92,7 +108,7 @@ export default function CaisseAvancePage() {
     setExportingMandatements(true)
     try {
       const { data } = await axiosInstance.get('mandatement/export.xlsx',
-        { responseType: 'blob' })
+        { responseType: 'blob', params: periodeParams() })
       saveAs(data, 'mandatements_caisse_avance.xlsx')
     } catch {
       toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Export des mandatements impossible' })
@@ -105,7 +121,7 @@ export default function CaisseAvancePage() {
     setExportingApprov(true)
     try {
       const { data } = await axiosInstance.get('caisse-avance/approvisionnements/export.xlsx',
-        { responseType: 'blob' })
+        { responseType: 'blob', params: periodeParams() })
       saveAs(data, 'approvisionnements_caisse_avance.xlsx')
     } catch {
       toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Export des approvisionnements impossible' })
@@ -156,8 +172,13 @@ export default function CaisseAvancePage() {
   const reliquatBody = (m: Mandatement) => {
     if (m.typePaiement !== 'AVANCE' || !m.montantReliquat) return '—'
     return (
-      <div className="flex align-items-center justify-content-end gap-2">
+      <div className="flex align-items-center justify-content-end gap-2 flex-wrap">
         <span>{fmt(m.montantReliquat)}</span>
+        {m.reliquatPaye && m.modePaiementReliquat && (
+          <Tag severity={m.modePaiementReliquat === 'ESPECES' ? 'success' : 'warning'}
+            icon={m.modePaiementReliquat === 'ESPECES' ? 'pi pi-money-bill' : 'pi pi-credit-card'}
+            value={m.modePaiementReliquat === 'ESPECES' ? 'Espèces' : 'Chèque'} />
+        )}
         <Tag severity={m.reliquatPaye ? 'success' : 'warning'} value={m.reliquatPaye ? 'Payé' : 'En attente'} />
       </div>
     )
@@ -169,31 +190,15 @@ export default function CaisseAvancePage() {
       value={m.modePaiement === 'ESPECES' ? 'Espèces' : 'Chèque'} />
   )
 
-  const piecesBody = (m: Mandatement) => (
-    <div className="flex flex-column align-items-center gap-2">
-      <Button label="Décaissement" icon="pi pi-download" size="small"
-        loading={downloadingId === m.id} onClick={() => downloadDecaissement(m.id)} />
-      {m.factures.map(f => (
-        <div key={f.numero} className="flex gap-1 flex-wrap justify-content-center">
-          {f.urlPdfFacture && (
-            <a href={`${FILES_ORIGIN}${f.urlPdfFacture}`} target="_blank" rel="noreferrer" title="Facture PDF">
-              <Tag severity="secondary" icon="pi pi-file-pdf" value="Facture" />
-            </a>
-          )}
-          {f.urlPdfCheque && (
-            <a href={`${FILES_ORIGIN}${f.urlPdfCheque}`} target="_blank" rel="noreferrer" title="Chèque PDF">
-              <Tag severity="warning" icon="pi pi-credit-card" value="Chèque" />
-            </a>
-          )}
-          {f.urlPdfCni && (
-            <a href={`${FILES_ORIGIN}${f.urlPdfCni}`} target="_blank" rel="noreferrer" title="CNI PDF">
-              <Tag severity="secondary" icon="pi pi-id-card" value="CNI" />
-            </a>
-          )}
-        </div>
-      ))}
-    </div>
-  )
+  const piecesBody = (m: Mandatement) => {
+    const nbPieces = m.factures.reduce((s, f) =>
+      s + (f.urlPdfFacture ? 1 : 0) + (f.urlPdfCheque ? 1 : 0) + (f.urlPdfCni ? 1 : 0), 0)
+      + (m.urlPdfChequeReliquat ? 1 : 0) + (m.urlPdfCniReliquat ? 1 : 0)
+    return (
+      <Button label={`Pièces (${nbPieces})`} icon="pi pi-folder-open" size="small" outlined
+        onClick={() => setPiecesMandatement(m)} />
+    )
+  }
 
   const dateBody = (m: Mandatement) => (
     <span className="text-color-secondary text-sm">
@@ -208,7 +213,7 @@ export default function CaisseAvancePage() {
       {/* Header */}
       <div className="flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
-          <h3 className="m-0">Caisse d'avance</h3>
+          <h3 className="m-0">Gestion comptabilité</h3>
           <p className="text-color-secondary mt-1 mb-0">Gestion des mandatements et décaissements</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -216,6 +221,33 @@ export default function CaisseAvancePage() {
           <Button label="Simple" icon="pi pi-plus" onClick={() => openModal('SIMPLE')} />
           <Button label="Cumulatif" icon="pi pi-plus" severity="help" onClick={() => openModal('CUMULATIF')} />
         </div>
+      </div>
+
+      {/* Filtre période — s'applique aux mandatements et approvisionnements (écran + Excel) */}
+      <div className="flex flex-wrap align-items-end gap-3 mb-4">
+        <div>
+          <label className="block text-sm text-color-secondary mb-1">Période</label>
+          <SelectButton value={periodeType} onChange={e => e.value && setPeriodeType(e.value)} options={PERIODE_OPTIONS} />
+        </div>
+        {periodeType !== 'TOUTES' && (
+          <div>
+            <label className="block text-sm text-color-secondary mb-1">Année</label>
+            <Dropdown value={periodeAnnee} options={ANNEE_OPTIONS} onChange={e => setPeriodeAnnee(e.value)} />
+          </div>
+        )}
+        {periodeType === 'MOIS' && (
+          <div>
+            <label className="block text-sm text-color-secondary mb-1">Mois</label>
+            <Dropdown value={periodeMois} options={MOIS_OPTIONS} onChange={e => setPeriodeMois(e.value)} />
+          </div>
+        )}
+        {periodeType === 'SEMAINE' && (
+          <div>
+            <label className="block text-sm text-color-secondary mb-1">Semaine (1-53)</label>
+            <InputNumber value={periodeSemaine} min={1} max={53} showButtons
+              onValueChange={e => setPeriodeSemaine(e.value ?? 1)} style={{ width: '8rem' }} />
+          </div>
+        )}
       </div>
 
       {/* Alertes */}
@@ -346,6 +378,61 @@ export default function CaisseAvancePage() {
 
       <MandatementModal />
       <CaisseGestionModal open={showApprovisionnementModal} onClose={closeApprovisionnementModal} />
+
+      <Dialog header="Pièces & PDF" visible={!!piecesMandatement} onHide={() => setPiecesMandatement(null)}
+        style={{ width: '30rem' }} draggable={false}>
+        {piecesMandatement && (
+          <div className="flex flex-column gap-3">
+            <Button label="Télécharger le décaissement" icon="pi pi-download" className="w-full"
+              loading={downloadingId === piecesMandatement.id}
+              onClick={() => downloadDecaissement(piecesMandatement.id)} />
+
+            {piecesMandatement.factures.map(f => (
+              <div key={f.numero} className="card m-0">
+                <p className="font-medium mt-0 mb-2">{f.numero}</p>
+                <div className="flex gap-2 flex-wrap">
+                  {f.urlPdfFacture && (
+                    <a href={`${FILES_ORIGIN}${f.urlPdfFacture}`} target="_blank" rel="noreferrer" title="Facture PDF">
+                      <Tag severity="secondary" icon="pi pi-file-pdf" value="Facture" />
+                    </a>
+                  )}
+                  {f.urlPdfCheque && (
+                    <a href={`${FILES_ORIGIN}${f.urlPdfCheque}`} target="_blank" rel="noreferrer" title="Chèque PDF">
+                      <Tag severity="warning" icon="pi pi-credit-card" value="Chèque" />
+                    </a>
+                  )}
+                  {f.urlPdfCni && (
+                    <a href={`${FILES_ORIGIN}${f.urlPdfCni}`} target="_blank" rel="noreferrer" title="CNI PDF">
+                      <Tag severity="secondary" icon="pi pi-id-card" value="CNI" />
+                    </a>
+                  )}
+                  {!f.urlPdfFacture && !f.urlPdfCheque && !f.urlPdfCni && (
+                    <span className="text-color-secondary text-sm">Aucune pièce jointe</span>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {piecesMandatement.reliquatPaye && piecesMandatement.modePaiementReliquat === 'CHEQUE' && (
+              <div className="card m-0">
+                <p className="font-medium mt-0 mb-2">Paiement du reliquat (chèque)</p>
+                <div className="flex gap-2 flex-wrap">
+                  {piecesMandatement.urlPdfChequeReliquat && (
+                    <a href={`${FILES_ORIGIN}${piecesMandatement.urlPdfChequeReliquat}`} target="_blank" rel="noreferrer" title="Chèque PDF">
+                      <Tag severity="warning" icon="pi pi-credit-card" value="Chèque" />
+                    </a>
+                  )}
+                  {piecesMandatement.urlPdfCniReliquat && (
+                    <a href={`${FILES_ORIGIN}${piecesMandatement.urlPdfCniReliquat}`} target="_blank" rel="noreferrer" title="CNI PDF">
+                      <Tag severity="secondary" icon="pi pi-id-card" value="CNI" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   )
 }

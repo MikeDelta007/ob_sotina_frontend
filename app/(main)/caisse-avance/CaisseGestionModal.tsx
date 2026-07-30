@@ -12,30 +12,37 @@ import { fmt } from './types'
 interface Props { open: boolean; onClose: () => void }
 
 export default function CaisseGestionModal({ open, onClose }: Props) {
-  const { caisse, approvisionner, loading } = useCaisseStore()
+  const { caisse, approvisionner } = useCaisseStore()
   const [montant, setMontant] = useState<number | null>(null)
   const [date, setDate]       = useState<Date>(new Date())
   const [desc, setDesc]       = useState('')
   const [err, setErr]         = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const soldeAvant = caisse?.montant ?? 0
-  const soldeApres = soldeAvant + (montant ?? 0)
+  const montantValide = !!montant && montant > 0
 
   const handleSubmit = async () => {
+    if (submitting) return
     setErr('')
-    if (!montant || montant <= 0) { setErr('Montant invalide'); return }
+    if (!montantValide) { setErr('Montant invalide'); return }
+    setSubmitting(true)
     try {
-      await approvisionner({ montant, date: date.toISOString().slice(0, 10), description: desc })
+      await approvisionner({ montant: montant!, date: date.toISOString().slice(0, 10), description: desc })
       setMontant(null); setDesc(''); setDate(new Date())
       onClose()
-    } catch { setErr('Erreur lors de l\'approvisionnement') }
+    } catch {
+      setErr('Erreur lors de l\'approvisionnement')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const footer = (
     <div className="flex gap-2">
-      <Button label="Annuler" outlined className="flex-1" onClick={onClose} disabled={loading} />
-      <Button label="Approvisionner" className="flex-1" loading={loading}
-        disabled={loading} onClick={handleSubmit} />
+      <Button label="Annuler" outlined className="flex-1" onClick={onClose} disabled={submitting} />
+      <Button label="Approvisionner" className="flex-1" loading={submitting}
+        disabled={submitting} onClick={handleSubmit} />
     </div>
   )
 
@@ -50,22 +57,6 @@ export default function CaisseGestionModal({ open, onClose }: Props) {
           <InputNumber value={montant} min={1} className="w-full"
             onValueChange={e => setMontant(e.value ?? null)} placeholder="ex: 500000" />
         </div>
-
-        {montant && montant > 0 && (
-          <Message severity="success" className="w-full" content={
-            <div className="p-2 flex flex-column gap-1">
-              <div className="flex justify-content-between text-sm">
-                <span>Solde avant</span><strong>{fmt(soldeAvant)}</strong>
-              </div>
-              <div className="flex justify-content-between text-sm">
-                <span>Montant ajouté</span><strong>+{fmt(montant)}</strong>
-              </div>
-              <div className="flex justify-content-between text-sm pt-1 border-top-1 surface-border">
-                <span>Solde après</span><strong>{fmt(soldeApres)}</strong>
-              </div>
-            </div>
-          } />
-        )}
 
         <div className="field">
           <label className="block text-sm font-medium mb-1">Date</label>

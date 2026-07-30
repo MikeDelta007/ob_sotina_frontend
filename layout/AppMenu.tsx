@@ -35,7 +35,7 @@ const AppMenu = () => {
                     to: '/tableau-de-bord'
                 },
                 {
-                    label: "Caisse d'avance",
+                    label: 'Gestion comptabilité',
                     icon: 'pi pi-fw pi-wallet',
                     to: '/caisse-avance'
                 }

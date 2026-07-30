@@ -56,7 +56,11 @@ export interface Mandatement {
   soldeApres?: number
   reliquatPaye?: boolean
   dateReliquatPaye?: string
+  modePaiementReliquat?: ModePaiement
+  urlPdfChequeReliquat?: string
+  urlPdfCniReliquat?: string
   factures: FactureEmbedded[]
+  description?: string
   creePar: string
   dateCreation: string
 }
@@ -74,6 +78,25 @@ export interface LigneLocale {
 
 export const SEUIL_ALERTE  = 100_000
 export const SEUIL_CHEQUE  = 100_000
+
+// Filtre période partagé (mandatements + approvisionnements, écran + Excel)
+export type PeriodeType = 'TOUTES' | 'ANNEE' | 'MOIS' | 'SEMAINE'
+
+export const MOIS_OPTIONS = [
+  { label: 'Janvier', value: 1 }, { label: 'Février', value: 2 }, { label: 'Mars', value: 3 },
+  { label: 'Avril', value: 4 }, { label: 'Mai', value: 5 }, { label: 'Juin', value: 6 },
+  { label: 'Juillet', value: 7 }, { label: 'Août', value: 8 }, { label: 'Septembre', value: 9 },
+  { label: 'Octobre', value: 10 }, { label: 'Novembre', value: 11 }, { label: 'Décembre', value: 12 },
+]
+
+// Numéro de semaine ISO-8601 (1-53)
+export const getISOWeek = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+}
 
 // soldeCaisse optionnel : si fourni et insuffisant pour couvrir le montant,
 // on bascule sur CHEQUE même en dessous du seuil (reflète le comportement backend)
