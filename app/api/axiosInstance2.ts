@@ -72,7 +72,7 @@ const axiosInstance2: AxiosInstance = axios.create({
 });
 
 // const axiosInstance2: AxiosInstance = axios.create({
-//   baseURL: 'http://192.168.60.51/ob/api/v1/',
+//   baseURL: 'https://sotina.offbac.sn/ob/api/v1/',
 //   // headers: {
 //   //   'Content-Type': 'application/json',
 //   //   'Accept': '*/*',
