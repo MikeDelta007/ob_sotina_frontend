@@ -342,6 +342,7 @@ export default function CaisseAvancePage() {
             <Column header="Avance" body={avanceBody} align="right" alignHeader="right" />
             <Column header="Reliquat" body={reliquatBody} align="right" alignHeader="right" />
             <Column header="Mode" body={modeBody} align="center" alignHeader="center" />
+            <Column header="Bénéficiaire" body={(m: Mandatement) => m.beneficiaire || '—'} />
             <Column header="Pièces & PDF" body={piecesBody} align="center" alignHeader="center" />
             <Column header="Date" body={dateBody} />
           </DataTable>

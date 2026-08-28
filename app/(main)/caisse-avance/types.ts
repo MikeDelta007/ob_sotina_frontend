@@ -61,6 +61,10 @@ export interface Mandatement {
   urlPdfCniReliquat?: string
   factures: FactureEmbedded[]
   description?: string
+  beneficiaire?: string
+  numeroCni?: string
+  numeroCheque?: string
+  expressionBesoinId?: string
   creePar: string
   dateCreation: string
 }

@@ -1,18 +1,21 @@
 'use client'
-import { useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
 import { Dropdown } from 'primereact/dropdown'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
 import { InputNumber } from 'primereact/inputnumber'
+import { InputText } from 'primereact/inputtext'
 import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { SelectButton } from 'primereact/selectbutton'
 import { Tag } from 'primereact/tag'
+import { UserContext } from '@/app/userContext'
 import { useMandatementStore } from './useMandatementStore'
 import { useCaisseStore } from './useCaisseStore'
 import { modeAuto, fmt, SEUIL_CHEQUE, ligneEstValide } from './types'
+import type { ExpressionBesoin } from '../expression-besoin/types'
 import LigneFactureRow from './LigneFactureRow'
 
 const TYPE_OPTIONS = [
@@ -28,8 +31,10 @@ export default function MandatementModal() {
   const {
     open, type, typePaiement,
     ligneSimple, lignes, montantAvance, description,
+    beneficiaire, numeroCni, numeroCheque, expressionBesoinId,
     closeModal, setType, setTypePaiement,
     setLigneSimple, addLigne, setMontantAvance, setDescription,
+    setBeneficiaire, setNumeroCni, setNumeroCheque, setExpressionBesoinId,
     getMontantTotal, getMontantReliquat, reset,
   } = useMandatementStore()
 
@@ -37,6 +42,29 @@ export default function MandatementModal() {
   const [loading, setLoading] = useState(false)
   const [err, setErr]         = useState('')
   const [success, setSuccess] = useState('')
+
+  const { user } = useContext(UserContext)
+  const role = user?.profil?.name
+  const peutLierExpressionBesoin = type === 'SIMPLE'
+    && (role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN')
+  const [expressionsDisponibles, setExpressionsDisponibles] = useState<ExpressionBesoin[]>([])
+
+  useEffect(() => {
+    if (open && peutLierExpressionBesoin) {
+      axiosInstance.get('expression-besoin/disponibles-mandatement')
+        .then(({ data }) => setExpressionsDisponibles(data))
+        .catch(() => setExpressionsDisponibles([]))
+    }
+  }, [open, peutLierExpressionBesoin])
+
+  const choisirExpressionBesoin = (id: string) => {
+    setExpressionBesoinId(id)
+    const eb = expressionsDisponibles.find(e => e.id === id)
+    if (eb) {
+      setLigneSimple({ montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle })
+      setBeneficiaire(eb.beneficiaire ?? '')
+    }
+  }
 
   const soldeCaisse = caisse?.montant ?? 0
   const total    = getMontantTotal()
@@ -92,6 +120,10 @@ export default function MandatementModal() {
           typePaiement,
           montantAvance: typePaiement === 'AVANCE' ? montantAvance : undefined,
           description: description || undefined,
+          beneficiaire: beneficiaire || undefined,
+          numeroCni: numeroCni || undefined,
+          numeroCheque: numeroCheque || undefined,
+          expressionBesoinId: expressionBesoinId || undefined,
         })], { type: 'application/json' })
         form.append('data', dataSimple)
         if (ligneSimple.pdfFacture) form.append('pdfFacture', ligneSimple.pdfFacture)
@@ -111,6 +143,9 @@ export default function MandatementModal() {
           typePaiement,
           montantAvanceGlobal: typePaiement === 'AVANCE' ? montantAvance : undefined,
           description: description || undefined,
+          beneficiaire: beneficiaire || undefined,
+          numeroCni: numeroCni || undefined,
+          numeroCheque: numeroCheque || undefined,
         })], { type: 'application/json' })
         form.append('data', dataCumulatif)
         lignes.forEach(l => {
@@ -156,6 +191,22 @@ export default function MandatementModal() {
           <label className="font-medium block mb-2">② Mode de règlement</label>
           <SelectButton value={typePaiement} onChange={e => e.value && setTypePaiement(e.value)} options={TYPE_PAIEMENT_OPTIONS} className="w-full" />
         </div>
+
+        {/* ── Expression de besoin traitée (optionnel) ── */}
+        {peutLierExpressionBesoin && (
+          <div className="field">
+            <label className="block text-sm text-color-secondary mb-1">
+              Expression de besoin (optionnel) — pré-remplit montant, motif et bénéficiaire
+            </label>
+            <Dropdown value={expressionBesoinId} className="w-full" showClear
+              options={expressionsDisponibles.map(eb => ({
+                label: `${eb.motifLibelle ?? '—'} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
+                value: eb.id,
+              }))}
+              placeholder="Aucune — saisie libre"
+              onChange={e => e.value ? choisirExpressionBesoin(e.value) : setExpressionBesoinId('')} />
+          </div>
+        )}
 
         {/* ── Formulaire SIMPLE ── */}
         {type === 'SIMPLE' && (
@@ -296,6 +347,27 @@ export default function MandatementModal() {
             )}
           </div>
         )}
+
+        {/* ── Bénéficiaire ── */}
+        <div className="grid formgrid">
+          <div className="col-12 md:col-6 field">
+            <label className="block text-sm text-color-secondary mb-1">Bénéficiaire</label>
+            <InputText value={beneficiaire} onChange={e => setBeneficiaire(e.target.value)}
+              className="w-full" placeholder="Nom du bénéficiaire" />
+          </div>
+          <div className="col-12 md:col-6 field">
+            <label className="block text-sm text-color-secondary mb-1">N° CNI (optionnel)</label>
+            <InputText value={numeroCni} onChange={e => setNumeroCni(e.target.value)}
+              className="w-full" placeholder="Numéro de la CNI" />
+          </div>
+          {!attenteAvance && mode === 'CHEQUE' && (
+            <div className="col-12 md:col-6 field">
+              <label className="block text-sm text-color-secondary mb-1">N° Chèque</label>
+              <InputText value={numeroCheque} onChange={e => setNumeroCheque(e.target.value)}
+                className="w-full" placeholder="Numéro du chèque" />
+            </div>
+          )}
+        </div>
 
         {/* ── Observations ── */}
         <div className="field">

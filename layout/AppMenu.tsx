@@ -4,14 +4,18 @@ import { useContext } from 'react';
 import { UserContext } from '@/app/userContext';
 import "primeicons/primeicons.css";
 
-type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE';
+type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE'
+    | 'CHEF_SERVICE' | 'CSA' | 'DIRECTEUR' | 'CHEF_COMPTABLE' | 'AGENT_COMPTABLE';
+
+const ROLES: Role[] = ['ADMIN', 'PLANIFICATION', 'PEDAGOGIE',
+    'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE'];
 
 const AppMenu = () => {
 
     const { user } = useContext(UserContext);
 
     const isRole = (value: string): value is Role => {
-        return ['ADMIN', 'PLANIFICATION', 'PEDAGOGIE'].includes(value);
+        return (ROLES as string[]).includes(value);
     };
 
     const hasAccess = (roles: Role[]): boolean => {
@@ -144,6 +148,45 @@ const AppMenu = () => {
                     label: 'Bottins',
                     icon: 'pi pi-fw pi-copy',
                     to: '/bottins'
+                }
+            ]
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // GESTION COMPTABILITÉ (accès comptable, en plus de l'accès ADMIN ci-dessus)
+    // =========================
+    if (hasAccess(['CHEF_COMPTABLE', 'AGENT_COMPTABLE'])) {
+
+        model.push({
+            icon: 'pi pi-wallet',
+            items: [
+                {
+                    label: 'Gestion comptabilité',
+                    icon: 'pi pi-fw pi-wallet',
+                    to: '/caisse-avance'
+                }
+            ]
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // EXPRESSION DE BESOIN
+    // =========================
+    if (hasAccess(['CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'ADMIN'])) {
+
+        model.push({
+            label: 'EXPRESSION DE BESOIN',
+            icon: 'pi pi-file-edit',
+            items: [
+                {
+                    label: 'Expressions de besoin',
+                    icon: 'pi pi-fw pi-file-edit',
+                    to: '/expression-besoin'
                 }
             ]
         });

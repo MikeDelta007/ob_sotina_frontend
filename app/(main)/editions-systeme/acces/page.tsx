@@ -90,7 +90,12 @@ const CalendarDemo = () => {
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
         { label: 'PLANIFICATION', value: 'PLANIFICATION' },
-        { label: 'PEDAGOGIE', value: 'PEDAGOGIE' }
+        { label: 'PEDAGOGIE', value: 'PEDAGOGIE' },
+        { label: 'Chef de service', value: 'CHEF_SERVICE' },
+        { label: 'CSA', value: 'CSA' },
+        { label: 'Directeur', value: 'DIRECTEUR' },
+        { label: 'Chef comptable', value: 'CHEF_COMPTABLE' },
+        { label: 'Agent comptable', value: 'AGENT_COMPTABLE' }
     ];
 
     useEffect(() => {

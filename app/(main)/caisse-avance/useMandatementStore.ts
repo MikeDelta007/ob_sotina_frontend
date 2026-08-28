@@ -13,12 +13,20 @@ interface MandatementStore {
   lignes:         LigneLocale[]
   montantAvance:  number
   description:    string
+  beneficiaire:   string
+  numeroCni:      string
+  numeroCheque:   string
+  expressionBesoinId: string
 
   openModal:         (type?: TypeMandatement) => void
   closeModal:        () => void
   setType:           (t: TypeMandatement) => void
   setTypePaiement:   (t: TypePaiement) => void
   setDescription:    (v: string) => void
+  setBeneficiaire:   (v: string) => void
+  setNumeroCni:      (v: string) => void
+  setNumeroCheque:   (v: string) => void
+  setExpressionBesoinId: (v: string) => void
   // simple
   setLigneSimple:    (patch: Partial<LigneLocale>) => void
   // cumulatif
@@ -39,6 +47,10 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
   lignes:        [newLigne()],
   montantAvance: 0,
   description:   '',
+  beneficiaire:  '',
+  numeroCni:     '',
+  numeroCheque:  '',
+  expressionBesoinId: '',
 
   openModal: (type = 'SIMPLE') => {
     get().reset()
@@ -48,6 +60,10 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
   setType:    (t) => set({ type: t }),
   setTypePaiement: (t) => set({ typePaiement: t }),
   setDescription: (v) => set({ description: v }),
+  setBeneficiaire: (v) => set({ beneficiaire: v }),
+  setNumeroCni: (v) => set({ numeroCni: v }),
+  setNumeroCheque: (v) => set({ numeroCheque: v }),
+  setExpressionBesoinId: (v) => set({ expressionBesoinId: v }),
 
   setLigneSimple: (patch) =>
     set(s => ({ ligneSimple: { ...s.ligneSimple, ...patch } })),
@@ -78,5 +94,6 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
   reset: () => set({
     type: 'SIMPLE', typePaiement: 'TOTALITE',
     ligneSimple: newLigne(), lignes: [newLigne()], montantAvance: 0, description: '',
+    beneficiaire: '', numeroCni: '', numeroCheque: '', expressionBesoinId: '',
   }),
 }))
