@@ -24,7 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
 
     if (!user) {
       // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
-      router.push('/se-connecter');
+      router.push('/');
       setLoading(false);  // Stopper le loading après la redirection
       return;
     }
@@ -32,7 +32,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
     // Vérifier les rôles de l'utilisateur
     const roleName = user?.profil?.name;
     if (!roleName || !allowedRoles?.includes(roleName)) {
-      router.push('/se-connecter');  // Rediriger si l'utilisateur n'a pas les bons rôles
+      router.push('/');  // Rediriger si l'utilisateur n'a pas les bons rôles
     } else {
       setLoading(false);  // Si l'utilisateur a accès, arrêter le loading
     }

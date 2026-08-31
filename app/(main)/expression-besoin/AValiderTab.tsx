@@ -17,6 +17,7 @@ export default function AValiderTab() {
   const { aValider, actionLoadingId, fetchAValider, valider, rejeter } = useExpressionBesoinStore()
   const [rejetTarget, setRejetTarget] = useState<ExpressionBesoin | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
+  const [validerTarget, setValiderTarget] = useState<ExpressionBesoin | null>(null)
   const [err, setErr] = useState('')
 
   useEffect(() => { fetchAValider() }, [])
@@ -32,6 +33,19 @@ export default function AValiderTab() {
       fermerRejet()
     } catch {
       setErr('Erreur lors du rejet')
+    }
+  }
+
+  const ouvrirValidation = (eb: ExpressionBesoin) => setValiderTarget(eb)
+  const fermerValidation = () => setValiderTarget(null)
+
+  const confirmerValidation = async () => {
+    if (!validerTarget) return
+    try {
+      await valider(validerTarget.id)
+      fermerValidation()
+    } catch {
+      fermerValidation()
     }
   }
 
@@ -62,7 +76,7 @@ export default function AValiderTab() {
   const actionsBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-2 justify-content-center">
       <Button label="Valider" icon="pi pi-check" size="small" severity="success"
-        loading={actionLoadingId === eb.id} onClick={() => valider(eb.id)} />
+        loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
       <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
         loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
     </div>
@@ -102,6 +116,23 @@ export default function AValiderTab() {
           </div>
           {err && <Message severity="error" text={err} className="w-full" />}
         </div>
+      </Dialog>
+
+      <Dialog header="Confirmer la validation" visible={!!validerTarget} onHide={fermerValidation}
+        style={{ width: '28rem' }} draggable={false}
+        footer={
+          <div className="flex gap-2">
+            <Button label="Annuler" outlined className="flex-1" onClick={fermerValidation} />
+            <Button label="Valider" severity="success" className="flex-1"
+              loading={actionLoadingId === validerTarget?.id} onClick={confirmerValidation} />
+          </div>
+        }>
+        {validerTarget && (
+          <p className="m-0">
+            Confirmez-vous la validation de la demande <b>{validerTarget.motifLibelle}</b> de{' '}
+            <b>{validerTarget.creePar}</b> pour un montant initial de <b>{fmt(validerTarget.montantInitial)}</b> ?
+          </p>
+        )}
       </Dialog>
     </div>
   )

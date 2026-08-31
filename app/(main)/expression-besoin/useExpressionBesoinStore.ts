@@ -18,7 +18,9 @@ interface ExpressionBesoinStore {
   motifs: Motif[]
   mesExpressions: ExpressionBesoin[]
   aValider: ExpressionBesoin[]
+  validees: ExpressionBesoin[]
   aTraiter: ExpressionBesoin[]
+  traitees: ExpressionBesoin[]
   loading: boolean
   error: string | null
   actionLoadingId: string | null
@@ -26,7 +28,9 @@ interface ExpressionBesoinStore {
   fetchMotifs:          () => Promise<void>
   fetchMesExpressions:  () => Promise<void>
   fetchAValider:        () => Promise<void>
+  fetchValidees:        () => Promise<void>
   fetchATraiter:        () => Promise<void>
+  fetchTraitees:        () => Promise<void>
   creer:                 (payload: CreerPayload) => Promise<void>
   modifier:               (id: string, payload: CreerPayload) => Promise<void>
   valider:                (id: string) => Promise<void>
@@ -53,7 +57,9 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
   motifs: [],
   mesExpressions: [],
   aValider: [],
+  validees: [],
   aTraiter: [],
+  traitees: [],
   loading: false,
   error: null,
   actionLoadingId: null,
@@ -83,12 +89,30 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
     finally { set({ loading: false }) }
   },
 
+  fetchValidees: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('expression-besoin/validees')
+      set({ validees: data })
+    } catch { set({ error: 'Erreur chargement des expressions validées' }) }
+    finally { set({ loading: false }) }
+  },
+
   fetchATraiter: async () => {
     set({ loading: true, error: null })
     try {
       const { data } = await axiosInstance.get('expression-besoin/a-traiter')
       set({ aTraiter: data })
     } catch { set({ error: 'Erreur chargement des expressions à traiter' }) }
+    finally { set({ loading: false }) }
+  },
+
+  fetchTraitees: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('expression-besoin/traitees')
+      set({ traitees: data })
+    } catch { set({ error: 'Erreur chargement des expressions traitées' }) }
     finally { set({ loading: false }) }
   },
 

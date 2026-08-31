@@ -109,7 +109,7 @@ const ChangedPassword = () => {
     });
 
     return (
-        <ProtectedRoute allowedRoles={['ADMIN', 'PEDAGOGIE', 'PLANIFICATION']}>
+        <ProtectedRoute allowedRoles={['ADMIN', 'PEDAGOGIE', 'PLANIFICATION', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE']}>
             <form onSubmit={formik.handleSubmit} className="p-4">
                 <Toast ref={toast} />
                 <div className="flex h-screen bg-white">
