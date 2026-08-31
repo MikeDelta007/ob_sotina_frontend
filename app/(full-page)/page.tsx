@@ -56,19 +56,17 @@ const Login: React.FC = () => {
                         {
                         localStorage.setItem('token', response.token);
 
-                        if (response.user.profil.name === 'ADMIN') {
-                            // console.log('IF-ADM');
-                            window.location.replace('/pedagogie/gestion-donnees');
-                        }
-                        if (response.user.profil.name === 'PEDAGOGIE') {
-                            // console.log('IF-ADM');
-                            window.location.replace('/pedagogie/repartition-tirage-sujets');
-                        }
-                        if (response.user.profil.name === 'PLANIFICATION') {
-                            // console.log('IF-ADM');
-                            window.location.replace('/pedagogie/repartition-feuille');
-                        }
-                       
+                        const destinationParProfil: Record<string, string> = {
+                            ADMIN: '/pedagogie/gestion-donnees',
+                            PEDAGOGIE: '/pedagogie/repartition-tirage-sujets',
+                            PLANIFICATION: '/pedagogie/repartition-feuille',
+                            CHEF_SERVICE: '/expression-besoin',
+                            CSA: '/expression-besoin',
+                            DIRECTEUR: '/expression-besoin',
+                            CHEF_COMPTABLE: '/caisse-avance',
+                            AGENT_COMPTABLE: '/caisse-avance',
+                        };
+                        window.location.replace(destinationParProfil[response.user.profil.name] ?? '/expression-besoin');
                     } else {
                         window.location.replace('/');
                     }
