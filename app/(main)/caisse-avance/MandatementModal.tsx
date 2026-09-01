@@ -33,7 +33,7 @@ export default function MandatementModal() {
     ligneSimple, lignes, montantAvance, description,
     beneficiaire, numeroCni, numeroCheque, expressionBesoinId,
     closeModal, setType, setTypePaiement,
-    setLigneSimple, addLigne, updateLigne, setMontantAvance, setDescription,
+    setLigneSimple, addLigne, setMontantAvance, setDescription,
     setBeneficiaire, setNumeroCni, setNumeroCheque, setExpressionBesoinId,
     getMontantTotal, getMontantReliquat, reset,
   } = useMandatementStore()
@@ -56,19 +56,14 @@ export default function MandatementModal() {
     }
   }, [open, peutLierExpressionBesoin])
 
+  // Pour le type SIMPLE uniquement — pour le CUMULATIF, chaque ligne choisit sa
+  // propre expression de besoin (voir LigneFactureRow).
   const choisirExpressionBesoin = (id: string) => {
     setExpressionBesoinId(id)
     const eb = expressionsDisponibles.find(e => e.id === id)
     if (!eb) return
     setBeneficiaire(eb.beneficiaire ?? '')
-    const prefill = { montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle }
-    if (type === 'SIMPLE') {
-      setLigneSimple(prefill)
-    } else {
-      const premiereLigneVide = lignes.length === 1 && !lignes[0].motifId && !lignes[0].montant
-      if (premiereLigneVide) updateLigne(lignes[0]._localId, prefill)
-      else addLigne(prefill)
-    }
+    setLigneSimple({ montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle })
   }
 
   const soldeCaisse = caisse?.montant ?? 0
@@ -144,14 +139,14 @@ export default function MandatementModal() {
             montant: l.montant,
             motifId: l.motifId,
             motifLibelle: l.motifLibelle,
+            beneficiaire: l.beneficiaire || undefined,
+            expressionBesoinId: l.expressionBesoinId,
           })),
           typePaiement,
           montantAvanceGlobal: typePaiement === 'AVANCE' ? montantAvance : undefined,
           description: description || undefined,
-          beneficiaire: beneficiaire || undefined,
           numeroCni: numeroCni || undefined,
           numeroCheque: numeroCheque || undefined,
-          expressionBesoinId: expressionBesoinId || undefined,
         })], { type: 'application/json' })
         form.append('data', dataCumulatif)
         lignes.forEach(l => {
@@ -198,19 +193,19 @@ export default function MandatementModal() {
           <SelectButton value={typePaiement} onChange={e => e.value && setTypePaiement(e.value)} options={TYPE_PAIEMENT_OPTIONS} className="w-full" />
         </div>
 
-        {/* ── Expression de besoin traitée (optionnel) ── */}
-        {peutLierExpressionBesoin && (
+        {/* ── Expression de besoin traitée (obligatoire) — CUMULATIF : une par ligne ── */}
+        {peutLierExpressionBesoin && type === 'SIMPLE' && (
           <div className="field">
             <label className="block text-sm text-color-secondary mb-1">
-              Expression de besoin (optionnel) — pré-remplit montant, motif et bénéficiaire
+              Expression de besoin * — pré-remplit montant, motif et bénéficiaire
             </label>
-            <Dropdown value={expressionBesoinId} className="w-full" showClear
+            <Dropdown value={expressionBesoinId} className="w-full"
               options={expressionsDisponibles.map(eb => ({
                 label: `${eb.motifLibelle ?? '—'} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
                 value: eb.id,
               }))}
-              placeholder="Aucune — saisie libre"
-              onChange={e => e.value ? choisirExpressionBesoin(e.value) : setExpressionBesoinId('')} />
+              placeholder="Choisir une expression de besoin…"
+              onChange={e => e.value && choisirExpressionBesoin(e.value)} />
           </div>
         )}
 
@@ -300,7 +295,7 @@ export default function MandatementModal() {
             )}
             {lignes.map((l, i) => (
               <LigneFactureRow key={l._localId} ligne={l} index={i}
-                canRemove={lignes.length > 1} />
+                canRemove={lignes.length > 1} expressionsDisponibles={expressionsDisponibles} />
             ))}
             <Button type="button" label="Ajouter une facture" icon="pi pi-plus" outlined
               className="w-full" onClick={() => addLigne()} />
@@ -354,13 +349,15 @@ export default function MandatementModal() {
           </div>
         )}
 
-        {/* ── Bénéficiaire ── */}
+        {/* ── Bénéficiaire (Simple uniquement — en Cumulatif, un par facture) + N° CNI / Chèque ── */}
         <div className="grid formgrid">
-          <div className="col-12 md:col-6 field">
-            <label className="block text-sm text-color-secondary mb-1">Bénéficiaire</label>
-            <InputText value={beneficiaire} onChange={e => setBeneficiaire(e.target.value)}
-              className="w-full" placeholder="Nom du bénéficiaire" />
-          </div>
+          {type === 'SIMPLE' && (
+            <div className="col-12 md:col-6 field">
+              <label className="block text-sm text-color-secondary mb-1">Bénéficiaire</label>
+              <InputText value={beneficiaire} onChange={e => setBeneficiaire(e.target.value)}
+                className="w-full" placeholder="Nom du bénéficiaire" />
+            </div>
+          )}
           <div className="col-12 md:col-6 field">
             <label className="block text-sm text-color-secondary mb-1">N° CNI (optionnel)</label>
             <InputText value={numeroCni} onChange={e => setNumeroCni(e.target.value)}
@@ -402,7 +399,7 @@ export default function MandatementModal() {
         {/* ── Pièces justificatives manquantes ── */}
         {total > 0 && !attenteAvance && !piecesValides && (
           <Message severity="info" className="w-full"
-            text="Toutes les pièces justificatives requises (facture, et chèque + CNI en cas de paiement par chèque) doivent être fournies pour pouvoir valider." />
+            text="Chaque facture doit être liée à une expression de besoin, et toutes les pièces justificatives requises (facture, et chèque + CNI en cas de paiement par chèque) doivent être fournies pour pouvoir valider." />
         )}
 
         {/* ── Récap décaissement ── */}

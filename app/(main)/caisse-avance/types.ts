@@ -36,6 +36,8 @@ export interface FactureEmbedded {
   montant: number
   motifId: string
   motifLibelle?: string
+  beneficiaire?: string
+  expressionBesoinId?: string
   urlPdfFacture?: string
   urlPdfCheque?: string
   urlPdfCni?: string
@@ -75,6 +77,8 @@ export interface LigneLocale {
   montant: number
   motifId: string
   motifLibelle?: string
+  beneficiaire?: string
+  expressionBesoinId?: string
   pdfFacture?: File | null
   pdfCheque?: File | null
   pdfCni?: File | null
@@ -118,13 +122,13 @@ export const fmt = (n: number) =>
 // paiement TOTALITE, l'avance en paiement AVANCE) impose le chèque — le chèque et la
 // CNI également fournis.
 export const ligneEstValide = (l: LigneLocale, soldeCaisse: number, montantPourMode: number): boolean => {
-  if (!l.montant || l.montant <= 0 || !l.motifId || !l.pdfFacture) return false
+  if (!l.montant || l.montant <= 0 || !l.motifId || !l.pdfFacture || !l.expressionBesoinId) return false
   if (modeAuto(montantPourMode, soldeCaisse) === 'CHEQUE') return !!l.pdfCheque && !!l.pdfCni
   return true
 }
 
 export const newLigne = (): LigneLocale => ({
   _localId: Math.random().toString(36).slice(2),
-  montant: 0, motifId: '',
+  montant: 0, motifId: '', beneficiaire: '', expressionBesoinId: '',
   pdfFacture: null, pdfCheque: null, pdfCni: null,
 })

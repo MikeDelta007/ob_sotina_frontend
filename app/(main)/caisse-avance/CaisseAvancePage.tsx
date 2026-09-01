@@ -161,6 +161,18 @@ export default function CaisseAvancePage() {
     </div>
   )
 
+  const beneficiairesBody = (m: Mandatement) => (
+    m.type === 'SIMPLE'
+      ? (m.beneficiaire || '—')
+      : (
+        <div className="flex flex-column gap-1">
+          {m.factures.map(f => (
+            <span key={f.numero} className="text-sm">{f.beneficiaire || '—'}</span>
+          ))}
+        </div>
+      )
+  )
+
   const typeBody = (m: Mandatement) => (
     <Tag severity={m.type === 'SIMPLE' ? 'info' : 'warning'}
       value={m.type === 'SIMPLE' ? 'Simple' : `Cumulatif (${m.factures.length})`} />
@@ -342,7 +354,7 @@ export default function CaisseAvancePage() {
             <Column header="Avance" body={avanceBody} align="right" alignHeader="right" />
             <Column header="Reliquat" body={reliquatBody} align="right" alignHeader="right" />
             <Column header="Mode" body={modeBody} align="center" alignHeader="center" />
-            <Column header="Bénéficiaire" body={(m: Mandatement) => m.beneficiaire || '—'} />
+            <Column header="Bénéficiaire" body={beneficiairesBody} />
             <Column header="Pièces & PDF" body={piecesBody} align="center" alignHeader="center" />
             <Column header="Date" body={dateBody} />
           </DataTable>
@@ -391,6 +403,11 @@ export default function CaisseAvancePage() {
             {piecesMandatement.factures.map(f => (
               <div key={f.numero} className="card m-0">
                 <p className="font-medium mt-0 mb-2">{f.numero}</p>
+                {piecesMandatement.type === 'CUMULATIF' && (
+                  <p className="text-sm text-color-secondary mt-0 mb-2">
+                    Bénéficiaire : {f.beneficiaire || '—'}
+                  </p>
+                )}
                 <div className="flex gap-2 flex-wrap">
                   {f.urlPdfFacture && (
                     <a href={`${FILES_ORIGIN}${f.urlPdfFacture}`} target="_blank" rel="noreferrer" title="Facture PDF">

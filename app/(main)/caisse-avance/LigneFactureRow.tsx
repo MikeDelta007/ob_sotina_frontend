@@ -3,19 +3,38 @@ import { Button } from 'primereact/button'
 import { Dropdown } from 'primereact/dropdown'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
 import { InputNumber } from 'primereact/inputnumber'
+import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import type { LigneLocale } from './types'
 import { modeAuto, fmt } from './types'
+import type { ExpressionBesoin } from '../expression-besoin/types'
 import { useCaisseStore } from './useCaisseStore'
 import { useMandatementStore } from './useMandatementStore'
 
-interface Props { ligne: LigneLocale; index: number; canRemove: boolean }
+interface Props { ligne: LigneLocale; index: number; canRemove: boolean; expressionsDisponibles: ExpressionBesoin[] }
 
-export default function LigneFactureRow({ ligne, index, canRemove }: Props) {
+export default function LigneFactureRow({ ligne, index, canRemove, expressionsDisponibles }: Props) {
   const { motifs, caisse } = useCaisseStore()
-  const { typePaiement, montantAvance, getMontantTotal, updateLigne, removeLigne } = useMandatementStore()
+  const { typePaiement, montantAvance, lignes, getMontantTotal, updateLigne, removeLigne } = useMandatementStore()
   const upd = (p: Partial<LigneLocale>) => updateLigne(ligne._localId, p)
+
+  // Une même expression de besoin ne peut pas être choisie deux fois dans le même cumulatif
+  const dejaChoisiesAilleurs = lignes.filter(l => l._localId !== ligne._localId)
+    .map(l => l.expressionBesoinId).filter(Boolean)
+  const optionsExpressions = expressionsDisponibles.filter(eb => !dejaChoisiesAilleurs.includes(eb.id))
+
+  const choisirExpressionBesoin = (id: string) => {
+    const eb = expressionsDisponibles.find(e => e.id === id)
+    if (!eb) return
+    upd({
+      expressionBesoinId: id,
+      montant: eb.montantReel ?? eb.montantInitial,
+      motifId: eb.motifId,
+      motifLibelle: eb.motifLibelle,
+      beneficiaire: eb.beneficiaire ?? '',
+    })
+  }
 
   // En paiement AVANCE, tant que l'avance globale n'est pas saisie, on ne peut pas
   // encore décider du mode ; une fois saisie, on répartit l'avance au prorata de
@@ -37,6 +56,17 @@ export default function LigneFactureRow({ ligne, index, canRemove }: Props) {
         )}
       </div>
 
+      <div className="field">
+        <label className="block text-sm text-color-secondary mb-1">Expression de besoin *</label>
+        <Dropdown value={ligne.expressionBesoinId || ''} className="w-full"
+          options={optionsExpressions.map(eb => ({
+            label: `${eb.motifLibelle ?? '—'} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
+            value: eb.id,
+          }))}
+          placeholder="Choisir une expression de besoin…"
+          onChange={e => e.value && choisirExpressionBesoin(e.value)} />
+      </div>
+
       <div className="grid formgrid">
         <div className="col-12 md:col-6 field">
           <label className="block text-sm text-color-secondary mb-1">Montant (FCFA)</label>
@@ -53,6 +83,11 @@ export default function LigneFactureRow({ ligne, index, canRemove }: Props) {
               const m = motifs.find(x => x.id === e.value)
               upd({ motifId: e.value, motifLibelle: m?.libelle })
             }} />
+        </div>
+        <div className="col-12 field">
+          <label className="block text-sm text-color-secondary mb-1">Bénéficiaire</label>
+          <InputText value={ligne.beneficiaire ?? ''} onChange={e => upd({ beneficiaire: e.target.value })}
+            className="w-full" placeholder="Nom du bénéficiaire" />
         </div>
       </div>
 
