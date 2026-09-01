@@ -748,11 +748,11 @@
     width: 14px;
     height: 14px;
   }
-  .p-checkbox .p-checkbox-box.p-highlight {
+  .p-checkbox.p-highlight .p-checkbox-box {
     border-color: #FFCC80;
     background: #FFCC80;
   }
-  .p-checkbox .p-checkbox-box.p-highlight:not(.p-disabled):hover {
+  .p-checkbox.p-highlight:not(.p-disabled):hover .p-checkbox-box {
     border-color: #ffad33;
     background: #ffad33;
     color: #212529;
@@ -766,7 +766,7 @@
     box-shadow: 0 0 0 1px #ffdba6;
     border-color: #FFCC80;
   }
-  .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-highlight:hover {
+  .p-checkbox:not(.p-checkbox-disabled).p-highlight:hover .p-checkbox-box {
     border-color: #ffad33;
     background: #ffad33;
     color: #212529;
@@ -778,13 +778,13 @@
   .p-input-filled .p-checkbox .p-checkbox-box {
     background-color: #304562;
   }
-  .p-input-filled .p-checkbox .p-checkbox-box.p-highlight {
+  .p-input-filled .p-checkbox.p-highlight .p-checkbox-box {
     background: #FFCC80;
   }
   .p-input-filled .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
     background-color: #304562;
   }
-  .p-input-filled .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-highlight:hover {
+  .p-input-filled .p-checkbox:not(.p-checkbox-disabled).p-highlight:hover .p-checkbox-box {
     background: #ffad33;
   }
 
