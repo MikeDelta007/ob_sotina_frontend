@@ -63,7 +63,10 @@ export default function MandatementModal() {
     const eb = expressionsDisponibles.find(e => e.id === id)
     if (!eb) return
     setBeneficiaire(eb.beneficiaire ?? '')
-    setLigneSimple({ montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle })
+    setLigneSimple({
+      montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle,
+      expressionBesoinId: id,
+    })
   }
 
   const soldeCaisse = caisse?.montant ?? 0

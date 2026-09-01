@@ -36,16 +36,17 @@ export default function AValiderTab() {
     }
   }
 
-  const ouvrirValidation = (eb: ExpressionBesoin) => setValiderTarget(eb)
+  const ouvrirValidation = (eb: ExpressionBesoin) => { setValiderTarget(eb); setErr('') }
   const fermerValidation = () => setValiderTarget(null)
 
   const confirmerValidation = async () => {
     if (!validerTarget) return
+    setErr('')
     try {
       await valider(validerTarget.id)
       fermerValidation()
-    } catch {
-      fermerValidation()
+    } catch (e: any) {
+      setErr(e?.response?.data?.message ?? 'Erreur lors de la validation')
     }
   }
 
@@ -128,10 +129,13 @@ export default function AValiderTab() {
           </div>
         }>
         {validerTarget && (
-          <p className="m-0">
-            Confirmez-vous la validation de la demande <b>{validerTarget.motifLibelle}</b> de{' '}
-            <b>{validerTarget.creePar}</b> pour un montant initial de <b>{fmt(validerTarget.montantInitial)}</b> ?
-          </p>
+          <div className="flex flex-column gap-3">
+            <p className="m-0">
+              Confirmez-vous la validation de la demande <b>{validerTarget.motifLibelle}</b> de{' '}
+              <b>{validerTarget.creePar}</b> pour un montant initial de <b>{fmt(validerTarget.montantInitial)}</b> ?
+            </p>
+            {err && <Message severity="error" text={err} className="w-full" />}
+          </div>
         )}
       </Dialog>
     </div>
