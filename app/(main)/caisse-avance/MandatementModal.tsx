@@ -33,7 +33,7 @@ export default function MandatementModal() {
     ligneSimple, lignes, montantAvance, description,
     beneficiaire, numeroCni, numeroCheque, expressionBesoinId,
     closeModal, setType, setTypePaiement,
-    setLigneSimple, addLigne, setMontantAvance, setDescription,
+    setLigneSimple, addLigne, updateLigne, setMontantAvance, setDescription,
     setBeneficiaire, setNumeroCni, setNumeroCheque, setExpressionBesoinId,
     getMontantTotal, getMontantReliquat, reset,
   } = useMandatementStore()
@@ -45,8 +45,7 @@ export default function MandatementModal() {
 
   const { user } = useContext(UserContext)
   const role = user?.profil?.name
-  const peutLierExpressionBesoin = type === 'SIMPLE'
-    && (role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN')
+  const peutLierExpressionBesoin = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
   const [expressionsDisponibles, setExpressionsDisponibles] = useState<ExpressionBesoin[]>([])
 
   useEffect(() => {
@@ -60,9 +59,15 @@ export default function MandatementModal() {
   const choisirExpressionBesoin = (id: string) => {
     setExpressionBesoinId(id)
     const eb = expressionsDisponibles.find(e => e.id === id)
-    if (eb) {
-      setLigneSimple({ montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle })
-      setBeneficiaire(eb.beneficiaire ?? '')
+    if (!eb) return
+    setBeneficiaire(eb.beneficiaire ?? '')
+    const prefill = { montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle }
+    if (type === 'SIMPLE') {
+      setLigneSimple(prefill)
+    } else {
+      const premiereLigneVide = lignes.length === 1 && !lignes[0].motifId && !lignes[0].montant
+      if (premiereLigneVide) updateLigne(lignes[0]._localId, prefill)
+      else addLigne(prefill)
     }
   }
 
@@ -146,6 +151,7 @@ export default function MandatementModal() {
           beneficiaire: beneficiaire || undefined,
           numeroCni: numeroCni || undefined,
           numeroCheque: numeroCheque || undefined,
+          expressionBesoinId: expressionBesoinId || undefined,
         })], { type: 'application/json' })
         form.append('data', dataCumulatif)
         lignes.forEach(l => {
@@ -297,7 +303,7 @@ export default function MandatementModal() {
                 canRemove={lignes.length > 1} />
             ))}
             <Button type="button" label="Ajouter une facture" icon="pi pi-plus" outlined
-              className="w-full" onClick={addLigne} />
+              className="w-full" onClick={() => addLigne()} />
             {total > 0 && (
               <div className="card mt-3 flex justify-content-between align-items-center py-2">
                 <span className="text-color-secondary">Total {lignes.length} factures</span>

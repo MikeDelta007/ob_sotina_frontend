@@ -30,7 +30,7 @@ interface MandatementStore {
   // simple
   setLigneSimple:    (patch: Partial<LigneLocale>) => void
   // cumulatif
-  addLigne:          () => void
+  addLigne:          (patch?: Partial<LigneLocale>) => void
   updateLigne:       (id: string, patch: Partial<LigneLocale>) => void
   removeLigne:       (id: string) => void
   setMontantAvance:  (v: number) => void
@@ -68,8 +68,8 @@ export const useMandatementStore = create<MandatementStore>((set, get) => ({
   setLigneSimple: (patch) =>
     set(s => ({ ligneSimple: { ...s.ligneSimple, ...patch } })),
 
-  addLigne: () =>
-    set(s => ({ lignes: [...s.lignes, newLigne()] })),
+  addLigne: (patch) =>
+    set(s => ({ lignes: [...s.lignes, { ...newLigne(), ...patch }] })),
 
   updateLigne: (id, patch) =>
     set(s => ({ lignes: s.lignes.map(l => l._localId === id ? { ...l, ...patch } : l) })),
