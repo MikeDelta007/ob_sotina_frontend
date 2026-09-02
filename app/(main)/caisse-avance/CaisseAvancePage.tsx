@@ -203,9 +203,8 @@ export default function CaisseAvancePage() {
   )
 
   const piecesBody = (m: Mandatement) => {
-    const nbPieces = m.factures.reduce((s, f) =>
-      s + (f.urlPdfFacture ? 1 : 0) + (f.urlPdfCheque ? 1 : 0) + (f.urlPdfCni ? 1 : 0), 0)
-      + (m.urlPdfChequeReliquat ? 1 : 0) + (m.urlPdfCniReliquat ? 1 : 0)
+    const nbPieces = m.factures.reduce((s, f) => s + (f.urlPiecesJustificatives ? 1 : 0), 0)
+      + (m.urlPiecesJustificativesReliquat ? 1 : 0)
     return (
       <Button label={`Pièces (${nbPieces})`} icon="pi pi-folder-open" size="small" outlined
         onClick={() => setPiecesMandatement(m)} />
@@ -409,22 +408,11 @@ export default function CaisseAvancePage() {
                   </p>
                 )}
                 <div className="flex gap-2 flex-wrap">
-                  {f.urlPdfFacture && (
-                    <a href={`${FILES_ORIGIN}${f.urlPdfFacture}`} target="_blank" rel="noreferrer" title="Facture PDF">
-                      <Tag severity="secondary" icon="pi pi-file-pdf" value="Facture" />
+                  {f.urlPiecesJustificatives ? (
+                    <a href={`${FILES_ORIGIN}${f.urlPiecesJustificatives}`} target="_blank" rel="noreferrer" title="Pièces justificatives PDF">
+                      <Tag severity="secondary" icon="pi pi-file-pdf" value="Pièces justificatives" />
                     </a>
-                  )}
-                  {f.urlPdfCheque && (
-                    <a href={`${FILES_ORIGIN}${f.urlPdfCheque}`} target="_blank" rel="noreferrer" title="Chèque PDF">
-                      <Tag severity="warning" icon="pi pi-credit-card" value="Chèque" />
-                    </a>
-                  )}
-                  {f.urlPdfCni && (
-                    <a href={`${FILES_ORIGIN}${f.urlPdfCni}`} target="_blank" rel="noreferrer" title="CNI PDF">
-                      <Tag severity="secondary" icon="pi pi-id-card" value="CNI" />
-                    </a>
-                  )}
-                  {!f.urlPdfFacture && !f.urlPdfCheque && !f.urlPdfCni && (
+                  ) : (
                     <span className="text-color-secondary text-sm">Aucune pièce jointe</span>
                   )}
                 </div>
@@ -435,14 +423,9 @@ export default function CaisseAvancePage() {
               <div className="card m-0">
                 <p className="font-medium mt-0 mb-2">Paiement du reliquat (chèque)</p>
                 <div className="flex gap-2 flex-wrap">
-                  {piecesMandatement.urlPdfChequeReliquat && (
-                    <a href={`${FILES_ORIGIN}${piecesMandatement.urlPdfChequeReliquat}`} target="_blank" rel="noreferrer" title="Chèque PDF">
-                      <Tag severity="warning" icon="pi pi-credit-card" value="Chèque" />
-                    </a>
-                  )}
-                  {piecesMandatement.urlPdfCniReliquat && (
-                    <a href={`${FILES_ORIGIN}${piecesMandatement.urlPdfCniReliquat}`} target="_blank" rel="noreferrer" title="CNI PDF">
-                      <Tag severity="secondary" icon="pi pi-id-card" value="CNI" />
+                  {piecesMandatement.urlPiecesJustificativesReliquat && (
+                    <a href={`${FILES_ORIGIN}${piecesMandatement.urlPiecesJustificativesReliquat}`} target="_blank" rel="noreferrer" title="Pièces justificatives PDF">
+                      <Tag severity="secondary" icon="pi pi-file-pdf" value="Pièces justificatives" />
                     </a>
                   )}
                 </div>

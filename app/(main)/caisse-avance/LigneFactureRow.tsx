@@ -103,40 +103,16 @@ export default function LigneFactureRow({ ligne, index, canRemove, expressionsDi
           className="mb-3" />
       )}
 
-      {/* PDF Facture — toujours */}
+      {/* Pièces justificatives — un seul PDF (facture, et chèque/CNI si besoin) */}
       <div className="field">
-        <label className="block text-sm text-color-secondary mb-1">PDF Facture *</label>
+        <label className="block text-sm text-color-secondary mb-1">Pièces justificatives (PDF) *</label>
         <div className="flex align-items-center gap-2">
-          <FileUpload mode="basic" name="pdfFacture" accept="application/pdf" auto={false}
+          <FileUpload mode="basic" name="piecesJustificatives" accept="application/pdf" auto={false}
             chooseLabel="Choisir un PDF"
-            onSelect={(e: FileUploadSelectEvent) => upd({ pdfFacture: e.files[0] ?? null })} />
-          {ligne.pdfFacture && <Tag severity="success" icon="pi pi-check" value={ligne.pdfFacture.name} />}
+            onSelect={(e: FileUploadSelectEvent) => upd({ piecesJustificatives: e.files[0] ?? null })} />
+          {ligne.piecesJustificatives && <Tag severity="success" icon="pi pi-check" value={ligne.piecesJustificatives.name} />}
         </div>
       </div>
-
-      {/* Chèque + CNI si montant > 100k (une fois le mode connu) */}
-      {!attenteAvance && mode === 'CHEQUE' && (
-        <div className="grid formgrid mt-2">
-          <div className="col-12 md:col-6 field">
-            <label className="block text-sm text-color-secondary mb-1">Chèque (PDF) *</label>
-            <div className="flex align-items-center gap-2">
-              <FileUpload mode="basic" name="pdfCheque" accept="application/pdf" auto={false}
-                chooseLabel="Choisir un PDF"
-                onSelect={(e: FileUploadSelectEvent) => upd({ pdfCheque: e.files[0] ?? null })} />
-              {ligne.pdfCheque && <Tag severity="success" icon="pi pi-check" value={ligne.pdfCheque.name} />}
-            </div>
-          </div>
-          <div className="col-12 md:col-6 field">
-            <label className="block text-sm text-color-secondary mb-1">CNI (PDF) *</label>
-            <div className="flex align-items-center gap-2">
-              <FileUpload mode="basic" name="pdfCni" accept="application/pdf" auto={false}
-                chooseLabel="Choisir un PDF"
-                onSelect={(e: FileUploadSelectEvent) => upd({ pdfCni: e.files[0] ?? null })} />
-              {ligne.pdfCni && <Tag severity="success" icon="pi pi-check" value={ligne.pdfCni.name} />}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

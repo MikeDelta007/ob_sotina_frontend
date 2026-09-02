@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Button } from 'primereact/button'
-import { Checkbox } from 'primereact/checkbox'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
@@ -26,28 +25,24 @@ export default function MesExpressionsTab() {
   const [editing, setEditing] = useState<ExpressionBesoin | null>(null)
   const [motifId, setMotifId] = useState('')
   const [montantInitial, setMontantInitial] = useState<number | null>(null)
-  const [aFacturePreformat, setAFacturePreformat] = useState(false)
   const [pdfFactureProforma, setPdfFactureProforma] = useState<File | null>(null)
-  const [pdfDeclarationHonneur, setPdfDeclarationHonneur] = useState<File | null>(null)
   const [err, setErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => { fetchMotifs(); fetchMesExpressions() }, [])
 
   const openCreate = () => {
-    setEditing(null); setMotifId(''); setMontantInitial(null); setAFacturePreformat(false)
-    setPdfFactureProforma(null); setPdfDeclarationHonneur(null); setErr(''); setDialogOpen(true)
+    setEditing(null); setMotifId(''); setMontantInitial(null)
+    setPdfFactureProforma(null); setErr(''); setDialogOpen(true)
   }
   const openEdit = (eb: ExpressionBesoin) => {
     setEditing(eb); setMotifId(eb.motifId); setMontantInitial(eb.montantInitial)
-    setAFacturePreformat(eb.aFacturePreformat); setPdfFactureProforma(null); setPdfDeclarationHonneur(null)
+    setPdfFactureProforma(null)
     setErr(''); setDialogOpen(true)
   }
   const fermer = () => setDialogOpen(false)
 
-  const pieceValide = aFacturePreformat
-    ? (!!pdfFactureProforma || (!!editing && editing.aFacturePreformat && !!editing.urlPdfFactureProforma))
-    : (!!pdfDeclarationHonneur || (!!editing && !editing.aFacturePreformat && !!editing.urlPdfDeclarationHonneur))
+  const pieceValide = !!pdfFactureProforma || !!editing?.urlPdfFactureProforma
   const formulaireValide = !!motifId && !!montantInitial && montantInitial > 0 && pieceValide
 
   const enregistrer = async () => {
@@ -56,8 +51,8 @@ export default function MesExpressionsTab() {
     setSubmitting(true)
     try {
       const payload = {
-        motifId, motifLibelle: motif?.libelle, montantInitial: montantInitial!, aFacturePreformat,
-        pdfFactureProforma, pdfDeclarationHonneur,
+        motifId, motifLibelle: motif?.libelle, montantInitial: montantInitial!,
+        pdfFactureProforma,
       }
       if (editing) await modifier(editing.id, payload)
       else await creer(payload)
@@ -119,39 +114,18 @@ export default function MesExpressionsTab() {
               onValueChange={e => setMontantInitial(e.value ?? null)} placeholder="0" />
           </div>
 
-          <div className="flex align-items-center gap-2">
-            <Checkbox inputId="aProforma" checked={aFacturePreformat}
-              onChange={e => setAFacturePreformat(!!e.checked)} />
-            <label htmlFor="aProforma" className="text-sm">J'ai une facture proforma</label>
+          <div className="field">
+            <label className="block text-sm text-color-secondary mb-1">Facture proforma (PDF) *</label>
+            <div className="flex align-items-center gap-2">
+              <FileUpload mode="basic" name="pdfFactureProforma" accept="application/pdf" auto={false}
+                chooseLabel="Choisir un PDF"
+                onSelect={(e: FileUploadSelectEvent) => setPdfFactureProforma(e.files[0] ?? null)} />
+              {pdfFactureProforma && <Tag severity="success" icon="pi pi-check" value={pdfFactureProforma.name} />}
+              {!pdfFactureProforma && editing?.urlPdfFactureProforma && (
+                <Tag severity="secondary" icon="pi pi-file-pdf" value="Fichier existant" />
+              )}
+            </div>
           </div>
-
-          {aFacturePreformat ? (
-            <div className="field">
-              <label className="block text-sm text-color-secondary mb-1">Facture proforma (PDF) *</label>
-              <div className="flex align-items-center gap-2">
-                <FileUpload mode="basic" name="pdfFactureProforma" accept="application/pdf" auto={false}
-                  chooseLabel="Choisir un PDF"
-                  onSelect={(e: FileUploadSelectEvent) => setPdfFactureProforma(e.files[0] ?? null)} />
-                {pdfFactureProforma && <Tag severity="success" icon="pi pi-check" value={pdfFactureProforma.name} />}
-                {!pdfFactureProforma && editing?.urlPdfFactureProforma && editing.aFacturePreformat && (
-                  <Tag severity="secondary" icon="pi pi-file-pdf" value="Fichier existant" />
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="field">
-              <label className="block text-sm text-color-secondary mb-1">Déclaration sur l'honneur (PDF) *</label>
-              <div className="flex align-items-center gap-2">
-                <FileUpload mode="basic" name="pdfDeclarationHonneur" accept="application/pdf" auto={false}
-                  chooseLabel="Choisir un PDF"
-                  onSelect={(e: FileUploadSelectEvent) => setPdfDeclarationHonneur(e.files[0] ?? null)} />
-                {pdfDeclarationHonneur && <Tag severity="success" icon="pi pi-check" value={pdfDeclarationHonneur.name} />}
-                {!pdfDeclarationHonneur && editing?.urlPdfDeclarationHonneur && !editing.aFacturePreformat && (
-                  <Tag severity="secondary" icon="pi pi-file-pdf" value="Fichier existant" />
-                )}
-              </div>
-            </div>
-          )}
 
           {err && <Message severity="error" text={err} className="w-full" />}
           {error && <Message severity="error" text={error} className="w-full" />}

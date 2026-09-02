@@ -13,8 +13,7 @@ import { modeAuto, fmt, type Mandatement } from './types'
 export default function ReliquatsTab() {
   const { mandatements, caisse, reliquatLoadingId, payerReliquat } = useCaisseStore()
   const [selected, setSelected] = useState<Mandatement | null>(null)
-  const [pdfCheque, setPdfCheque] = useState<File | null>(null)
-  const [pdfCni, setPdfCni]       = useState<File | null>(null)
+  const [piecesJustificatives, setPiecesJustificatives] = useState<File | null>(null)
   const [err, setErr]             = useState('')
 
   const soldeCaisse = caisse?.montant ?? 0
@@ -23,18 +22,18 @@ export default function ReliquatsTab() {
   const totalReliquats = reliquats.reduce((s, m) => s + (m.montantReliquat ?? 0), 0)
 
   const mode = selected ? modeAuto(selected.montantReliquat ?? 0, soldeCaisse) : 'ESPECES'
-  const piecesValides = mode === 'ESPECES' || (!!pdfCheque && !!pdfCni)
+  const piecesValides = mode === 'ESPECES' || !!piecesJustificatives
 
   const ouvrir = (m: Mandatement) => {
-    setSelected(m); setPdfCheque(null); setPdfCni(null); setErr('')
+    setSelected(m); setPiecesJustificatives(null); setErr('')
   }
   const fermer = () => setSelected(null)
 
   const confirmer = async () => {
     if (!selected) return
-    if (!piecesValides) { setErr('Le chèque et la CNI sont requis pour ce paiement.'); return }
+    if (!piecesValides) { setErr('Les pièces justificatives sont requises pour ce paiement.'); return }
     try {
-      await payerReliquat(selected.id, pdfCheque, pdfCni)
+      await payerReliquat(selected.id, piecesJustificatives)
       fermer()
     } catch {
       setErr('Erreur lors du paiement du reliquat')
@@ -100,24 +99,13 @@ export default function ReliquatsTab() {
               value={mode === 'ESPECES' ? 'Paiement en espèces — caisse débitée' : 'Paiement par chèque — caisse non débitée'} />
 
             {mode === 'CHEQUE' && (
-              <div className="grid formgrid mt-1">
-                <div className="col-12 md:col-6 field">
-                  <label className="block text-sm text-color-secondary mb-1">Chèque (PDF) *</label>
-                  <div className="flex align-items-center gap-2">
-                    <FileUpload mode="basic" name="pdfCheque" accept="application/pdf" auto={false}
-                      chooseLabel="Choisir un PDF"
-                      onSelect={(e: FileUploadSelectEvent) => setPdfCheque(e.files[0] ?? null)} />
-                    {pdfCheque && <Tag severity="success" icon="pi pi-check" value={pdfCheque.name} />}
-                  </div>
-                </div>
-                <div className="col-12 md:col-6 field">
-                  <label className="block text-sm text-color-secondary mb-1">CNI (PDF) *</label>
-                  <div className="flex align-items-center gap-2">
-                    <FileUpload mode="basic" name="pdfCni" accept="application/pdf" auto={false}
-                      chooseLabel="Choisir un PDF"
-                      onSelect={(e: FileUploadSelectEvent) => setPdfCni(e.files[0] ?? null)} />
-                    {pdfCni && <Tag severity="success" icon="pi pi-check" value={pdfCni.name} />}
-                  </div>
+              <div className="field mt-1">
+                <label className="block text-sm text-color-secondary mb-1">Pièces justificatives (PDF) *</label>
+                <div className="flex align-items-center gap-2">
+                  <FileUpload mode="basic" name="piecesJustificatives" accept="application/pdf" auto={false}
+                    chooseLabel="Choisir un PDF"
+                    onSelect={(e: FileUploadSelectEvent) => setPiecesJustificatives(e.files[0] ?? null)} />
+                  {piecesJustificatives && <Tag severity="success" icon="pi pi-check" value={piecesJustificatives.name} />}
                 </div>
               </div>
             )}

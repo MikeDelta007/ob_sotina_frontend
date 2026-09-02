@@ -38,7 +38,7 @@ interface CaisseStore {
   fetchMandatements:             () => Promise<void>
   fetchApprovisionnements:       () => Promise<void>
   approvisionner:                (data: { montant: number; date: string; description?: string }) => Promise<void>
-  payerReliquat:                  (id: string, pdfCheque?: File | null, pdfCni?: File | null) => Promise<void>
+  payerReliquat:                  (id: string, piecesJustificatives?: File | null) => Promise<void>
   openApprovisionnementModal:    () => void
   closeApprovisionnementModal:   () => void
   clearError:                    () => void
@@ -158,12 +158,11 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
     } finally { set({ loading: false }) }
   },
 
-  payerReliquat: async (id, pdfCheque, pdfCni) => {
+  payerReliquat: async (id, piecesJustificatives) => {
     set({ reliquatLoadingId: id, error: null })
     try {
       const form = new FormData()
-      if (pdfCheque) form.append('pdfCheque', pdfCheque)
-      if (pdfCni)    form.append('pdfCni', pdfCni)
+      if (piecesJustificatives) form.append('piecesJustificatives', piecesJustificatives)
       await axiosInstance.put(`mandatement/${id}/payer-reliquat`, form,
         { headers: { 'Content-Type': 'multipart/form-data' } })
       await Promise.all([get().fetchCaisse(), get().fetchMandatements()])

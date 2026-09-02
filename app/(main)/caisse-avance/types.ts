@@ -38,9 +38,7 @@ export interface FactureEmbedded {
   motifLibelle?: string
   beneficiaire?: string
   expressionBesoinId?: string
-  urlPdfFacture?: string
-  urlPdfCheque?: string
-  urlPdfCni?: string
+  urlPiecesJustificatives?: string
 }
 
 // Entité principale retournée par l'API
@@ -59,13 +57,11 @@ export interface Mandatement {
   reliquatPaye?: boolean
   dateReliquatPaye?: string
   modePaiementReliquat?: ModePaiement
-  urlPdfChequeReliquat?: string
-  urlPdfCniReliquat?: string
+  urlPiecesJustificativesReliquat?: string
   factures: FactureEmbedded[]
   description?: string
   beneficiaire?: string
   numeroCni?: string
-  numeroCheque?: string
   expressionBesoinId?: string
   creePar: string
   dateCreation: string
@@ -79,9 +75,7 @@ export interface LigneLocale {
   motifLibelle?: string
   beneficiaire?: string
   expressionBesoinId?: string
-  pdfFacture?: File | null
-  pdfCheque?: File | null
-  pdfCni?: File | null
+  piecesJustificatives?: File | null
 }
 
 export const SEUIL_ALERTE  = 100_000
@@ -117,18 +111,13 @@ export const modeAuto = (montant: number, soldeCaisse?: number): ModePaiement =>
 export const fmt = (n: number) =>
   new Intl.NumberFormat('fr-FR').format(n) + ' FCFA'
 
-// Une ligne est valide si le montant/motif sont renseignés, la facture PDF fournie,
-// et — si le montant réellement décaissé maintenant (montantPourMode : le total en
-// paiement TOTALITE, l'avance en paiement AVANCE) impose le chèque — le chèque et la
-// CNI également fournis.
-export const ligneEstValide = (l: LigneLocale, soldeCaisse: number, montantPourMode: number): boolean => {
-  if (!l.montant || l.montant <= 0 || !l.motifId || !l.pdfFacture || !l.expressionBesoinId) return false
-  if (modeAuto(montantPourMode, soldeCaisse) === 'CHEQUE') return !!l.pdfCheque && !!l.pdfCni
-  return true
-}
+// Une ligne est valide si le montant/motif/expression de besoin sont renseignés
+// et les pièces justificatives (PDF unique) fournies.
+export const ligneEstValide = (l: LigneLocale): boolean =>
+  !!l.montant && l.montant > 0 && !!l.motifId && !!l.expressionBesoinId && !!l.piecesJustificatives
 
 export const newLigne = (): LigneLocale => ({
   _localId: Math.random().toString(36).slice(2),
   montant: 0, motifId: '', beneficiaire: '', expressionBesoinId: '',
-  pdfFacture: null, pdfCheque: null, pdfCni: null,
+  piecesJustificatives: null,
 })

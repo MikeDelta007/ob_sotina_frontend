@@ -9,9 +9,7 @@ interface CreerPayload {
   motifId: string
   motifLibelle?: string
   montantInitial: number
-  aFacturePreformat: boolean
   pdfFactureProforma?: File | null
-  pdfDeclarationHonneur?: File | null
 }
 
 interface ExpressionBesoinStore {
@@ -45,11 +43,9 @@ const buildForm = (payload: CreerPayload) => {
     motifId: payload.motifId,
     motifLibelle: payload.motifLibelle,
     montantInitial: payload.montantInitial,
-    aFacturePreformat: payload.aFacturePreformat,
   })], { type: 'application/json' })
   form.append('data', data)
   if (payload.pdfFactureProforma) form.append('pdfFactureProforma', payload.pdfFactureProforma)
-  if (payload.pdfDeclarationHonneur) form.append('pdfDeclarationHonneur', payload.pdfDeclarationHonneur)
   return form
 }
 

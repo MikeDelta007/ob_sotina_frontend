@@ -31,10 +31,10 @@ export default function MandatementModal() {
   const {
     open, type, typePaiement,
     ligneSimple, lignes, montantAvance, description,
-    beneficiaire, numeroCni, numeroCheque, expressionBesoinId,
+    beneficiaire, numeroCni, expressionBesoinId,
     closeModal, setType, setTypePaiement,
     setLigneSimple, addLigne, setMontantAvance, setDescription,
-    setBeneficiaire, setNumeroCni, setNumeroCheque, setExpressionBesoinId,
+    setBeneficiaire, setNumeroCni, setExpressionBesoinId,
     getMontantTotal, getMontantReliquat, reset,
   } = useMandatementStore()
 
@@ -89,9 +89,8 @@ export default function MandatementModal() {
 
   const avanceValide = typePaiement !== 'AVANCE' || (montantAvance > 0 && montantAvance <= total)
   const piecesValides = type === 'SIMPLE'
-    ? ligneEstValide(ligneSimple, soldeCaisse, montantPourModeSimple)
-    : lignes.length > 0 && lignes.every(l => ligneEstValide(l, soldeCaisse,
-        typePaiement === 'AVANCE' ? (total > 0 ? montantAvance * (l.montant / total) : 0) : l.montant))
+    ? ligneEstValide(ligneSimple)
+    : lignes.length > 0 && lignes.every(ligneEstValide)
   const nbFacturesValide = type !== 'CUMULATIF' || lignes.length >= 2
   // Un mandatement cumulatif regroupe de petites factures destinées à un paiement en
   // espèces : c'est le CUMUL (total) qui ne doit dépasser ni le seuil chèque, ni ce que
@@ -125,13 +124,10 @@ export default function MandatementModal() {
           description: description || undefined,
           beneficiaire: beneficiaire || undefined,
           numeroCni: numeroCni || undefined,
-          numeroCheque: numeroCheque || undefined,
           expressionBesoinId: expressionBesoinId || undefined,
         })], { type: 'application/json' })
         form.append('data', dataSimple)
-        if (ligneSimple.pdfFacture) form.append('pdfFacture', ligneSimple.pdfFacture)
-        if (ligneSimple.pdfCheque)  form.append('pdfCheque',  ligneSimple.pdfCheque)
-        if (ligneSimple.pdfCni)     form.append('pdfCni',     ligneSimple.pdfCni)
+        if (ligneSimple.piecesJustificatives) form.append('piecesJustificatives', ligneSimple.piecesJustificatives)
         await axiosInstance.post('mandatement/simple', form,
           { headers: { 'Content-Type': 'multipart/form-data' } })
 
@@ -149,13 +145,10 @@ export default function MandatementModal() {
           montantAvanceGlobal: typePaiement === 'AVANCE' ? montantAvance : undefined,
           description: description || undefined,
           numeroCni: numeroCni || undefined,
-          numeroCheque: numeroCheque || undefined,
         })], { type: 'application/json' })
         form.append('data', dataCumulatif)
         lignes.forEach(l => {
-          if (l.pdfFacture) form.append('pdfs',    l.pdfFacture)
-          if (l.pdfCheque)  form.append('cheques', l.pdfCheque)
-          if (l.pdfCni)     form.append('cnis',    l.pdfCni)
+          if (l.piecesJustificatives) form.append('pieces', l.piecesJustificatives)
         })
         await axiosInstance.post('mandatement/cumulatif', form,
           { headers: { 'Content-Type': 'multipart/form-data' } })
@@ -247,40 +240,16 @@ export default function MandatementModal() {
                 className="mb-3" />
             )}
 
-            {/* PDF Facture */}
+            {/* Pièces justificatives — un seul PDF (facture, et chèque/CNI si besoin) */}
             <div className="field">
-              <label className="block text-sm text-color-secondary mb-1">PDF Facture *</label>
+              <label className="block text-sm text-color-secondary mb-1">Pièces justificatives (PDF) *</label>
               <div className="flex align-items-center gap-2">
-                <FileUpload mode="basic" name="pdfFacture" accept="application/pdf" auto={false}
+                <FileUpload mode="basic" name="piecesJustificatives" accept="application/pdf" auto={false}
                   chooseLabel="Choisir un PDF"
-                  onSelect={(e: FileUploadSelectEvent) => setLigneSimple({ pdfFacture: e.files[0] ?? null })} />
-                {ligneSimple.pdfFacture && <Tag severity="success" icon="pi pi-check" value={ligneSimple.pdfFacture.name} />}
+                  onSelect={(e: FileUploadSelectEvent) => setLigneSimple({ piecesJustificatives: e.files[0] ?? null })} />
+                {ligneSimple.piecesJustificatives && <Tag severity="success" icon="pi pi-check" value={ligneSimple.piecesJustificatives.name} />}
               </div>
             </div>
-
-            {/* Chèque + CNI si > 100k ou solde caisse insuffisant (une fois le mode connu) */}
-            {!attenteAvance && modeAuto(montantPourModeSimple, soldeCaisse) === 'CHEQUE' && (
-              <div className="grid formgrid mt-2">
-                <div className="col-12 md:col-6 field">
-                  <label className="block text-sm text-color-secondary mb-1">Chèque (PDF) *</label>
-                  <div className="flex align-items-center gap-2">
-                    <FileUpload mode="basic" name="pdfCheque" accept="application/pdf" auto={false}
-                      chooseLabel="Choisir un PDF"
-                      onSelect={(e: FileUploadSelectEvent) => setLigneSimple({ pdfCheque: e.files[0] ?? null })} />
-                    {ligneSimple.pdfCheque && <Tag severity="success" icon="pi pi-check" value={ligneSimple.pdfCheque.name} />}
-                  </div>
-                </div>
-                <div className="col-12 md:col-6 field">
-                  <label className="block text-sm text-color-secondary mb-1">CNI (PDF) *</label>
-                  <div className="flex align-items-center gap-2">
-                    <FileUpload mode="basic" name="pdfCni" accept="application/pdf" auto={false}
-                      chooseLabel="Choisir un PDF"
-                      onSelect={(e: FileUploadSelectEvent) => setLigneSimple({ pdfCni: e.files[0] ?? null })} />
-                    {ligneSimple.pdfCni && <Tag severity="success" icon="pi pi-check" value={ligneSimple.pdfCni.name} />}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -352,7 +321,7 @@ export default function MandatementModal() {
           </div>
         )}
 
-        {/* ── Bénéficiaire (Simple uniquement — en Cumulatif, un par facture) + N° CNI / Chèque ── */}
+        {/* ── Bénéficiaire (Simple uniquement — en Cumulatif, un par facture) + N° CNI ── */}
         <div className="grid formgrid">
           {type === 'SIMPLE' && (
             <div className="col-12 md:col-6 field">
@@ -366,13 +335,6 @@ export default function MandatementModal() {
             <InputText value={numeroCni} onChange={e => setNumeroCni(e.target.value)}
               className="w-full" placeholder="Numéro de la CNI" />
           </div>
-          {!attenteAvance && mode === 'CHEQUE' && (
-            <div className="col-12 md:col-6 field">
-              <label className="block text-sm text-color-secondary mb-1">N° Chèque</label>
-              <InputText value={numeroCheque} onChange={e => setNumeroCheque(e.target.value)}
-                className="w-full" placeholder="Numéro du chèque" />
-            </div>
-          )}
         </div>
 
         {/* ── Observations ── */}
@@ -402,7 +364,7 @@ export default function MandatementModal() {
         {/* ── Pièces justificatives manquantes ── */}
         {total > 0 && !attenteAvance && !piecesValides && (
           <Message severity="info" className="w-full"
-            text="Chaque facture doit être liée à une expression de besoin, et toutes les pièces justificatives requises (facture, et chèque + CNI en cas de paiement par chèque) doivent être fournies pour pouvoir valider." />
+            text="Chaque facture doit être liée à une expression de besoin, avec ses pièces justificatives (PDF) fournies, pour pouvoir valider." />
         )}
 
         {/* ── Récap décaissement ── */}

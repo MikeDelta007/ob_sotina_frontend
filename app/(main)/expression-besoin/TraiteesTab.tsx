@@ -31,7 +31,7 @@ export default function TraiteesTab() {
 
   const mandatementBody = (eb: ExpressionBesoin) => (
     eb.utiliseePourMandatement
-      ? <Tag severity="success" icon="pi pi-check" value="Utilisée" />
+      ? <Tag severity="success" icon="pi pi-check" value="Déjà traité" />
       : <Tag severity="warning" value="Disponible" />
   )
 

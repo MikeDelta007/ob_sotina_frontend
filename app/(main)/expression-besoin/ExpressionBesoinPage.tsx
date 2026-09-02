@@ -12,9 +12,9 @@ export default function ExpressionBesoinPage() {
   const { user } = useContext(UserContext)
   const role = user?.profil?.name
 
-  const peutSoumettre = role === 'CHEF_SERVICE'
-  const peutValider = role === 'CSA' || role === 'DIRECTEUR'
   const peutTraiter = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE'
+  const peutValider = role === 'CSA' || role === 'DIRECTEUR'
+  const peutSoumettre = role === 'CHEF_SERVICE' || peutTraiter || peutValider
 
   const onglets = [
     peutSoumettre && { key: 'mes', header: 'Mes expressions de besoin', leftIcon: 'pi pi-file-edit mr-2', content: <MesExpressionsTab /> },
