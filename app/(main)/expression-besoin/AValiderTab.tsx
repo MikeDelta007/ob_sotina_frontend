@@ -40,7 +40,7 @@ export default function AValiderTab() {
 
   const ouvrirValidation = (eb: ExpressionBesoin) => {
     setValiderTarget(eb)
-    setQuantitesAccordees((eb.lignes ?? []).map(l => l.quantite ?? null))
+    setQuantitesAccordees((eb.lignes ?? []).map(l => l.quantiteAccordeeDirecteur ?? l.quantiteAccordeeCsa ?? l.quantite ?? null))
     setErr('')
   }
   const fermerValidation = () => setValiderTarget(null)

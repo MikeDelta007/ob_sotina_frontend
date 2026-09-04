@@ -11,8 +11,10 @@ export interface LigneExpressionBesoin {
   quantite?: number
   prixUnitaire: number
   montant: number
-  // Renseignée par le CSA/Directeur lors de la validation, uniquement si quantite existe
-  quantiteAccordee?: number
+  // Renseignées indépendamment par chaque validateur lors de la validation, uniquement si
+  // quantite existe — la comptabilité traite celle du Directeur quand les deux sont requises.
+  quantiteAccordeeCsa?: number
+  quantiteAccordeeDirecteur?: number
 }
 
 export interface ExpressionBesoin {
