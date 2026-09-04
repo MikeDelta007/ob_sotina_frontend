@@ -10,7 +10,9 @@ import { Tag } from 'primereact/tag'
 import { useCaisseStore } from './useCaisseStore'
 import { modeAuto, fmt, type Mandatement } from './types'
 
-export default function ReliquatsTab() {
+interface Props { lectureSeule?: boolean }
+
+export default function ReliquatsTab({ lectureSeule = false }: Props) {
   const { mandatements, caisse, reliquatLoadingId, payerReliquat } = useCaisseStore()
   const [selected, setSelected] = useState<Mandatement | null>(null)
   const [piecesJustificatives, setPiecesJustificatives] = useState<File | null>(null)
@@ -82,7 +84,7 @@ export default function ReliquatsTab() {
           body={(m: Mandatement) => <strong className="text-orange-600">{fmt(m.montantReliquat ?? 0)}</strong>}
           align="right" alignHeader="right" />
         <Column header="Date" body={dateBody} />
-        <Column header="Action" body={actionsBody} align="center" alignHeader="center" />
+        {!lectureSeule && <Column header="Action" body={actionsBody} align="center" alignHeader="center" />}
       </DataTable>
 
       <Dialog header="Confirmer le paiement du reliquat" visible={!!selected} onHide={fermer}

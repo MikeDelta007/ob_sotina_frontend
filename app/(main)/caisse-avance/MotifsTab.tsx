@@ -11,7 +11,9 @@ import { Tag } from 'primereact/tag'
 import { useCaisseStore } from './useCaisseStore'
 import type { Motif } from './types'
 
-export default function MotifsTab() {
+interface Props { lectureSeule?: boolean }
+
+export default function MotifsTab({ lectureSeule = false }: Props) {
   const { allMotifs, motifLoading, createMotif, updateMotif, deleteMotif } = useCaisseStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Motif | null>(null)
@@ -61,15 +63,17 @@ export default function MotifsTab() {
     <div>
       <ConfirmDialog />
 
-      <div className="flex justify-content-end mb-3">
-        <Button label="Nouveau motif" icon="pi pi-plus" onClick={openCreate} />
-      </div>
+      {!lectureSeule && (
+        <div className="flex justify-content-end mb-3">
+          <Button label="Nouveau motif" icon="pi pi-plus" onClick={openCreate} />
+        </div>
+      )}
 
       <DataTable value={allMotifs} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucun motif enregistré" responsiveLayout="scroll">
         <Column header="Libellé" field="libelle" />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />
-        <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
+        {!lectureSeule && <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />}
       </DataTable>
 
       <Dialog header={editing ? 'Modifier le motif' : 'Nouveau motif'} visible={dialogOpen}

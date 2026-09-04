@@ -10,11 +10,13 @@ import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, type ExpressionBesoin } from './types'
+import { fmt, designationLignes, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
-export default function ATraiterTab() {
+interface Props { lectureSeule?: boolean }
+
+export default function ATraiterTab({ lectureSeule = false }: Props) {
   const { aTraiter, actionLoadingId, fetchATraiter, traiter } = useExpressionBesoinStore()
   const [selected, setSelected] = useState<ExpressionBesoin | null>(null)
   const [montantReel, setMontantReel] = useState<number | null>(null)
@@ -69,11 +71,11 @@ export default function ATraiterTab() {
       <DataTable value={aTraiter} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune expression de besoin à traiter" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" field="motifLibelle" />
+        <Column header="Désignation" body={(eb: ExpressionBesoin) => designationLignes(eb.lignes)} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Demandeur" field="creePar" />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
-        <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
+        {!lectureSeule && <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />}
       </DataTable>
 
       <Dialog header="Traiter l'expression de besoin" visible={!!selected} onHide={fermer}

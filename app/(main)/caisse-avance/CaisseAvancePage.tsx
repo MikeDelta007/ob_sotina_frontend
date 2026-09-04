@@ -1,7 +1,8 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { saveAs } from 'file-saver'
 import axiosInstance from '@/app/api/axiosInstance'
+import { UserContext } from '@/app/userContext'
 import { Button } from 'primereact/button'
 import { Card } from 'primereact/card'
 import { Column } from 'primereact/column'
@@ -53,6 +54,18 @@ export default function CaisseAvancePage() {
           periodeType, periodeAnnee, periodeMois, periodeSemaine,
           setPeriodeType, setPeriodeAnnee, setPeriodeMois, setPeriodeSemaine, periodeParams } = useCaisseStore()
   const { openModal } = useMandatementStore()
+  const { user } = useContext(UserContext)
+  const role = user?.profil?.name
+  // Création de mandatements : réservée aux comptables (CSA/Directeur : lecture seule)
+  const peutCreerMandatement = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
+  // Approvisionnement : Chef comptable uniquement, Directeur en suppléance — ni l'Agent
+  // comptable, ni même l'Admin n'y ont accès.
+  const peutApprovisionner = role === 'CHEF_COMPTABLE' || role === 'DIRECTEUR'
+  // Motifs : CRUD ouvert aux comptables ainsi qu'au CSA et au Directeur
+  const peutGererMotifs = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
+    || role === 'CSA' || role === 'DIRECTEUR'
+  // Payer un reliquat : réservé aux comptables
+  const peutPayerReliquat = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
   const [search, setSearch]     = useState('')
   const [filterType, setFilterType] = useState('TOUS')
   const [filterMode, setFilterMode] = useState('TOUS')
@@ -227,11 +240,19 @@ export default function CaisseAvancePage() {
           <h3 className="m-0">Gestion comptabilité</h3>
           <p className="text-color-secondary mt-1 mb-0">Gestion des mandatements et décaissements</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button label="Approvisionner" icon="pi pi-wallet" outlined onClick={() => openApprovisionnementModal()} />
-          <Button label="Simple" icon="pi pi-plus" onClick={() => openModal('SIMPLE')} />
-          <Button label="Cumulatif" icon="pi pi-plus" severity="help" onClick={() => openModal('CUMULATIF')} />
-        </div>
+        {(peutApprovisionner || peutCreerMandatement) && (
+          <div className="flex gap-2 flex-wrap">
+            {peutApprovisionner && (
+              <Button label="Approvisionner" icon="pi pi-wallet" outlined onClick={() => openApprovisionnementModal()} />
+            )}
+            {peutCreerMandatement && (
+              <>
+                <Button label="Simple" icon="pi pi-plus" onClick={() => openModal('SIMPLE')} />
+                <Button label="Cumulatif" icon="pi pi-plus" severity="help" onClick={() => openModal('CUMULATIF')} />
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Filtre période — s'applique aux mandatements et approvisionnements (écran + Excel) */}
@@ -269,7 +290,9 @@ export default function CaisseAvancePage() {
               <div className="font-medium">Caisse épuisée</div>
               <div className="text-sm">Approvisionnez la caisse avant tout décaissement.</div>
             </div>
-            <Button label="Approvisionner" size="small" severity="danger" onClick={() => openApprovisionnementModal()} />
+            {peutApprovisionner && (
+              <Button label="Approvisionner" size="small" severity="danger" onClick={() => openApprovisionnementModal()} />
+            )}
           </div>
         } />
       )}
@@ -380,11 +403,11 @@ export default function CaisseAvancePage() {
         </TabPanel>
 
         <TabPanel header="Reliquats à payer" leftIcon="pi pi-hourglass mr-2">
-          <ReliquatsTab />
+          <ReliquatsTab lectureSeule={!peutPayerReliquat} />
         </TabPanel>
 
         <TabPanel header="Motifs" leftIcon="pi pi-tags mr-2">
-          <MotifsTab />
+          <MotifsTab lectureSeule={!peutGererMotifs} />
         </TabPanel>
       </TabView>
 

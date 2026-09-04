@@ -5,7 +5,7 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, type ExpressionBesoin } from './types'
+import { fmt, designationLignes, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -44,7 +44,7 @@ export default function TraiteesTab() {
       <DataTable value={traitees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune expression de besoin traitée" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" field="motifLibelle" />
+        <Column header="Désignation" body={(eb: ExpressionBesoin) => designationLignes(eb.lignes)} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Montant réel" body={(eb: ExpressionBesoin) => eb.montantReel ? fmt(eb.montantReel) : '—'} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" field="beneficiaire" />

@@ -5,10 +5,16 @@ import type { ExpressionBesoin } from './types'
 
 interface Motif { id: string; libelle: string; actif: boolean }
 
-interface CreerPayload {
+interface LignePayload {
   motifId: string
   motifLibelle?: string
-  montantInitial: number
+  quantite: number
+  prixUnitaire: number
+}
+
+interface CreerPayload {
+  lignes: LignePayload[]
+  aFacturePreformat: boolean
   pdfFactureProforma?: File | null
 }
 
@@ -31,7 +37,7 @@ interface ExpressionBesoinStore {
   fetchTraitees:        () => Promise<void>
   creer:                 (payload: CreerPayload) => Promise<void>
   modifier:               (id: string, payload: CreerPayload) => Promise<void>
-  valider:                (id: string) => Promise<void>
+  valider:                (id: string, quantitesAccordees?: (number | null)[]) => Promise<void>
   rejeter:                (id: string, motif: string) => Promise<void>
   traiter:                (id: string, montantReel: number, beneficiaire: string) => Promise<void>
   clearError:             () => void
@@ -40,9 +46,8 @@ interface ExpressionBesoinStore {
 const buildForm = (payload: CreerPayload) => {
   const form = new FormData()
   const data = new Blob([JSON.stringify({
-    motifId: payload.motifId,
-    motifLibelle: payload.motifLibelle,
-    montantInitial: payload.montantInitial,
+    lignes: payload.lignes,
+    aFacturePreformat: payload.aFacturePreformat,
   })], { type: 'application/json' })
   form.append('data', data)
   if (payload.pdfFactureProforma) form.append('pdfFactureProforma', payload.pdfFactureProforma)
@@ -136,10 +141,10 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
     } finally { set({ loading: false }) }
   },
 
-  valider: async (id) => {
+  valider: async (id, quantitesAccordees) => {
     set({ actionLoadingId: id, error: null })
     try {
-      await axiosInstance.put(`expression-besoin/${id}/valider`)
+      await axiosInstance.put(`expression-besoin/${id}/valider`, { quantitesAccordees })
       await get().fetchAValider()
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur lors de la validation' })

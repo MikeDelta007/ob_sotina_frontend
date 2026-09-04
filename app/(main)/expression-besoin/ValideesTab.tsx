@@ -5,7 +5,7 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, directeurRequis, type ExpressionBesoin, type StatutEB } from './types'
+import { fmt, directeurRequis, designationLignes, type ExpressionBesoin, type StatutEB } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -56,7 +56,7 @@ export default function ValideesTab() {
       <DataTable value={validees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune expression de besoin validée" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" field="motifLibelle" />
+        <Column header="Désignation" body={(eb: ExpressionBesoin) => designationLignes(eb.lignes)} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Demandeur" field="creePar" />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />

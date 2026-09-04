@@ -15,13 +15,15 @@ export default function ExpressionBesoinPage() {
   const peutTraiter = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE'
   const peutValider = role === 'CSA' || role === 'DIRECTEUR'
   const peutSoumettre = role === 'CHEF_SERVICE' || peutTraiter || peutValider
+  // CSA/Directeur voient ce que traite la comptabilité, mais en lecture seule
+  const peutVoirTraitement = peutTraiter || peutValider
 
   const onglets = [
     peutSoumettre && { key: 'mes', header: 'Mes expressions de besoin', leftIcon: 'pi pi-file-edit mr-2', content: <MesExpressionsTab /> },
     peutValider && { key: 'avalider', header: 'À valider', leftIcon: 'pi pi-check-square mr-2', content: <AValiderTab /> },
     peutValider && { key: 'validees', header: 'Validées', leftIcon: 'pi pi-verified mr-2', content: <ValideesTab /> },
-    peutTraiter && { key: 'atraiter', header: 'À traiter', leftIcon: 'pi pi-wallet mr-2', content: <ATraiterTab /> },
-    peutTraiter && { key: 'traitees', header: 'Traitées', leftIcon: 'pi pi-verified mr-2', content: <TraiteesTab /> },
+    peutVoirTraitement && { key: 'atraiter', header: 'À traiter', leftIcon: 'pi pi-wallet mr-2', content: <ATraiterTab lectureSeule={!peutTraiter} /> },
+    peutVoirTraitement && { key: 'traitees', header: 'Traitées', leftIcon: 'pi pi-verified mr-2', content: <TraiteesTab /> },
   ].filter((o): o is Exclude<typeof o, false> => !!o)
 
   return (

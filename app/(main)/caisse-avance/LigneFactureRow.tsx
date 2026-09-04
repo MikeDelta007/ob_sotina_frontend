@@ -8,7 +8,7 @@ import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import type { LigneLocale } from './types'
 import { modeAuto, fmt } from './types'
-import type { ExpressionBesoin } from '../expression-besoin/types'
+import { designationLignes, type ExpressionBesoin } from '../expression-besoin/types'
 import { useCaisseStore } from './useCaisseStore'
 import { useMandatementStore } from './useMandatementStore'
 
@@ -30,8 +30,8 @@ export default function LigneFactureRow({ ligne, index, canRemove, expressionsDi
     upd({
       expressionBesoinId: id,
       montant: eb.montantReel ?? eb.montantInitial,
-      motifId: eb.motifId,
-      motifLibelle: eb.motifLibelle,
+      motifId: eb.lignes?.[0]?.motifId,
+      motifLibelle: designationLignes(eb.lignes),
       beneficiaire: eb.beneficiaire ?? '',
     })
   }
@@ -60,7 +60,7 @@ export default function LigneFactureRow({ ligne, index, canRemove, expressionsDi
         <label className="block text-sm text-color-secondary mb-1">Expression de besoin *</label>
         <Dropdown value={ligne.expressionBesoinId || ''} className="w-full"
           options={optionsExpressions.map(eb => ({
-            label: `${eb.motifLibelle ?? '—'} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
+            label: `${designationLignes(eb.lignes)} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
             value: eb.id,
           }))}
           placeholder="Choisir une expression de besoin…"

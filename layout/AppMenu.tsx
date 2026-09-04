@@ -156,9 +156,9 @@ const AppMenu = () => {
     }
 
     // =========================
-    // GESTION COMPTABILITÉ (accès comptable, en plus de l'accès ADMIN ci-dessus)
+    // GESTION COMPTABILITÉ (accès comptable, + lecture seule CSA/Directeur, en plus de l'accès ADMIN ci-dessus)
     // =========================
-    if (hasAccess(['CHEF_COMPTABLE', 'AGENT_COMPTABLE'])) {
+    if (hasAccess(['CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'CSA', 'DIRECTEUR'])) {
 
         model.push({
             icon: 'pi pi-wallet',

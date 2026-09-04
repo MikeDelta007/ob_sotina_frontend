@@ -15,7 +15,7 @@ import { UserContext } from '@/app/userContext'
 import { useMandatementStore } from './useMandatementStore'
 import { useCaisseStore } from './useCaisseStore'
 import { modeAuto, fmt, SEUIL_CHEQUE, ligneEstValide } from './types'
-import type { ExpressionBesoin } from '../expression-besoin/types'
+import { designationLignes, type ExpressionBesoin } from '../expression-besoin/types'
 import LigneFactureRow from './LigneFactureRow'
 
 const TYPE_OPTIONS = [
@@ -64,7 +64,7 @@ export default function MandatementModal() {
     if (!eb) return
     setBeneficiaire(eb.beneficiaire ?? '')
     setLigneSimple({
-      montant: eb.montantReel ?? eb.montantInitial, motifId: eb.motifId, motifLibelle: eb.motifLibelle,
+      montant: eb.montantReel ?? eb.montantInitial, motifId: eb.lignes?.[0]?.motifId, motifLibelle: designationLignes(eb.lignes),
       expressionBesoinId: id,
     })
   }
@@ -197,7 +197,7 @@ export default function MandatementModal() {
             </label>
             <Dropdown value={expressionBesoinId} className="w-full"
               options={expressionsDisponibles.map(eb => ({
-                label: `${eb.motifLibelle ?? '—'} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
+                label: `${designationLignes(eb.lignes)} — ${fmt(eb.montantReel ?? eb.montantInitial)} (${eb.creePar})`,
                 value: eb.id,
               }))}
               placeholder="Choisir une expression de besoin…"
