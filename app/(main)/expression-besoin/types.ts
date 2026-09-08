@@ -15,6 +15,8 @@ export interface LigneExpressionBesoin {
   // quantite existe — la comptabilité traite celle du Directeur quand les deux sont requises.
   quantiteAccordeeCsa?: number
   quantiteAccordeeDirecteur?: number
+  // Copié depuis le motif au moment de la création (snapshot)
+  requiertSatisfaction?: boolean
 }
 
 export interface ExpressionBesoin {
@@ -47,6 +49,10 @@ export interface ExpressionBesoin {
   utiliseePourMandatement: boolean
   mandatementId?: string
 
+  // Satisfaction du demandeur (si au moins une ligne l'exige), requise avant décaissement
+  satisfactionConfirmee?: boolean
+  dateSatisfaction?: string
+
   creePar: string
   dateCreation: string
   dateModification?: string
@@ -61,3 +67,7 @@ export const directeurRequis = (montantInitial: number) => montantInitial > SEUI
 // Défensif : les expressions créées avant l'ajout des lignes multiples n'ont pas ce champ.
 export const designationLignes = (lignes?: LigneExpressionBesoin[]) =>
   (lignes ?? []).map(l => l.quantite ? `${l.motifLibelle ?? '—'} (x${l.quantite})` : (l.motifLibelle ?? '—')).join(', ') || '—'
+
+// Vrai si au moins une ligne utilise un motif exigeant la confirmation de satisfaction
+export const ebRequiertSatisfaction = (eb: ExpressionBesoin) =>
+  (eb.lignes ?? []).some(l => l.requiertSatisfaction)

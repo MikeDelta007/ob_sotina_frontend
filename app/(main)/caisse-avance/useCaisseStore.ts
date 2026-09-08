@@ -32,8 +32,8 @@ interface CaisseStore {
   fetchCaisse:                  () => Promise<void>
   fetchMotifs:                   () => Promise<void>
   fetchAllMotifs:                 () => Promise<void>
-  createMotif:                    (libelle: string) => Promise<void>
-  updateMotif:                    (id: string, data: { libelle: string; actif: boolean }) => Promise<void>
+  createMotif:                    (libelle: string, requiertSatisfaction?: boolean) => Promise<void>
+  updateMotif:                    (id: string, data: { libelle: string; actif: boolean; requiertSatisfaction: boolean }) => Promise<void>
   deleteMotif:                    (id: string) => Promise<void>
   fetchMandatements:             () => Promise<void>
   fetchApprovisionnements:       () => Promise<void>
@@ -98,10 +98,10 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
     } catch { set({ error: 'Erreur chargement motifs' }) }
   },
 
-  createMotif: async (libelle) => {
+  createMotif: async (libelle, requiertSatisfaction = false) => {
     set({ motifLoading: true, error: null })
     try {
-      await axiosInstance.post('caisse-avance/motifs', { libelle })
+      await axiosInstance.post('caisse-avance/motifs', { libelle, requiertSatisfaction })
       await Promise.all([get().fetchMotifs(), get().fetchAllMotifs()])
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur création motif' })

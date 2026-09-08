@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Button } from 'primereact/button'
+import { Checkbox } from 'primereact/checkbox'
 import { Column } from 'primereact/column'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { DataTable } from 'primereact/datatable'
@@ -19,16 +20,23 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
   const [editing, setEditing] = useState<Motif | null>(null)
   const [libelle, setLibelle] = useState('')
   const [actif, setActif]     = useState(true)
+  const [requiertSatisfaction, setRequiertSatisfaction] = useState(false)
   const [err, setErr]         = useState('')
 
-  const openCreate = () => { setEditing(null); setLibelle(''); setActif(true); setErr(''); setDialogOpen(true) }
-  const openEdit = (m: Motif) => { setEditing(m); setLibelle(m.libelle); setActif(m.actif); setErr(''); setDialogOpen(true) }
+  const openCreate = () => {
+    setEditing(null); setLibelle(''); setActif(true); setRequiertSatisfaction(false)
+    setErr(''); setDialogOpen(true)
+  }
+  const openEdit = (m: Motif) => {
+    setEditing(m); setLibelle(m.libelle); setActif(m.actif); setRequiertSatisfaction(m.requiertSatisfaction)
+    setErr(''); setDialogOpen(true)
+  }
 
   const save = async () => {
     if (!libelle.trim()) { setErr('Libellé requis'); return }
     try {
-      if (editing) await updateMotif(editing.id, { libelle: libelle.trim(), actif })
-      else await createMotif(libelle.trim())
+      if (editing) await updateMotif(editing.id, { libelle: libelle.trim(), actif, requiertSatisfaction })
+      else await createMotif(libelle.trim(), requiertSatisfaction)
       setDialogOpen(false)
     } catch {
       setErr('Erreur lors de l\'enregistrement')
@@ -48,6 +56,12 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
 
   const actifBody = (m: Motif) => (
     <Tag severity={m.actif ? 'success' : 'secondary'} value={m.actif ? 'Actif' : 'Inactif'} />
+  )
+
+  const satisfactionBody = (m: Motif) => (
+    m.requiertSatisfaction
+      ? <Tag severity="warning" icon="pi pi-check-circle" value="Oui" />
+      : <span className="text-color-secondary">—</span>
   )
 
   const actionsBody = (m: Motif) => (
@@ -73,6 +87,7 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
         emptyMessage="Aucun motif enregistré" responsiveLayout="scroll">
         <Column header="Libellé" field="libelle" />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />
+        <Column header="Satisfaction requise" body={satisfactionBody} align="center" alignHeader="center" />
         {!lectureSeule && <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />}
       </DataTable>
 
@@ -89,6 +104,13 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
           <div className="field">
             <label className="block text-sm font-medium mb-1">Libellé</label>
             <InputText value={libelle} onChange={e => setLibelle(e.target.value)} className="w-full" autoFocus />
+          </div>
+          <div className="flex align-items-center gap-2">
+            <Checkbox inputId="requiertSatisfaction" checked={requiertSatisfaction}
+              onChange={e => setRequiertSatisfaction(!!e.checked)} />
+            <label htmlFor="requiertSatisfaction" className="text-sm">
+              Exige la confirmation de satisfaction du demandeur avant décaissement
+            </label>
           </div>
           {editing && (
             <div>

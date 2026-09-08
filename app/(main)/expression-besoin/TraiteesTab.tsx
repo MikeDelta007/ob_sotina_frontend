@@ -5,7 +5,7 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, designationLignes, type ExpressionBesoin } from './types'
+import { fmt, designationLignes, ebRequiertSatisfaction, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -29,11 +29,19 @@ export default function TraiteesTab() {
     )
   }
 
-  const mandatementBody = (eb: ExpressionBesoin) => (
-    eb.utiliseePourMandatement
-      ? <Tag severity="success" icon="pi pi-check" value="Déjà traité" />
-      : <Tag severity="warning" value="Disponible" />
-  )
+  const satisfactionBody = (eb: ExpressionBesoin) => {
+    if (!ebRequiertSatisfaction(eb)) return <span className="text-color-secondary">—</span>
+    return eb.satisfactionConfirmee
+      ? <Tag severity="success" icon="pi pi-check" value="Confirmée" />
+      : <Tag severity="warning" value="En attente" />
+  }
+
+  const mandatementBody = (eb: ExpressionBesoin) => {
+    if (eb.utiliseePourMandatement) return <Tag severity="success" icon="pi pi-check" value="Déjà traité" />
+    if (ebRequiertSatisfaction(eb) && !eb.satisfactionConfirmee)
+      return <Tag severity="danger" value="Bloqué (satisfaction)" />
+    return <Tag severity="warning" value="Disponible" />
+  }
 
   return (
     <div>
@@ -50,6 +58,7 @@ export default function TraiteesTab() {
         <Column header="Bénéficiaire" field="beneficiaire" />
         <Column header="Demandeur" field="creePar" />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
+        <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Mandatement" body={mandatementBody} align="center" alignHeader="center" />
       </DataTable>
     </div>

@@ -11,7 +11,7 @@ import { InputNumber } from 'primereact/inputnumber'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, designationLignes, type ExpressionBesoin, type StatutEB } from './types'
+import { fmt, designationLignes, ebRequiertSatisfaction, type ExpressionBesoin, type StatutEB } from './types'
 
 const STATUT_SEVERITE: Record<StatutEB, 'warning' | 'success' | 'danger' | 'info'> = {
   EN_ATTENTE: 'warning', VALIDEE: 'info', REJETEE: 'danger', TRAITEE: 'success',
@@ -34,12 +34,14 @@ const nouvelleLigne = (): LigneLocale => ({
 })
 
 export default function MesExpressionsTab() {
-  const { motifs, mesExpressions, loading, error, fetchMotifs, fetchMesExpressions, creer, modifier } = useExpressionBesoinStore()
+  const { motifs, mesExpressions, loading, error, actionLoadingId,
+          fetchMotifs, fetchMesExpressions, creer, modifier, confirmerSatisfaction } = useExpressionBesoinStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ExpressionBesoin | null>(null)
   const [lignes, setLignes] = useState<LigneLocale[]>([nouvelleLigne()])
   const [aFacturePreformat, setAFacturePreformat] = useState(false)
   const [pdfFactureProforma, setPdfFactureProforma] = useState<File | null>(null)
+  const [pdfDeclarationHonneur, setPdfDeclarationHonneur] = useState<File | null>(null)
   const [err, setErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -47,7 +49,7 @@ export default function MesExpressionsTab() {
 
   const openCreate = () => {
     setEditing(null); setLignes([nouvelleLigne()]); setAFacturePreformat(false)
-    setPdfFactureProforma(null); setErr(''); setDialogOpen(true)
+    setPdfFactureProforma(null); setPdfDeclarationHonneur(null); setErr(''); setDialogOpen(true)
   }
   const openEdit = (eb: ExpressionBesoin) => {
     setEditing(eb)
@@ -55,7 +57,7 @@ export default function MesExpressionsTab() {
       _localId: Math.random().toString(36).slice(2),
       motifId: l.motifId, motifLibelle: l.motifLibelle, quantite: l.quantite, prixUnitaire: l.prixUnitaire,
     })))
-    setAFacturePreformat(eb.aFacturePreformat); setPdfFactureProforma(null)
+    setAFacturePreformat(eb.aFacturePreformat); setPdfFactureProforma(null); setPdfDeclarationHonneur(null)
     setErr(''); setDialogOpen(true)
   }
   const fermer = () => setDialogOpen(false)
@@ -69,8 +71,9 @@ export default function MesExpressionsTab() {
   const total = lignes.reduce((s, l) => s + montantLigne(l), 0)
   const lignesValides = lignes.length > 0
     && lignes.every(l => !!l.motifId && !!l.prixUnitaire && l.prixUnitaire > 0)
-  const pieceValide = !aFacturePreformat
-    || !!pdfFactureProforma || (!!editing && editing.aFacturePreformat && !!editing.urlPdfFactureProforma)
+  const pieceValide = aFacturePreformat
+    ? (!!pdfFactureProforma || (!!editing && editing.aFacturePreformat && !!editing.urlPdfFactureProforma))
+    : (!!pdfDeclarationHonneur || (!!editing && !editing.aFacturePreformat && !!editing.urlPdfDeclarationHonneur))
   const formulaireValide = lignesValides && pieceValide
 
   const enregistrer = async () => {
@@ -82,7 +85,7 @@ export default function MesExpressionsTab() {
           const motif = motifs.find(m => m.id === l.motifId)
           return { motifId: l.motifId, motifLibelle: motif?.libelle ?? l.motifLibelle, quantite: l.quantite ?? undefined, prixUnitaire: l.prixUnitaire! }
         }),
-        aFacturePreformat, pdfFactureProforma,
+        aFacturePreformat, pdfFactureProforma, pdfDeclarationHonneur,
       }
       if (editing) await modifier(editing.id, payload)
       else await creer(payload)
@@ -99,11 +102,21 @@ export default function MesExpressionsTab() {
   const dateBody = (eb: ExpressionBesoin) => (
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
   )
-  const actionsBody = (eb: ExpressionBesoin) => (
-    eb.statut === 'EN_ATTENTE'
-      ? <Button icon="pi pi-pencil" label="Modifier" text size="small" onClick={() => openEdit(eb)} />
-      : null
-  )
+  const satisfactionBody = (eb: ExpressionBesoin) => {
+    if (!ebRequiertSatisfaction(eb)) return <span className="text-color-secondary">—</span>
+    return eb.satisfactionConfirmee
+      ? <Tag severity="success" icon="pi pi-check" value="Confirmée" />
+      : <Tag severity="warning" value="En attente" />
+  }
+
+  const actionsBody = (eb: ExpressionBesoin) => {
+    if (eb.statut === 'EN_ATTENTE')
+      return <Button icon="pi pi-pencil" label="Modifier" text size="small" onClick={() => openEdit(eb)} />
+    if (eb.statut === 'TRAITEE' && ebRequiertSatisfaction(eb) && !eb.satisfactionConfirmee)
+      return <Button label="Confirmer ma satisfaction" icon="pi pi-check" size="small" severity="success"
+        loading={actionLoadingId === eb.id} onClick={() => confirmerSatisfaction(eb.id)} />
+    return null
+  }
 
   return (
     <div>
@@ -120,6 +133,7 @@ export default function MesExpressionsTab() {
         <Column header="Montant réel" body={(eb: ExpressionBesoin) => eb.montantReel ? fmt(eb.montantReel) : '—'} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaire || '—'} />
         <Column header="Motif de rejet" body={(eb: ExpressionBesoin) => eb.motifRejet || '—'} />
+        <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>
 
@@ -186,7 +200,7 @@ export default function MesExpressionsTab() {
             <label htmlFor="aProforma" className="text-sm">J'ai une facture proforma</label>
           </div>
 
-          {aFacturePreformat && (
+          {aFacturePreformat ? (
             <div className="field">
               <label className="block text-sm text-color-secondary mb-1">Facture proforma (PDF) *</label>
               <div className="flex align-items-center gap-2">
@@ -195,6 +209,19 @@ export default function MesExpressionsTab() {
                   onSelect={(e: FileUploadSelectEvent) => setPdfFactureProforma(e.files[0] ?? null)} />
                 {pdfFactureProforma && <Tag severity="success" icon="pi pi-check" value={pdfFactureProforma.name} />}
                 {!pdfFactureProforma && editing?.urlPdfFactureProforma && editing.aFacturePreformat && (
+                  <Tag severity="secondary" icon="pi pi-file-pdf" value="Fichier existant" />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="field">
+              <label className="block text-sm text-color-secondary mb-1">Déclaration sur l'honneur (PDF) *</label>
+              <div className="flex align-items-center gap-2">
+                <FileUpload mode="basic" name="pdfDeclarationHonneur" accept="application/pdf" auto={false}
+                  chooseLabel="Choisir un PDF"
+                  onSelect={(e: FileUploadSelectEvent) => setPdfDeclarationHonneur(e.files[0] ?? null)} />
+                {pdfDeclarationHonneur && <Tag severity="success" icon="pi pi-check" value={pdfDeclarationHonneur.name} />}
+                {!pdfDeclarationHonneur && editing?.urlPdfDeclarationHonneur && !editing.aFacturePreformat && (
                   <Tag severity="secondary" icon="pi pi-file-pdf" value="Fichier existant" />
                 )}
               </div>

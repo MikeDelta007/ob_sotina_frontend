@@ -16,6 +16,7 @@ interface CreerPayload {
   lignes: LignePayload[]
   aFacturePreformat: boolean
   pdfFactureProforma?: File | null
+  pdfDeclarationHonneur?: File | null
 }
 
 interface ExpressionBesoinStore {
@@ -40,6 +41,7 @@ interface ExpressionBesoinStore {
   valider:                (id: string, quantitesAccordees?: (number | null)[]) => Promise<void>
   rejeter:                (id: string, motif: string) => Promise<void>
   traiter:                (id: string, montantReel: number, beneficiaire: string) => Promise<void>
+  confirmerSatisfaction:  (id: string) => Promise<void>
   clearError:             () => void
 }
 
@@ -51,6 +53,7 @@ const buildForm = (payload: CreerPayload) => {
   })], { type: 'application/json' })
   form.append('data', data)
   if (payload.pdfFactureProforma) form.append('pdfFactureProforma', payload.pdfFactureProforma)
+  if (payload.pdfDeclarationHonneur) form.append('pdfDeclarationHonneur', payload.pdfDeclarationHonneur)
   return form
 }
 
@@ -170,6 +173,17 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await get().fetchATraiter()
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur lors du traitement' })
+      throw e
+    } finally { set({ actionLoadingId: null }) }
+  },
+
+  confirmerSatisfaction: async (id) => {
+    set({ actionLoadingId: id, error: null })
+    try {
+      await axiosInstance.put(`expression-besoin/${id}/confirmer-satisfaction`)
+      await get().fetchMesExpressions()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur lors de la confirmation de satisfaction' })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },

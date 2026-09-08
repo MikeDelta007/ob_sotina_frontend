@@ -8,6 +8,9 @@ export interface Motif {
   id: string
   libelle: string
   actif: boolean
+  // Si vrai, toute expression de besoin utilisant ce motif exige la confirmation de
+  // satisfaction du demandeur avant tout décaissement du mandatement correspondant.
+  requiertSatisfaction: boolean
 }
 
 export interface CaisseAvance {
