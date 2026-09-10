@@ -25,7 +25,6 @@ import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
 import { FileService } from '@/demo/service/FileService';
-import axiosInstance2 from '@/app/api/axiosInstance2';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { AutorisationReception, CandidatDTO, CandidatureService } from '@/demo/service/CandidatureService';
 import { UserContext } from '@/app/userContext';

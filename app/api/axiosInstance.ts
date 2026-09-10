@@ -1,25 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { authService } from '@/demo/service/AuthService'; // Chemin à adapter
-
-//EN PROD DECOMMENTER CETTE PARTIE
-// const axiosInstance: AxiosInstance = axios.create({
-//   baseURL: 'http://localhost:8080/ob/api/v1/',
-//   headers: {
-//     'Content-Type': 'application/json',
-//     'Accept': '*/*',
-//   },
-// });
-
-// const axiosInstance: AxiosInstance = axios.create({
-//   baseURL: 'https://sotina.offbac.sn/ob/api/v1/',
-//   headers: {
-//     'Content-Type': 'application/json',
-//     'Accept': '*/*',
-//   },
-// });
+import { API_BASE_URL } from './apiConfig';
 
 const axiosInstance: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/ob/api/v1/',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': '*/*',

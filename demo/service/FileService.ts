@@ -1,4 +1,4 @@
-import axiosInstance2 from "@/app/api/axiosInstance2";
+import axiosInstance from "@/app/api/axiosInstance";
 
 export const FileService = {
   uploadFile(file, session = null, establishmentId = null, code) 
@@ -16,7 +16,7 @@ export const FileService = {
     formData.append('file', file);
     formData.append('code', code)
 
-    return axiosInstance2.post(`/files/upload`, formData)
+    return axiosInstance.post(`/files/upload`, formData)
       .then(response => {
         console.log('Fichier uploadé avec succès:', response.data);
         return response.data; // ID du fichier ou autre réponse
@@ -31,7 +31,7 @@ export const FileService = {
 
   getViewUrl(fileId) 
   {
-    return axiosInstance2.get(`files/view/${fileId}`, {
+    return axiosInstance.get(`files/view/${fileId}`, {
       responseType: 'blob' 
       })
       .then(response => {
@@ -48,7 +48,7 @@ export const FileService = {
 
 
   deleteFile(fileId) {
-  return axiosInstance2.delete(`files/delete/${fileId}`)
+  return axiosInstance.delete(`files/delete/${fileId}`)
     .then(response => {
       console.log('Fichier supprimé avec succés :', response.data);
     })
@@ -60,7 +60,7 @@ export const FileService = {
 
   getFiles(establishmentId: string) {
     console.log(establishmentId);
-    return axiosInstance2.get('files/by-etab', {
+    return axiosInstance.get('files/by-etab', {
       params: { establishmentId : establishmentId }
     })
       .then(response => {

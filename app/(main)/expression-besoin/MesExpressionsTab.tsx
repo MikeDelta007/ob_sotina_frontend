@@ -197,7 +197,7 @@ export default function MesExpressionsTab() {
           <div className="flex align-items-center gap-2">
             <Checkbox inputId="aProforma" checked={aFacturePreformat}
               onChange={e => setAFacturePreformat(!!e.checked)} />
-            <label htmlFor="aProforma" className="text-sm">J'ai une facture proforma</label>
+            <label htmlFor="aProforma" className="text-sm">J&apos;ai une facture proforma</label>
           </div>
 
           {aFacturePreformat ? (
@@ -215,7 +215,7 @@ export default function MesExpressionsTab() {
             </div>
           ) : (
             <div className="field">
-              <label className="block text-sm text-color-secondary mb-1">Déclaration sur l'honneur (PDF) *</label>
+              <label className="block text-sm text-color-secondary mb-1">Déclaration sur l&apos;honneur (PDF) *</label>
               <div className="flex align-items-center gap-2">
                 <FileUpload mode="basic" name="pdfDeclarationHonneur" accept="application/pdf" auto={false}
                   chooseLabel="Choisir un PDF"

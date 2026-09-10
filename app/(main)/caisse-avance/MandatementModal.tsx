@@ -300,7 +300,7 @@ export default function MandatementModal() {
           <div className="card">
             <p className="font-semibold mt-0 mb-3">Décaissement : {fmt(total)}</p>
             <div className="field">
-              <label className="block text-sm text-color-secondary mb-1">Montant de l'avance (#2)</label>
+              <label className="block text-sm text-color-secondary mb-1">Montant de l&apos;avance (#2)</label>
               <InputNumber value={montantAvance || null} min={1} max={total} className="w-full"
                 onValueChange={e => setMontantAvance(e.value ?? 0)} placeholder="Montant avance…" />
             </div>
@@ -312,7 +312,7 @@ export default function MandatementModal() {
                 </div>
                 {reliquat > 0 && (
                   <div className="flex justify-content-between text-sm">
-                    <span className="text-color-secondary">Reliquat restant (#2')</span>
+                    <span className="text-color-secondary">Reliquat restant (#2&apos;)</span>
                     <strong>{fmt(reliquat)}</strong>
                   </div>
                 )}

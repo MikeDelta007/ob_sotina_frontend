@@ -2,15 +2,11 @@
 
 import useIdleLogout from '@/app/useIdleLogout';
 import { jwtDecode } from 'jwt-decode';
+import { API_BASE_URL } from '@/app/api/apiConfig';
 
-// EN PROD DECOMMENTER CETTE PARTIE
-const API_URL = 'http://localhost:8080/ob/api/v1/authentification/sign-in';
-const REFRESH_URL = 'http://localhost:8080/ob/api/v1/authentification/refresh-token';
-const PSW_FORGOT_URL = 'http://localhost:8080/ob/api/v1/authentification/update-password-for-public';
-
-// const API_URL = 'https://sotina.offbac.sn/ob/api/v1/authentification/sign-in';
-// const REFRESH_URL = 'https://sotina.offbac.sn/ob/api/v1/authentification/refresh-token';
-// const PSW_FORGOT_URL = 'https://sotina.offbac.sn/ob/api/v1/authentification/update-password-for-public';
+const API_URL = `${API_BASE_URL}authentification/sign-in`;
+const REFRESH_URL = `${API_BASE_URL}authentification/refresh-token`;
+const PSW_FORGOT_URL = `${API_BASE_URL}authentification/update-password-for-public`;
 
 export const authService = {
     getToken(): string | null {
