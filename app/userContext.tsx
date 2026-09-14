@@ -137,6 +137,21 @@ export interface Profil {
   view_plan: boolean;
 }
 
+export interface Division {
+  id: string;
+  libelle: string;
+  chefServiceId?: string | null;
+  actif: boolean;
+}
+
+export interface Fonction {
+  id: string;
+  libelle: string;
+  actif: boolean;
+}
+
+export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_APPUI';
+
 export interface User {
   id: string;
   firstname: string;
@@ -147,6 +162,20 @@ export interface User {
   sessionId : string;
   profil: Profil;
   acteur: Acteur; // Tu peux le typer plus tard si tu souhaites gérer les acteurs aussi proprement
+  // Informations personnel/RH
+  bank?: string;
+  matricule?: string;
+  civilite?: string;
+  division?: Division | null;
+  fonction?: Fonction | null;
+  code_bank?: string;
+  matricule_voiture?: string;
+  code_agc?: string;
+  num_compte?: string;
+  key_rib?: string;
+  // Congés
+  typePersonnel?: TypePersonnel | null;
+  soldeConges?: number | null;
 }
 
 

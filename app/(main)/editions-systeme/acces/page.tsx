@@ -82,6 +82,8 @@ const CalendarDemo = () => {
     const [users, setUsers] = useState([]);
 
     const [etabs, setEtabs] = useState([]);
+    const [divisions, setDivisions] = useState([]);
+    const [fonctions, setFonctions] = useState([]);
 
     const [infosUsers, setInfosUsers] = useState(null);
 
@@ -98,6 +100,17 @@ const CalendarDemo = () => {
         { label: 'Agent comptable', value: 'AGENT_COMPTABLE' }
     ];
 
+    const civiliteOptions = [
+        { label: 'M.', value: 'Mr' },
+        { label: 'Mme', value: 'Mme' },
+        { label: 'Mlle', value: 'Mlle' }
+    ];
+
+    const typePersonnelOptions = [
+        { label: 'Permanent (30 j/an)', value: 'PERMANENT' },
+        { label: "Personnel d'appui (10 j/an)", value: 'PERSONNEL_APPUI' }
+    ];
+
     useEffect(() => {
         ProductService.getProducts().then((data) => setProducts(data));
     }, []);
@@ -110,6 +123,11 @@ const CalendarDemo = () => {
         ParametrageService.getEtablissements().then((response) => {
             setEtabs(response);
         });
+    }, []);
+
+    useEffect(() => {
+        ParametrageService.getDivisions().then((response) => setDivisions(response));
+        ParametrageService.getFonctions().then((response) => setFonctions(response));
     }, []);
 
     useEffect(() => {}, [is_update]);
@@ -658,7 +676,19 @@ const CalendarDemo = () => {
             state_account: true,
             etablissement: null,
             profil: null,
-            acteur: null
+            acteur: null,
+            bank: '',
+            matricule: '',
+            civilite: null,
+            division: null,
+            fonction: null,
+            code_bank: '',
+            matricule_voiture: '',
+            code_agc: '',
+            num_compte: '',
+            key_rib: '',
+            typePersonnel: null,
+            soldeConges: null
         },
 
         validationSchema: Yup.object({
@@ -721,7 +751,19 @@ const CalendarDemo = () => {
                 email: values.email,
                 state_account: true,
                 profil: profilDTO,
-                acteur: acteurDTO
+                acteur: acteurDTO,
+                bank: values.bank,
+                matricule: values.matricule,
+                civilite: values.civilite,
+                division: values.division,
+                fonction: values.fonction,
+                code_bank: values.code_bank,
+                matricule_voiture: values.matricule_voiture,
+                code_agc: values.code_agc,
+                num_compte: values.num_compte,
+                key_rib: values.key_rib,
+                typePersonnel: values.typePersonnel,
+                soldeConges: values.soldeConges
             };
 
             try {
@@ -767,7 +809,19 @@ const CalendarDemo = () => {
             state_account: true,
             etablissement: null,
             profil: null,
-            acteur: null
+            acteur: null,
+            bank: '',
+            matricule: '',
+            civilite: null,
+            division: null,
+            fonction: null,
+            code_bank: '',
+            matricule_voiture: '',
+            code_agc: '',
+            num_compte: '',
+            key_rib: '',
+            typePersonnel: null,
+            soldeConges: null
         },
 
         validationSchema: Yup.object({
@@ -800,7 +854,19 @@ const CalendarDemo = () => {
                 email: values.email,
                 state_account: true,
                 profil: profilDTO,
-                acteur: acteurDTO
+                acteur: acteurDTO,
+                bank: values.bank,
+                matricule: values.matricule,
+                civilite: values.civilite,
+                division: values.division,
+                fonction: values.fonction,
+                code_bank: values.code_bank,
+                matricule_voiture: values.matricule_voiture,
+                code_agc: values.code_agc,
+                num_compte: values.num_compte,
+                key_rib: values.key_rib,
+                typePersonnel: values.typePersonnel,
+                soldeConges: values.soldeConges
             };
 
             try {
@@ -1041,6 +1107,71 @@ const CalendarDemo = () => {
                                             </div>
                                         )}
                                     </div>
+
+                                    <div className="formgrid grid">
+                                        <div className="field col-3">
+                                            <label>Civilité</label>
+                                            <Dropdown value={formik.values.civilite} onChange={(e) => formik.setFieldValue('civilite', e.value)}
+                                                options={civiliteOptions} placeholder="Civilité" className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Matricule</label>
+                                            <InputText value={formik.values.matricule} onChange={(e) => formik.setFieldValue('matricule', e.target.value)}
+                                                className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Division</label>
+                                            <Dropdown value={formik.values.division} onChange={(e) => formik.setFieldValue('division', e.value)}
+                                                options={divisions} optionLabel="libelle" showClear placeholder="Division" className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Fonction</label>
+                                            <Dropdown value={formik.values.fonction} onChange={(e) => formik.setFieldValue('fonction', e.value)}
+                                                options={fonctions} optionLabel="libelle" showClear placeholder="Fonction" className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+                                    <div className="formgrid grid">
+                                        <div className="field col-4">
+                                            <label>Type de personnel</label>
+                                            <Dropdown value={formik.values.typePersonnel} onChange={(e) => formik.setFieldValue('typePersonnel', e.value)}
+                                                options={typePersonnelOptions} showClear placeholder="Type de personnel" className="p-inputtext-sm w-full" />
+                                        </div>
+                                        {formik.values.typePersonnel && (
+                                            <div className="field col-4">
+                                                <label>Solde de congés (jours/an)</label>
+                                                <InputText disabled value={String(formik.values.typePersonnel === 'PERMANENT' ? 30 : 10)} className="p-inputtext-sm w-full" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="formgrid grid">
+                                        <div className="field col-3">
+                                            <label>Banque</label>
+                                            <InputText value={formik.values.bank} onChange={(e) => formik.setFieldValue('bank', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Code banque</label>
+                                            <InputText value={formik.values.code_bank} onChange={(e) => formik.setFieldValue('code_bank', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Code agence</label>
+                                            <InputText value={formik.values.code_agc} onChange={(e) => formik.setFieldValue('code_agc', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>N° compte</label>
+                                            <InputText value={formik.values.num_compte} onChange={(e) => formik.setFieldValue('num_compte', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+                                    <div className="formgrid grid">
+                                        <div className="field col-4">
+                                            <label>Clé RIB</label>
+                                            <InputText value={formik.values.key_rib} onChange={(e) => formik.setFieldValue('key_rib', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-4">
+                                            <label>Matricule véhicule</label>
+                                            <InputText value={formik.values.matricule_voiture} onChange={(e) => formik.setFieldValue('matricule_voiture', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+
                                     <hr />
                                     {!is_update && (
                                         <div className="formgrid grid">
@@ -1244,6 +1375,71 @@ const CalendarDemo = () => {
                                             {formik2.touched.profil && typeof formik2.errors.profil === 'string' && <small className="p-error">{formik2.errors.email}</small>}
                                         </div>
                                     </div>
+
+                                    <div className="formgrid grid">
+                                        <div className="field col-3">
+                                            <label>Civilité</label>
+                                            <Dropdown value={formik2.values.civilite} onChange={(e) => formik2.setFieldValue('civilite', e.value)}
+                                                options={civiliteOptions} placeholder="Civilité" className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Matricule</label>
+                                            <InputText value={formik2.values.matricule} onChange={(e) => formik2.setFieldValue('matricule', e.target.value)}
+                                                className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Division</label>
+                                            <Dropdown value={formik2.values.division} onChange={(e) => formik2.setFieldValue('division', e.value)}
+                                                options={divisions} optionLabel="libelle" showClear placeholder="Division" className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Fonction</label>
+                                            <Dropdown value={formik2.values.fonction} onChange={(e) => formik2.setFieldValue('fonction', e.value)}
+                                                options={fonctions} optionLabel="libelle" showClear placeholder="Fonction" className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+                                    <div className="formgrid grid">
+                                        <div className="field col-4">
+                                            <label>Type de personnel</label>
+                                            <Dropdown value={formik2.values.typePersonnel} onChange={(e) => formik2.setFieldValue('typePersonnel', e.value)}
+                                                options={typePersonnelOptions} showClear placeholder="Type de personnel" className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-4">
+                                            <label>Solde de congés restant (jours)</label>
+                                            <InputText type="number" value={formik2.values.soldeConges ?? ''}
+                                                onChange={(e) => formik2.setFieldValue('soldeConges', e.target.value === '' ? null : Number(e.target.value))}
+                                                className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+                                    <div className="formgrid grid">
+                                        <div className="field col-3">
+                                            <label>Banque</label>
+                                            <InputText value={formik2.values.bank} onChange={(e) => formik2.setFieldValue('bank', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Code banque</label>
+                                            <InputText value={formik2.values.code_bank} onChange={(e) => formik2.setFieldValue('code_bank', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>Code agence</label>
+                                            <InputText value={formik2.values.code_agc} onChange={(e) => formik2.setFieldValue('code_agc', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-3">
+                                            <label>N° compte</label>
+                                            <InputText value={formik2.values.num_compte} onChange={(e) => formik2.setFieldValue('num_compte', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+                                    <div className="formgrid grid">
+                                        <div className="field col-4">
+                                            <label>Clé RIB</label>
+                                            <InputText value={formik2.values.key_rib} onChange={(e) => formik2.setFieldValue('key_rib', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                        <div className="field col-4">
+                                            <label>Matricule véhicule</label>
+                                            <InputText value={formik2.values.matricule_voiture} onChange={(e) => formik2.setFieldValue('matricule_voiture', e.target.value)} className="p-inputtext-sm w-full" />
+                                        </div>
+                                    </div>
+
                                     <div className="formgrid grid">
                                         <div className="field col-8"></div>
                                         <div className="field col-4">

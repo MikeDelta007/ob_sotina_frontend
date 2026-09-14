@@ -190,6 +190,34 @@ const AppMenu = () => {
                 }
             ]
         });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // MON ESPACE (visible à tous les rôles authentifiés, sans garde)
+    // =========================
+    model.push({
+        label: 'MON ESPACE',
+        icon: 'pi pi-user',
+        items: [
+            { label: 'Mon profil', icon: 'pi pi-fw pi-id-card', to: '/personnel/mon-profil' },
+            { label: "Autorisation d'absence", icon: 'pi pi-fw pi-calendar-times', to: '/personnel/absences' },
+            { label: 'Mes missions', icon: 'pi pi-fw pi-send', to: '/personnel/missions' }
+        ]
+    });
+
+    // =========================
+    // GESTION PERSONNEL (Services & Fonctions)
+    // =========================
+    if (hasAccess(['ADMIN', 'CSA', 'DIRECTEUR'])) {
+        model.push({ separator: true });
+        model.push({
+            icon: 'pi pi-sitemap',
+            items: [
+                { label: 'Divisions & Fonctions', icon: 'pi pi-fw pi-sitemap', to: '/personnel/gestion-personnel' }
+            ]
+        });
     }
 
     // =========================

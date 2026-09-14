@@ -166,6 +166,21 @@ export interface ProfilDTO {
   name : string;
 }
 
+export interface DivisionDTO {
+  id?: string;
+  libelle: string;
+  chefServiceId?: string | null;
+  actif?: boolean;
+}
+
+export interface FonctionDTO {
+  id?: string;
+  libelle: string;
+  actif?: boolean;
+}
+
+export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_APPUI';
+
 export interface UserDTO {
   firstname: string;
   lastname: string;
@@ -176,6 +191,20 @@ export interface UserDTO {
   state_account : boolean;
   profil : ProfilDTO;
   acteur : ActeurDTO;
+  // Informations personnel/RH
+  bank?: string;
+  matricule?: string;
+  civilite?: string;
+  division?: DivisionDTO | null;
+  fonction?: FonctionDTO | null;
+  code_bank?: string;
+  matricule_voiture?: string;
+  code_agc?: string;
+  num_compte?: string;
+  key_rib?: string;
+  // Congés
+  typePersonnel?: TypePersonnel | null;
+  soldeConges?: number | null;
 }
 
 export interface EtabDTO {
@@ -1683,7 +1712,7 @@ export const ParametrageService = {
   },
 
 
-  updateDureeMention(idBm, dureeMention) 
+  updateDureeMention(idBm, dureeMention)
   {
     return axiosInstance.patch(`/import-data/updateDureeMention?idBm=${encodeURIComponent(idBm)}&dureeMention=${encodeURIComponent(dureeMention)}`)
       .then(response => {
@@ -1694,6 +1723,39 @@ export const ParametrageService = {
         console.error('Erreur mise à jour user :', error);
         throw error;
       });
+  },
+
+  // ── Divisions & Fonctions (gestion du personnel) ──
+  getDivisions() {
+    return axiosInstance.get('/personnel/divisions').then(r => r.data);
+  },
+  getAllDivisions() {
+    return axiosInstance.get('/personnel/divisions/all').then(r => r.data);
+  },
+  createDivision(division: DivisionDTO) {
+    return axiosInstance.post('/personnel/divisions', division).then(r => r.data);
+  },
+  updateDivision(id: string, division: DivisionDTO) {
+    return axiosInstance.put(`/personnel/divisions/${id}`, division).then(r => r.data);
+  },
+  deleteDivision(id: string) {
+    return axiosInstance.delete(`/personnel/divisions/${id}`).then(r => r.data);
+  },
+
+  getFonctions() {
+    return axiosInstance.get('/personnel/fonctions').then(r => r.data);
+  },
+  getAllFonctions() {
+    return axiosInstance.get('/personnel/fonctions/all').then(r => r.data);
+  },
+  createFonction(fonction: FonctionDTO) {
+    return axiosInstance.post('/personnel/fonctions', fonction).then(r => r.data);
+  },
+  updateFonction(id: string, fonction: FonctionDTO) {
+    return axiosInstance.put(`/personnel/fonctions/${id}`, fonction).then(r => r.data);
+  },
+  deleteFonction(id: string) {
+    return axiosInstance.delete(`/personnel/fonctions/${id}`).then(r => r.data);
   },
 
 
