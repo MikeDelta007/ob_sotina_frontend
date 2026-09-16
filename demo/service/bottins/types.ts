@@ -56,8 +56,14 @@ export interface ReleveSaisieRequest extends CandidatComplet {
     epreuvesOralesControle?: EpreuveOraleControleSaisie[];
     epreuvesFacultatives?: EpreuveFacultativeSaisie[];
     educationPhysique?: { note?: number };
-    lieuDelivrance?: string;
-    dateDelivrance?: string;
+    // Lieu de délibération : un seul champ, commun aux séries "2ème partie"
+    // (décision unique) et aux séries 1er/2ème groupe (partagé entre les deux).
+    lieuDeliberation?: string;
+    // Séries "2ème partie" (décision unique) : une seule date de délibération.
+    dateDeliberation?: string;
+    // Séries 1er/2ème groupe (config.hasDoubleGroupe) : une date par groupe.
+    dateDeliberationPremierGroupe?: string;
+    dateDeliberationDeuxiemeGroupe?: string;
     presidentJury?: string;
     // Les clés des groupes de notes (ex: notesPremierGroupe / notesEcrites) sont
     // ajoutées dynamiquement selon la config de la série -> objet libre.
@@ -74,8 +80,14 @@ export interface ReleveDetail {
     epreuvesOralesControle?: (EpreuveOraleControleSaisie & { pointsObtenusEpreuveControle?: number; differenceEnPlus?: number })[];
     epreuvesFacultatives?: (EpreuveFacultativeSaisie & { pointsAuDessusMoyenne?: number })[];
     educationPhysique?: { note?: number; pointsPositifs?: number; pointsNegatifs?: number };
-    lieuDelivrance?: string;
-    dateDelivrance?: string;
+    // Lieu de délibération : un seul champ, commun aux séries "2ème partie"
+    // (décision unique) et aux séries 1er/2ème groupe (partagé entre les deux).
+    lieuDeliberation?: string;
+    // Séries "2ème partie" (décision unique) : une seule date de délibération.
+    dateDeliberation?: string;
+    // Séries 1er/2ème groupe (config.hasDoubleGroupe) : une date par groupe.
+    dateDeliberationPremierGroupe?: string;
+    dateDeliberationDeuxiemeGroupe?: string;
     presidentJury?: string;
     createdAt?: string;
     // notesPremierGroupe / notesDeuxiemeGroupe / notesEcrites / notesOrales : List<NoteEpreuve>
@@ -94,6 +106,22 @@ export interface ReleveResume {
     decision?: Decision;
     mention?: Mention;
     createdAt?: string;
+}
+
+/**
+ * Un candidat trouvé lors d'une recherche dans les 29 séries de bottins, à
+ * partir de n'importe quelle combinaison de critères (N° de table, année,
+ * nom, prénom, date de naissance, lieu de naissance). La recherche peut
+ * remonter plusieurs candidats (homonymes) : le backend renvoie une liste.
+ */
+export interface RechercheGlobaleResultat {
+    serieKey: string;
+    id: string;
+    numeroTable?: string;
+    nomPrenom?: string;
+    dateNaissance?: string;
+    lieuNaissance?: string;
+    annee?: number;
 }
 
 /** Forme standard d'une page renvoyée par Spring Data (Page<T>). */

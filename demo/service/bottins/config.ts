@@ -28,6 +28,8 @@ export interface SerieConfig {
     hasEpreuvesFacultatives: boolean;
     educationPhysique: 'none' | 'simple';
     groupes: GroupeMatieres[];
+    /** true pour les 23 séries 1er/2ème groupe : une date de délibération distincte par groupe (le lieu, lui, reste unique). */
+    hasDoubleGroupe: boolean;
 }
 
 const g1g2 = (premier: Matiere[], deuxieme: Matiere[] = []): GroupeMatieres[] => [
@@ -44,7 +46,7 @@ const ecritesOrales = (ecrites: Matiere[], orales: Matiere[]): GroupeMatieres[] 
 // Séries "1er groupe / 2ème groupe" (23 modules)
 // ---------------------------------------------------------------------
 
-const SERIES_GROUPE: SerieConfig[] = [
+const SERIES_GROUPE: Omit<SerieConfig, 'hasDoubleGroupe'>[] = [
     {
         key: 'a1',
         label: 'A1',
@@ -90,7 +92,7 @@ const SERIES_GROUPE: SerieConfig[] = [
                 { code: 'LV', label: 'Langue Vivante (oral)' }
             ],
             [
-                { code: 'LAT_GREC2', label: 'Grec ou Latin' },
+                { code: 'LAT_GREC2', label: 'Langue Vivante' },
                 { code: 'MATH', label: 'Mathématiques' }
             ]
         )
@@ -556,7 +558,7 @@ const SERIES_GROUPE: SerieConfig[] = [
 // pas d'épreuve de contrôle ni de facultatives, décision à 2 issues.
 // ---------------------------------------------------------------------
 
-const SERIES_DEUXIEME_PARTIE: SerieConfig[] = [
+const SERIES_DEUXIEME_PARTIE: Omit<SerieConfig, 'hasDoubleGroupe'>[] = [
     {
         key: 'a1-2eme-partie',
         label: 'A1 — 2ème partie',
@@ -704,7 +706,10 @@ const SERIES_DEUXIEME_PARTIE: SerieConfig[] = [
     }
 ];
 
-export const SERIES_CONFIG: SerieConfig[] = [...SERIES_GROUPE, ...SERIES_DEUXIEME_PARTIE];
+export const SERIES_CONFIG: SerieConfig[] = [
+    ...SERIES_GROUPE.map((s) => ({ ...s, hasDoubleGroupe: true })),
+    ...SERIES_DEUXIEME_PARTIE.map((s) => ({ ...s, hasDoubleGroupe: false }))
+];
 
 export function getSerieConfig(key: string): SerieConfig | undefined {
     return SERIES_CONFIG.find((s) => s.key === key);

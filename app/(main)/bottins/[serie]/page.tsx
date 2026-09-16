@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useFormik } from 'formik';
 import { Button } from 'primereact/button';
@@ -10,15 +10,12 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Dropdown } from 'primereact/dropdown';
 import { Checkbox } from 'primereact/checkbox';
 import { RadioButton } from 'primereact/radiobutton';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { Tag } from 'primereact/tag';
 import { Toast } from 'primereact/toast';
 import { Divider } from 'primereact/divider';
 import ProtectedRoute from '@/layout/ProtectedRoute';
 import { getSerieConfig, SerieConfig } from '@/demo/service/bottins/config';
 import { createReleveApi } from '@/demo/service/bottins/api';
-import { PageSpring, ReleveDetail, ReleveResume } from '@/demo/service/bottins/types';
+import { ReleveDetail } from '@/demo/service/bottins/types';
 
 const TYPES_ARTISTIQUES = ['DESSIN', 'MUSIQUE', 'COUTURE'] as const;
 const LABEL_ARTISTIQUE: Record<(typeof TYPES_ARTISTIQUES)[number], string> = {
@@ -27,9 +24,9 @@ const LABEL_ARTISTIQUE: Record<(typeof TYPES_ARTISTIQUES)[number], string> = {
     COUTURE: 'Couture'
 };
 
-const TAILLE_PAGE = 10;
+type Prefill = { numeroTable?: string; annee?: number; nomPrenom?: string; dateNaissance?: string; lieuNaissance?: string };
 
-function buildInitialValues(config: SerieConfig, detail?: ReleveDetail | null) {
+function buildInitialValues(config: SerieConfig, detail?: ReleveDetail | null, prefill?: Prefill) {
     const notes: Record<string, Record<string, number | null>> = {};
     config.groupes.forEach((g) => {
         notes[g.champ] = {};
@@ -39,6 +36,16 @@ function buildInitialValues(config: SerieConfig, detail?: ReleveDetail | null) {
             notes[g.champ][m.code] = found?.note ?? null;
         });
     });
+
+    // Le bloc "2ème groupe d'épreuves" + "Epreuve orale de contrôle" n'est pertinent
+    // que si le candidat subit effectivement le 2ème groupe — activé via la case
+    // "Second groupe", cochée par défaut si le relevé chargé a déjà des données là-dessus.
+    const deuxiemeChamp = config.groupes[1]?.champ;
+    const deuxiemeGroupeAdesNotes = deuxiemeChamp
+        ? ((detail?.[deuxiemeChamp] as any[]) ?? []).some((n) => n?.note !== null && n?.note !== undefined)
+        : false;
+    const aDesControles = (detail?.epreuvesOralesControle ?? []).length > 0;
+    const secondGroupe = config.hasDoubleGroupe ? deuxiemeGroupeAdesNotes || aDesControles : true;
 
     // "Langue" est une épreuve facultative indépendante ; Dessin/Musique/Couture
     // sont un choix unique (une seule épreuve artistique, une seule note).
@@ -55,22 +62,25 @@ function buildInitialValues(config: SerieConfig, detail?: ReleveDetail | null) {
     return {
         session: detail?.session ?? 'NORMALE',
         juryNumero: detail?.juryNumero ?? '',
-        annee: detail?.annee ?? null,
-        nomPrenom: detail?.candidat?.nomPrenom ?? '',
-        dateNaissance: detail?.candidat?.dateNaissance ?? '',
-        lieuNaissance: detail?.candidat?.lieuNaissance ?? '',
+        annee: detail?.annee ?? prefill?.annee ?? null,
+        nomPrenom: detail?.candidat?.nomPrenom ?? prefill?.nomPrenom ?? '',
+        dateNaissance: detail?.candidat?.dateNaissance ?? prefill?.dateNaissance ?? '',
+        lieuNaissance: detail?.candidat?.lieuNaissance ?? prefill?.lieuNaissance ?? '',
         etablissement: detail?.candidat?.etablissement ?? '',
         indicatif: detail?.candidat?.indicatif ?? '',
         options: detail?.candidat?.options ?? '',
-        numeroTable: detail?.candidat?.numeroTable ?? '',
+        numeroTable: detail?.candidat?.numeroTable ?? prefill?.numeroTable ?? '',
         nationalite: detail?.candidat?.nationalite ?? '',
         nombreDeFois: detail?.candidat?.nombreDeFois ?? '',
         notes,
         educationPhysiqueNote: detail?.educationPhysique?.note ?? null,
         facultatives,
         controles: (detail?.epreuvesOralesControle ?? []).map((c) => ({ ...c })),
-        lieuDelivrance: detail?.lieuDelivrance ?? '',
-        dateDelivrance: detail?.dateDelivrance ?? '',
+        secondGroupe,
+        lieuDeliberation: detail?.lieuDeliberation ?? '',
+        dateDeliberation: detail?.dateDeliberation ?? '',
+        dateDeliberationPremierGroupe: detail?.dateDeliberationPremierGroupe ?? '',
+        dateDeliberationDeuxiemeGroupe: detail?.dateDeliberationDeuxiemeGroupe ?? '',
         presidentJury: detail?.presidentJury ?? ''
     };
 }
@@ -89,16 +99,24 @@ function buildPayload(config: SerieConfig, values: FormValues) {
         numeroTable: values.numeroTable || undefined,
         nationalite: values.nationalite || undefined,
         nombreDeFois: values.nombreDeFois || undefined,
-        lieuDelivrance: values.lieuDelivrance || undefined,
-        dateDelivrance: values.dateDelivrance || undefined,
         presidentJury: values.presidentJury || undefined
     };
+
+    payload.lieuDeliberation = values.lieuDeliberation || undefined;
+    if (config.hasDoubleGroupe) {
+        payload.dateDeliberationPremierGroupe = values.dateDeliberationPremierGroupe || undefined;
+        payload.dateDeliberationDeuxiemeGroupe = values.dateDeliberationDeuxiemeGroupe || undefined;
+    } else {
+        payload.dateDeliberation = values.dateDeliberation || undefined;
+    }
 
     if (config.hasSession) payload.session = values.session || 'NORMALE';
     if (config.hasAnnee) payload.annee = values.annee ?? undefined;
 
-    config.groupes.forEach((g) => {
-        payload[g.champ] = values.notes[g.champ] ?? {};
+    const deuxiemeChamp = config.groupes[1]?.champ;
+    config.groupes.forEach((g, index) => {
+        const estDeuxiemeGroupe = config.hasDoubleGroupe && index === 1 && g.champ === deuxiemeChamp;
+        payload[g.champ] = estDeuxiemeGroupe && !values.secondGroupe ? {} : (values.notes[g.champ] ?? {});
     });
 
     if (config.educationPhysique === 'simple') {
@@ -117,26 +135,10 @@ function buildPayload(config: SerieConfig, values: FormValues) {
     }
 
     if (config.hasEpreuvesOralesControle) {
-        payload.epreuvesOralesControle = (values.controles || []).filter((c: any) => c.matiereChoisie);
+        payload.epreuvesOralesControle = !config.hasDoubleGroupe || values.secondGroupe ? (values.controles || []).filter((c: any) => c.matiereChoisie) : [];
     }
 
     return payload;
-}
-
-function formatDate(iso?: string): string {
-    if (!iso) return '—';
-    try {
-        return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch {
-        return iso;
-    }
-}
-
-function decisionSeverity(decision?: string): 'success' | 'danger' | 'warning' | 'info' {
-    if (decision === 'ADMIS') return 'success';
-    if (decision === 'AJOURNE') return 'danger';
-    if (decision === 'AUTORISE_SECOND_GROUPE' || decision === 'DEUXIEME_SESSION') return 'warning';
-    return 'info';
 }
 
 // -----------------------------------------------------------------------
@@ -147,6 +149,7 @@ function decisionSeverity(decision?: string): 'success' | 'danger' | 'warning' |
 function ReleveForm({
     config,
     detail,
+    prefill,
     editingId,
     saving,
     idPourPdf,
@@ -156,6 +159,7 @@ function ReleveForm({
 }: {
     config: SerieConfig;
     detail: ReleveDetail | null;
+    prefill?: Prefill;
     editingId: string | null;
     saving: boolean;
     idPourPdf: string | null;
@@ -164,7 +168,7 @@ function ReleveForm({
     onDownloadPdf: (id: string, nomPrenom?: string) => void;
 }) {
     const formik = useFormik<FormValues>({
-        initialValues: buildInitialValues(config, detail),
+        initialValues: buildInitialValues(config, detail, prefill),
         onSubmit: async (values) => {
             await onSubmit(buildPayload(config, values));
         }
@@ -207,38 +211,37 @@ function ReleveForm({
     const enEdition = editingId !== null;
 
     return (
-        <div className="card flex flex-column" style={{ maxHeight: 'calc(100vh - 120px)', position: 'sticky', top: '1rem' }}>
-            <form onSubmit={formik.handleSubmit} className="flex flex-column" style={{ minHeight: 0, flex: '1 1 auto' }}>
-                <div className="flex flex-column gap-3 pr-2" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
-                    {enEdition && (
-                        <div className="flex align-items-center justify-content-between border-round bg-yellow-50 p-2 text-sm">
-                            <span>Modification en cours{formik.values.nomPrenom ? ` — ${formik.values.nomPrenom}` : ''}</span>
-                            <Button type="button" label="Annuler" link size="small" onClick={onCancel} />
-                        </div>
-                    )}
+        <div className="card">
+            <form onSubmit={formik.handleSubmit} className="flex flex-column gap-3">
+                {enEdition && (
+                    <div className="flex align-items-center justify-content-between border-round bg-yellow-50 p-2 text-sm">
+                        <span>Modification en cours{formik.values.nomPrenom ? ` — ${formik.values.nomPrenom}` : ''}</span>
+                        <Button type="button" label="Annuler" link size="small" onClick={onCancel} />
+                    </div>
+                )}
 
-                    <h6 className="mb-1">Identité du candidat</h6>
+                <h6 className="mb-1">Identité du candidat</h6>
                 <div className="grid formgrid p-fluid">
-                    <div className="col-12">
+                    <div className="col-12 lg:col-6">
                         <label className="text-sm">Nom et prénom</label>
                         <InputText name="nomPrenom" value={formik.values.nomPrenom} onChange={formik.handleChange} required />
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">N° de table</label>
                         <InputText name="numeroTable" value={formik.values.numeroTable} onChange={formik.handleChange} />
                     </div>
                     {config.hasAnnee && (
-                        <div className="col-6">
+                        <div className="col-6 md:col-4 lg:col-3">
                             <label className="text-sm">Année</label>
                             <InputNumber value={formik.values.annee} onValueChange={(e) => formik.setFieldValue('annee', e.value)} useGrouping={false} />
                         </div>
                     )}
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">N° jury</label>
                         <InputText name="juryNumero" value={formik.values.juryNumero} onChange={formik.handleChange} />
                     </div>
                     {config.hasSession && (
-                        <div className="col-6">
+                        <div className="col-6 md:col-4 lg:col-3">
                             <label className="text-sm">Session</label>
                             <Dropdown
                                 value={formik.values.session}
@@ -250,37 +253,37 @@ function ReleveForm({
                             />
                         </div>
                     )}
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Date de naissance</label>
                         <input type="date" className="p-inputtext p-component w-full" name="dateNaissance" value={formik.values.dateNaissance} onChange={formik.handleChange} />
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Lieu de naissance</label>
                         <InputText name="lieuNaissance" value={formik.values.lieuNaissance} onChange={formik.handleChange} />
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Etablissement</label>
                         <InputText name="etablissement" value={formik.values.etablissement} onChange={formik.handleChange} />
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Indicatif</label>
                         <InputText name="indicatif" value={formik.values.indicatif} onChange={formik.handleChange} />
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Options</label>
                         <InputText name="options" value={formik.values.options} onChange={formik.handleChange} />
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Nationalité (N)</label>
                         <InputText name="nationalite" value={formik.values.nationalite} onChange={formik.handleChange} />
                     </div>
-                    <div className="col-12">
+                    <div className="col-6 md:col-4 lg:col-3">
                         <label className="text-sm">Nombre de fois (F)</label>
                         <InputText name="nombreDeFois" value={formik.values.nombreDeFois} onChange={formik.handleChange} />
                     </div>
                 </div>
 
-                {config.groupes
+                {(config.hasDoubleGroupe ? config.groupes.slice(0, 1) : config.groupes)
                     .filter((g) => g.matieres.length > 0)
                     .map((g) => (
                         <div key={g.champ}>
@@ -288,7 +291,7 @@ function ReleveForm({
                             <h6 className="mb-2">{g.titre}</h6>
                             <div className="grid formgrid p-fluid">
                                 {g.matieres.map((m) => (
-                                    <div className="col-6" key={m.code}>
+                                    <div className="col-6 md:col-4 lg:col-3" key={m.code}>
                                         <label className="text-sm">{m.label}</label>
                                         <InputNumber
                                             value={formik.values.notes[g.champ]?.[m.code] ?? null}
@@ -302,6 +305,93 @@ function ReleveForm({
                             </div>
                         </div>
                     ))}
+
+                {config.hasDoubleGroupe && (
+                    <div>
+                        <Divider />
+                        <div className="flex align-items-center gap-2 mb-2">
+                            <Checkbox inputId="secondGroupe" checked={formik.values.secondGroupe} onChange={(e) => formik.setFieldValue('secondGroupe', !!e.checked)} />
+                            <label htmlFor="secondGroupe" className="font-bold">
+                                Second groupe
+                            </label>
+                        </div>
+
+                        {formik.values.secondGroupe && (
+                            <div className="flex flex-column gap-3">
+                                {config.groupes
+                                    .slice(1)
+                                    .filter((g) => g.matieres.length > 0)
+                                    .map((g) => (
+                                        <div key={g.champ}>
+                                            <h6 className="mb-2">{g.titre}</h6>
+                                            <div className="grid formgrid p-fluid">
+                                                {g.matieres.map((m) => (
+                                                    <div className="col-6 md:col-4 lg:col-3" key={m.code}>
+                                                        <label className="text-sm">{m.label}</label>
+                                                        <InputNumber
+                                                            value={formik.values.notes[g.champ]?.[m.code] ?? null}
+                                                            onValueChange={(e) => setNote(g.champ, m.code, e.value ?? null)}
+                                                            min={0}
+                                                            max={20}
+                                                            useGrouping={false}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                {config.hasEpreuvesOralesControle && (
+                                    <div>
+                                        <div className="flex align-items-center justify-content-between mb-2">
+                                            <h6 className="m-0">Epreuve orale de contrôle</h6>
+                                            <Button type="button" icon="pi pi-plus" text size="small" onClick={ajouterControle} />
+                                        </div>
+                                        <div className="grid formgrid mb-1">
+                                            <div className="col-12 sm:col-4 lg:col-3">
+                                                <label className="text-sm font-bold">Matière choisie</label>
+                                            </div>
+                                            <div className="col-4 sm:col-2 lg:col-2">
+                                                <label className="text-sm font-bold">Coef</label>
+                                            </div>
+                                            <div className="col-4 sm:col-2 lg:col-2">
+                                                <label className="text-sm font-bold">Rappel des points obtenus</label>
+                                            </div>
+                                            <div className="col-3 sm:col-2 lg:col-2">
+                                                <label className="text-sm font-bold">Note au 2nd groupe</label>
+                                            </div>
+                                            <div className="col-1" />
+                                        </div>
+                                        {(formik.values.controles || []).map((c: any, index: number) => (
+                                            <div key={index} className="grid formgrid p-fluid mb-2 align-items-center">
+                                                <div className="col-12 sm:col-4 lg:col-3">
+                                                    <InputText placeholder="Matière" value={c.matiereChoisie ?? ''} onChange={(e) => setControle(index, { matiereChoisie: e.target.value })} />
+                                                </div>
+                                                <div className="col-4 sm:col-2 lg:col-2">
+                                                    <InputNumber placeholder="Coef" value={c.coefficient ?? null} onValueChange={(e) => setControle(index, { coefficient: e.value })} useGrouping={false} />
+                                                </div>
+                                                <div className="col-4 sm:col-2 lg:col-2">
+                                                    <InputNumber
+                                                        placeholder="Rappel"
+                                                        value={c.rappelPointsObtenus1erGroupe ?? null}
+                                                        onValueChange={(e) => setControle(index, { rappelPointsObtenus1erGroupe: e.value })}
+                                                        useGrouping={false}
+                                                    />
+                                                </div>
+                                                <div className="col-3 sm:col-2 lg:col-2">
+                                                    <InputNumber placeholder="Note" value={c.nouvelleNoteSur20 ?? null} onValueChange={(e) => setControle(index, { nouvelleNoteSur20: e.value })} min={0} max={20} useGrouping={false} />
+                                                </div>
+                                                <div className="col-1">
+                                                    <Button type="button" icon="pi pi-trash" text severity="danger" onClick={() => retirerControle(index)} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {config.educationPhysique === 'simple' && (
                     <div>
@@ -337,18 +427,18 @@ function ReleveForm({
                         </div>
 
                         <p className="text-sm text-color-secondary mb-2">Epreuve artistique (choix unique — une seule note)</p>
-                        <div className="flex flex-column gap-2">
+                        <div className="flex flex-wrap align-items-center gap-4">
                             {TYPES_ARTISTIQUES.map((type) => (
                                 <div key={type} className="flex align-items-center gap-2">
                                     <RadioButton inputId={`artistique-${type}`} checked={formik.values.facultatives.artistique.type === type} onChange={() => setArtistique({ type })} />
-                                    <label htmlFor={`artistique-${type}`} className="text-sm w-7rem">
+                                    <label htmlFor={`artistique-${type}`} className="text-sm">
                                         {LABEL_ARTISTIQUE[type]}
                                     </label>
                                 </div>
                             ))}
                             <div className="flex align-items-center gap-2">
                                 <RadioButton inputId="artistique-aucune" checked={formik.values.facultatives.artistique.type === null} onChange={() => setArtistique({ type: null, note: null })} />
-                                <label htmlFor="artistique-aucune" className="text-sm w-7rem">
+                                <label htmlFor="artistique-aucune" className="text-sm">
                                     Aucune
                                 </label>
                             </div>
@@ -362,55 +452,51 @@ function ReleveForm({
                     </div>
                 )}
 
-                {config.hasEpreuvesOralesControle && (
-                    <div>
-                        <Divider />
-                        <div className="flex align-items-center justify-content-between mb-2">
-                            <h6 className="m-0">Epreuve orale de contrôle</h6>
-                            <Button type="button" icon="pi pi-plus" text size="small" onClick={ajouterControle} />
+                <Divider />
+                <h6 className="mb-2">Délibération</h6>
+                {config.hasDoubleGroupe ? (
+                    <div className="grid formgrid p-fluid">
+                        <div className="col-6 md:col-4">
+                            <label className="text-sm">Lieu de délibération</label>
+                            <InputText name="lieuDeliberation" value={formik.values.lieuDeliberation} onChange={formik.handleChange} />
                         </div>
-                        {(formik.values.controles || []).map((c: any, index: number) => (
-                            <div key={index} className="grid formgrid p-fluid mb-2 align-items-center">
-                                <div className="col-5">
-                                    <InputText placeholder="Matière" value={c.matiereChoisie ?? ''} onChange={(e) => setControle(index, { matiereChoisie: e.target.value })} />
-                                </div>
-                                <div className="col-2">
-                                    <InputNumber placeholder="Coef" value={c.coefficient ?? null} onValueChange={(e) => setControle(index, { coefficient: e.value })} useGrouping={false} />
-                                </div>
-                                <div className="col-2">
-                                    <InputNumber placeholder="Rappel" value={c.rappelPointsObtenus1erGroupe ?? null} onValueChange={(e) => setControle(index, { rappelPointsObtenus1erGroupe: e.value })} useGrouping={false} />
-                                </div>
-                                <div className="col-2">
-                                    <InputNumber placeholder="Note" value={c.nouvelleNoteSur20 ?? null} onValueChange={(e) => setControle(index, { nouvelleNoteSur20: e.value })} min={0} max={20} useGrouping={false} />
-                                </div>
-                                <div className="col-1">
-                                    <Button type="button" icon="pi pi-trash" text severity="danger" onClick={() => retirerControle(index)} />
-                                </div>
+                        <div className="col-6 md:col-4">
+                            <label className="text-sm">Date de délibération — 1er groupe</label>
+                            <input
+                                type="date"
+                                className="p-inputtext p-component w-full"
+                                name="dateDeliberationPremierGroupe"
+                                value={formik.values.dateDeliberationPremierGroupe}
+                                onChange={formik.handleChange}
+                            />
+                        </div>
+                        {formik.values.secondGroupe && (
+                            <div className="col-6 md:col-4">
+                                <label className="text-sm">Date de délibération — 2ème groupe</label>
+                                <input
+                                    type="date"
+                                    className="p-inputtext p-component w-full"
+                                    name="dateDeliberationDeuxiemeGroupe"
+                                    value={formik.values.dateDeliberationDeuxiemeGroupe}
+                                    onChange={formik.handleChange}
+                                />
                             </div>
-                        ))}
+                        )}
                     </div>
+                ) : (
+                <div className="grid formgrid p-fluid">
+                    <div className="col-6 md:col-4">
+                        <label className="text-sm">Lieu de délibération</label>
+                        <InputText name="lieuDeliberation" value={formik.values.lieuDeliberation} onChange={formik.handleChange} />
+                    </div>
+                    <div className="col-6 md:col-4">
+                        <label className="text-sm">Date de délibération</label>
+                        <input type="date" className="p-inputtext p-component w-full" name="dateDeliberation" value={formik.values.dateDeliberation} onChange={formik.handleChange} />
+                    </div>
+                </div>
                 )}
 
-                <Divider />
-                <h6 className="mb-2">Délivrance</h6>
-                <div className="grid formgrid p-fluid">
-                    <div className="col-6">
-                        <label className="text-sm">Lieu de délivrance</label>
-                        <InputText name="lieuDelivrance" value={formik.values.lieuDelivrance} onChange={formik.handleChange} />
-                    </div>
-                    <div className="col-6">
-                        <label className="text-sm">Date de délivrance</label>
-                        <input type="date" className="p-inputtext p-component w-full" name="dateDelivrance" value={formik.values.dateDelivrance} onChange={formik.handleChange} />
-                    </div>
-                    <div className="col-12">
-                        <label className="text-sm">Président du jury</label>
-                        <InputText name="presidentJury" value={formik.values.presidentJury} onChange={formik.handleChange} />
-                    </div>
-                </div>
-
-                </div>
-
-                <div className="flex align-items-center gap-2 pt-3 mt-2" style={{ borderTop: '1px solid var(--surface-border)', flex: '0 0 auto' }}>
+                <div className="flex align-items-center gap-2 pt-3 mt-2" style={{ borderTop: '1px solid var(--surface-border)' }}>
                     <Button type="submit" label={enEdition ? 'Enregistrer les modifications' : 'Créer le relevé'} icon="pi pi-save" loading={saving} />
                     {idPourPdf && <Button type="button" label="Télécharger le PDF" icon="pi pi-file-pdf" outlined onClick={() => onDownloadPdf(idPourPdf, formik.values.nomPrenom)} />}
                 </div>
@@ -426,46 +512,26 @@ export default function SeriePage() {
     const api = useMemo(() => (config ? createReleveApi(config.basePath) : null), [config]);
     const toast = useRef<Toast>(null);
 
+    const searchParams = useSearchParams();
+    const prefill = useMemo(() => {
+        const numeroTable = searchParams.get('numeroTable') || undefined;
+        const anneeStr = searchParams.get('annee');
+        const annee = anneeStr ? Number(anneeStr) : undefined;
+        const nom = searchParams.get('nom') || undefined;
+        const prenom = searchParams.get('prenom') || undefined;
+        const nomPrenom = [prenom, nom].filter(Boolean).join(' ') || undefined;
+        const dateNaissance = searchParams.get('dateNaissance') || undefined;
+        const lieuNaissance = searchParams.get('lieuNaissance') || undefined;
+        return numeroTable || annee || nomPrenom || dateNaissance || lieuNaissance
+            ? { numeroTable, annee, nomPrenom, dateNaissance, lieuNaissance }
+            : undefined;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingDetail, setEditingDetail] = useState<ReleveDetail | null>(null);
     const [dernierId, setDernierId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-
-    const [pageData, setPageData] = useState<PageSpring<ReleveResume> | null>(null);
-    const [pageIndex, setPageIndex] = useState(0);
-    const [pageLoading, setPageLoading] = useState(false);
-    const [searchNumeroTable, setSearchNumeroTable] = useState('');
-    const [searchAnnee, setSearchAnnee] = useState<number | null>(null);
-    const [filtres, setFiltres] = useState<{ numeroTable?: string; annee?: number }>({});
-
-    const chargerListe = useCallback(
-        (page: number) => {
-            if (!api) return;
-            setPageLoading(true);
-            api.lister({ page, size: TAILLE_PAGE, sort: 'desc', numeroTable: filtres.numeroTable, annee: filtres.annee })
-                .then(setPageData)
-                .catch((e: any) => toast.current?.show({ severity: 'error', summary: 'Office du Bac', detail: e?.message ?? 'Erreur de chargement', life: 4000 }))
-                .finally(() => setPageLoading(false));
-        },
-        [api, filtres]
-    );
-
-    useEffect(() => {
-        chargerListe(pageIndex);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pageIndex, filtres, api]);
-
-    function lancerRecherche() {
-        setFiltres({ numeroTable: searchNumeroTable || undefined, annee: searchAnnee || undefined });
-        setPageIndex(0);
-    }
-
-    function reinitialiserRecherche() {
-        setSearchNumeroTable('');
-        setSearchAnnee(null);
-        setFiltres({});
-        setPageIndex(0);
-    }
 
     function nouveauReleve() {
         setEditingId(null);
@@ -474,7 +540,7 @@ export default function SeriePage() {
     }
 
     async function modifierReleve(id: string) {
-        if (!api || !config) return;
+        if (!api) return;
         try {
             const detail = await api.obtenir(id);
             setEditingDetail(detail);
@@ -484,6 +550,12 @@ export default function SeriePage() {
             toast.current?.show({ severity: 'error', summary: 'Office du Bac', detail: e?.message ?? 'Relevé introuvable', life: 4000 });
         }
     }
+
+    useEffect(() => {
+        const editerId = searchParams.get('editerId');
+        if (editerId) modifierReleve(editerId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [api]);
 
     async function telechargerPdf(id: string, nomPrenom?: string) {
         if (!api) return;
@@ -501,8 +573,6 @@ export default function SeriePage() {
             const releve = editingId ? await api.mettreAJour(editingId, payload as any) : await api.creer(payload as any);
             setDernierId(releve.id);
             toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: editingId ? 'Relevé mis à jour' : 'Relevé créé', life: 3000 });
-            chargerListe(0);
-            setPageIndex(0);
         } catch (e: any) {
             toast.current?.show({ severity: 'error', summary: 'Office du Bac', detail: e?.message ?? 'Erreur lors de l’enregistrement', life: 4000 });
         } finally {
@@ -523,9 +593,6 @@ export default function SeriePage() {
         );
     }
 
-    const idPourPdf = editingId ?? dernierId;
-    const totalPages = pageData?.totalPages ?? 0;
-
     return (
         <ProtectedRoute allowedRoles={['ADMIN']}>
             <Toast ref={toast} />
@@ -542,80 +609,19 @@ export default function SeriePage() {
                     </div>
                 </div>
 
-                {/* ---------------- Formulaire ---------------- */}
-                <div className="col-12 lg:col-4">
+                <div className="col-12">
                     <ReleveForm
                         key={editingId ?? 'nouveau'}
                         config={config}
                         detail={editingId ? editingDetail : null}
+                        prefill={prefill}
                         editingId={editingId}
                         saving={saving}
-                        idPourPdf={idPourPdf}
+                        idPourPdf={editingId ?? dernierId}
                         onSubmit={handleFormSubmit}
                         onCancel={nouveauReleve}
                         onDownloadPdf={telechargerPdf}
                     />
-                </div>
-
-                {/* ---------------- Tableau ---------------- */}
-                <div className="col-12 lg:col-8">
-                    <div className="card">
-                        <div className="flex flex-wrap align-items-end gap-2 mb-3">
-                            <div>
-                                <label className="text-sm block mb-1">N° de table</label>
-                                <InputText value={searchNumeroTable} onChange={(e) => setSearchNumeroTable(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && lancerRecherche()} placeholder="Rechercher..." />
-                            </div>
-                            {config.hasAnnee && (
-                                <div>
-                                    <label className="text-sm block mb-1">Année</label>
-                                    <InputNumber value={searchAnnee} onValueChange={(e) => setSearchAnnee(e.value ?? null)} onKeyDown={(e) => e.key === 'Enter' && lancerRecherche()} useGrouping={false} placeholder="Année" />
-                                </div>
-                            )}
-                            <Button label="Rechercher" icon="pi pi-search" size="small" onClick={lancerRecherche} />
-                            <Button label="Réinitialiser" icon="pi pi-times" size="small" text onClick={reinitialiserRecherche} />
-                            {pageData && <span className="text-sm text-color-secondary ml-auto">{pageData.totalElements} relevé(s)</span>}
-                        </div>
-
-                        <DataTable
-                            value={pageData?.content ?? []}
-                            loading={pageLoading}
-                            size="small"
-                            showGridlines
-                            scrollable
-                            className="p-datatable-sm"
-                            emptyMessage="Aucun relevé pour l'instant."
-                            rowClassName={(r: ReleveResume) => (r.id === editingId ? 'bg-blue-50' : '')}
-                        >
-                            <Column field="numeroTable" header="N° table" style={{ minWidth: '7rem' }} />
-                            <Column field="nomPrenom" header="Candidat" style={{ minWidth: '12rem' }} />
-                            <Column field="juryNumero" header="Jury" style={{ minWidth: '6rem' }} />
-                            {config.hasAnnee && <Column field="annee" header="Année" style={{ minWidth: '6rem' }} />}
-                            <Column header="Total" body={(r: ReleveResume) => r.totalDefinitif ?? r.totalGeneral ?? '—'} style={{ minWidth: '6rem' }} />
-                            <Column header="Décision" body={(r: ReleveResume) => (r.decision ? <Tag severity={decisionSeverity(r.decision)} value={r.decision.replace(/_/g, ' ')} /> : '—')} style={{ minWidth: '10rem' }} />
-                            {config.hasMention && <Column header="Mention" body={(r: ReleveResume) => (r.mention && r.mention !== 'AUCUNE' ? r.mention.replace(/_/g, ' ') : '—')} style={{ minWidth: '8rem' }} />}
-                            <Column header="Créé le" body={(r: ReleveResume) => formatDate(r.createdAt)} style={{ minWidth: '7rem' }} />
-                            <Column
-                                header="Actions"
-                                body={(r: ReleveResume) => (
-                                    <div className="flex gap-2">
-                                        <Button icon="pi pi-pencil" size="small" text onClick={() => modifierReleve(r.id)} />
-                                        <Button icon="pi pi-file-pdf" size="small" text severity="help" onClick={() => telechargerPdf(r.id, r.nomPrenom)} />
-                                    </div>
-                                )}
-                                style={{ minWidth: '7rem' }}
-                            />
-                        </DataTable>
-
-                        {totalPages > 1 && (
-                            <div className="flex align-items-center justify-content-between mt-3">
-                                <Button label="Précédent" size="small" text onClick={() => setPageIndex((p) => Math.max(0, p - 1))} disabled={pageData?.first} />
-                                <span className="text-sm text-color-secondary">
-                                    Page {(pageData?.number ?? 0) + 1} / {totalPages}
-                                </span>
-                                <Button label="Suivant" size="small" text onClick={() => setPageIndex((p) => p + 1)} disabled={pageData?.last} />
-                            </div>
-                        )}
-                    </div>
                 </div>
             </div>
         </ProtectedRoute>
