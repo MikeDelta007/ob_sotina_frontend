@@ -2,12 +2,18 @@ import { create } from 'zustand'
 import axiosInstance from '@/app/api/axiosInstance'
 import type { OrdreMission } from './types'
 
-interface OrdreMissionPayload {
+interface LigneMissionPayload {
   agentId: string
-  destination: string
+  disponibiliteVoiture: boolean
+  voitureId?: string | null
+}
+
+interface OrdreMissionPayload {
+  regionIds: string[]
   motif: string
   dateDebut: string
   dateFin: string
+  lignes: LigneMissionPayload[]
 }
 
 interface MissionStore {

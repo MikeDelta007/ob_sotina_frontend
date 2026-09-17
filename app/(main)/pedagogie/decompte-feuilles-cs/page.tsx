@@ -242,6 +242,7 @@ const CalendarDemo = () => {
         setIsUpdate(true);
         const accesFormatted = {
             ...acces,
+            ...acces.personnel,
             profil: formatProfil(acces.profil).name,
             etablissement: formatEtab(acces.acteur.etablissement)
         };

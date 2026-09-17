@@ -8,7 +8,8 @@ import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Toast } from 'primereact/toast'
 import { useRef } from 'react'
-import { TOUS_ROLES } from '../types'
+import { TOUS_ROLES, fmtTypePersonnel, type Voiture } from '../types'
+import type { Personnel } from '@/app/userContext'
 
 const civiliteOptions = [
   { label: 'M.', value: 'Mr' },
@@ -17,35 +18,21 @@ const civiliteOptions = [
 ]
 
 interface MeUser {
-  firstname: string
-  lastname: string
   login: string
-  matricule?: string
-  division?: { libelle: string } | null
-  fonction?: { libelle: string } | null
-  typePersonnel?: 'PERMANENT' | 'PERSONNEL_APPUI' | null
-  soldeConges?: number | null
-  phone?: string
-  email?: string
-  civilite?: string
-  bank?: string
-  code_bank?: string
-  code_agc?: string
-  num_compte?: string
-  key_rib?: string
-  matricule_voiture?: string
+  personnel: Personnel
 }
 
 function MonProfilContent() {
   const toast = useRef<Toast>(null)
   const [me, setMe] = useState<MeUser | null>(null)
+  const [voitures, setVoitures] = useState<Voiture[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     phone: '', email: '', civilite: null as string | null,
-    bank: '', code_bank: '', code_agc: '', num_compte: '', key_rib: '', matricule_voiture: '',
+    bank: '', code_bank: '', code_agc: '', num_compte: '', key_rib: '', voiture: null as Voiture | null,
   })
 
   const load = () => {
@@ -53,23 +40,27 @@ function MonProfilContent() {
     axiosInstance.get('profile/me')
       .then(({ data }) => {
         setMe(data)
+        const p = data.personnel ?? {}
         setForm({
-          phone: data.phone ?? '',
-          email: data.email ?? '',
-          civilite: data.civilite ?? null,
-          bank: data.bank ?? '',
-          code_bank: data.code_bank ?? '',
-          code_agc: data.code_agc ?? '',
-          num_compte: data.num_compte ?? '',
-          key_rib: data.key_rib ?? '',
-          matricule_voiture: data.matricule_voiture ?? '',
+          phone: p.phone ?? '',
+          email: p.email ?? '',
+          civilite: p.civilite ?? null,
+          bank: p.bank ?? '',
+          code_bank: p.code_bank ?? '',
+          code_agc: p.code_agc ?? '',
+          num_compte: p.num_compte ?? '',
+          key_rib: p.key_rib ?? '',
+          voiture: p.voiture ?? null,
         })
       })
       .catch(() => setError('Erreur chargement de votre profil'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    axiosInstance.get('personnel/voitures').then(({ data }) => setVoitures(data)).catch(() => {})
+  }, [])
 
   const save = async () => {
     setSaving(true)
@@ -89,6 +80,8 @@ function MonProfilContent() {
 
   if (loading || !me) return <div className="card">Chargement…</div>
 
+  const p = me.personnel
+
   return (
     <div className="card">
       <Toast ref={toast} />
@@ -100,31 +93,36 @@ function MonProfilContent() {
       <div className="grid formgrid mb-3">
         <div className="field col-3">
           <label className="block text-sm text-color-secondary mb-1">Nom complet</label>
-          <div className="font-medium">{me.firstname} {me.lastname}</div>
+          <div className="font-medium">{p.firstname} {p.lastname}</div>
         </div>
         <div className="field col-3">
           <label className="block text-sm text-color-secondary mb-1">Matricule</label>
-          <div className="font-medium">{me.matricule || '—'}</div>
+          <div className="font-medium">{p.matricule || '—'}</div>
         </div>
         <div className="field col-3">
           <label className="block text-sm text-color-secondary mb-1">Division</label>
-          <div className="font-medium">{me.division?.libelle || '—'}</div>
+          <div className="font-medium">{p.division?.libelle || '—'}</div>
         </div>
         <div className="field col-3">
           <label className="block text-sm text-color-secondary mb-1">Fonction</label>
-          <div className="font-medium">{me.fonction?.libelle || '—'}</div>
+          <div className="font-medium">{p.fonction?.libelle || '—'}</div>
         </div>
       </div>
 
-      {me.typePersonnel && (
+      {p.typePersonnel && (
         <div className="grid formgrid mb-3">
           <div className="field col-3">
             <label className="block text-sm text-color-secondary mb-1">Type de personnel</label>
-            <div className="font-medium">{me.typePersonnel === 'PERMANENT' ? 'Permanent' : "Personnel d'appui"}</div>
+            <div className="font-medium">{p.typePersonnel ? fmtTypePersonnel(p.typePersonnel) : '—'}</div>
           </div>
           <div className="field col-3">
-            <label className="block text-sm text-color-secondary mb-1">Solde de congés restant</label>
-            <div className="font-medium">{me.soldeConges ?? '—'} jour(s)</div>
+            <label className="block text-sm text-color-secondary mb-1">Solde de congés disponible</label>
+            <div className="font-medium">{p.soldeDisponible ?? p.soldeConges ?? '—'} jour(s)</div>
+            {!!p.joursAutorisationCumules && (
+              <small className="text-color-secondary">
+                Dont {p.joursAutorisationCumules} j. d&apos;autorisation à régulariser au prochain congé
+              </small>
+            )}
           </div>
         </div>
       )}
@@ -170,8 +168,10 @@ function MonProfilContent() {
           <InputText value={form.key_rib} onChange={e => setForm({ ...form, key_rib: e.target.value })} className="w-full" />
         </div>
         <div className="field col-4">
-          <label className="block text-sm font-medium mb-1">Matricule véhicule</label>
-          <InputText value={form.matricule_voiture} onChange={e => setForm({ ...form, matricule_voiture: e.target.value })} className="w-full" />
+          <label className="block text-sm font-medium mb-1">Mon véhicule</label>
+          <Dropdown value={form.voiture} onChange={e => setForm({ ...form, voiture: e.value })}
+            options={voitures} optionLabel="immatriculation" showClear
+            placeholder="Aucun véhicule personnel" className="w-full" />
         </div>
       </div>
 

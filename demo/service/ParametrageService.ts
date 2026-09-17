@@ -179,7 +179,34 @@ export interface FonctionDTO {
   actif?: boolean;
 }
 
-export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_APPUI';
+export type ProprietaireVoiture = 'OFFICE' | 'AGENT' | 'EXTERNE';
+
+export interface VoitureDTO {
+  id?: string;
+  immatriculation: string;
+  marque?: string;
+  capacite?: number;
+  actif?: boolean;
+  proprietaireType?: ProprietaireVoiture;
+  proprietaireAgentId?: string | null;
+  proprietairePersonnelId?: string | null;
+}
+
+export interface ChauffeurDTO {
+  id?: string;
+  firstname: string;
+  lastname: string;
+  phone?: string;
+  email?: string;
+  matricule?: string;
+  civilite?: string;
+  division?: DivisionDTO | null;
+  fonction?: FonctionDTO | null;
+  typePersonnel?: TypePersonnel | null;
+  actif?: boolean;
+}
+
+export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_SECURITE' | 'PERSONNEL_APPUI' | 'EXTERNE';
 
 export interface UserDTO {
   firstname: string;
@@ -198,7 +225,7 @@ export interface UserDTO {
   division?: DivisionDTO | null;
   fonction?: FonctionDTO | null;
   code_bank?: string;
-  matricule_voiture?: string;
+  voiture?: VoitureDTO | null;
   code_agc?: string;
   num_compte?: string;
   key_rib?: string;
@@ -993,6 +1020,19 @@ export const ParametrageService = {
       });
   },
 
+  createUserFromPersonnel(dto: { personnelId: string; login: string; password: string; state_account: boolean; profil: ProfilDTO; acteur: ActeurDTO }, is_go_by_smtp: boolean) {
+    return axiosInstance.post('/parametrage/create-user-from-personnel', dto, {
+      params: { send_access_smtp: is_go_by_smtp }
+    })
+      .then(response => response.data)
+      .catch(error => {
+        console.error('Erreur création de compte depuis un agent:', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        throw error;
+      });
+  },
+
   updateUser(idUsr, userDTO) {
     return axiosInstance.put('/parametrage/update-user', userDTO, {
       params: { idUsr: idUsr.current }
@@ -1756,6 +1796,48 @@ export const ParametrageService = {
   },
   deleteFonction(id: string) {
     return axiosInstance.delete(`/personnel/fonctions/${id}`).then(r => r.data);
+  },
+
+  // ── Voitures & Personnels/Chauffeurs (missions) ──
+  getVoitures() {
+    return axiosInstance.get('/personnel/voitures').then(r => r.data);
+  },
+  getAllVoitures() {
+    return axiosInstance.get('/personnel/voitures/all').then(r => r.data);
+  },
+  createVoiture(voiture: VoitureDTO) {
+    return axiosInstance.post('/personnel/voitures', voiture).then(r => r.data);
+  },
+  updateVoiture(id: string, voiture: VoitureDTO) {
+    return axiosInstance.put(`/personnel/voitures/${id}`, voiture).then(r => r.data);
+  },
+  deleteVoiture(id: string) {
+    return axiosInstance.delete(`/personnel/voitures/${id}`).then(r => r.data);
+  },
+
+  getPersonnels() {
+    return axiosInstance.get('/personnel/personnels').then(r => r.data);
+  },
+  getAllPersonnels() {
+    return axiosInstance.get('/personnel/personnels/all').then(r => r.data);
+  },
+  createPersonnel(personnel: ChauffeurDTO) {
+    return axiosInstance.post('/personnel/personnels', personnel).then(r => r.data);
+  },
+  updatePersonnel(id: string, personnel: ChauffeurDTO) {
+    return axiosInstance.put(`/personnel/personnels/${id}`, personnel).then(r => r.data);
+  },
+  deletePersonnel(id: string) {
+    return axiosInstance.delete(`/personnel/personnels/${id}`).then(r => r.data);
+  },
+  importPersonnels(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosInstance.post('/personnel/personnels/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      .then(r => r.data)
+      .catch(error => {
+        throw error.response?.data ?? error;
+      });
   },
 
 

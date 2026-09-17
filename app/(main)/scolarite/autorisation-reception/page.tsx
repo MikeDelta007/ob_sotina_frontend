@@ -234,7 +234,7 @@ const ValidationCandidat = () => {
         
                     try {
                         console.log('PATCH');
-                        const response = await CandidatureService.updateCoupons(id_ev, vignetteAddDTO, user?.firstname, user?.lastname);
+                        const response = await CandidatureService.updateCoupons(id_ev, vignetteAddDTO, user?.personnel?.firstname, user?.personnel?.lastname);
                         console.log('✅ Coupons mis à jour:', response.data);
                         setMessage('Coupons mis à jour avec succès');
                         toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Coupons rajoutés avec succès', life: 4000 });
@@ -256,7 +256,7 @@ const ValidationCandidat = () => {
             console.log(motif);
             try 
             {
-                const response = await CandidatureService.correctionVignettes(id_ev, motif, user?.firstname, user?.lastname);
+                const response = await CandidatureService.correctionVignettes(id_ev, motif, user?.personnel?.firstname, user?.personnel?.lastname);
                 toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Correction effectuée avec succés', life: 4000 });
                 resetForm();
                 setCorrectionDialog(false);

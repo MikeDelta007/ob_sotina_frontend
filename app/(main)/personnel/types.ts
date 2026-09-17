@@ -1,6 +1,6 @@
 // Rôles ayant tous accès aux pages self-service du module personnel (Mon profil, Absences, Missions)
 export const TOUS_ROLES = [
-  'ADMIN', 'PLANIFICATION', 'PEDAGOGIE', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE'
+  'ADMIN', 'PLANIFICATION', 'PEDAGOGIE', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'AGENT'
 ]
 
 export interface Division {
@@ -16,17 +16,69 @@ export interface Fonction {
   actif: boolean
 }
 
-export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_APPUI'
+export type ProprietaireVoiture = 'OFFICE' | 'AGENT' | 'EXTERNE'
 
-export const joursCongesParAn = (t: TypePersonnel) => (t === 'PERMANENT' ? 30 : 10)
+export interface Voiture {
+  id: string
+  immatriculation: string
+  marque?: string
+  capacite: number
+  actif: boolean
+  proprietaireType: ProprietaireVoiture
+  proprietaireAgentId?: string | null
+  proprietaireAgentNom?: string | null
+  proprietairePersonnelId?: string | null
+  proprietairePersonnelNom?: string | null
+}
+
+export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_SECURITE' | 'PERSONNEL_APPUI' | 'EXTERNE'
+
+// Fiche Personnel autonome, sans compte utilisateur (ex : chauffeur, personnel externe importé
+// par Excel). Un "chauffeur" n'est pas un type à part : c'est un Personnel dont la fonction est
+// "Chauffeur".
+export interface Chauffeur {
+  id: string
+  firstname: string
+  lastname: string
+  phone?: string
+  email?: string
+  matricule?: string
+  civilite?: string
+  division?: Division | null
+  fonction?: Fonction | null
+  typePersonnel?: TypePersonnel | null
+  soldeConges?: number | null
+  actif: boolean
+}
+
+export const estChauffeur = (p: Chauffeur) => (p.fonction?.libelle ?? '').trim().toLowerCase() === 'chauffeur'
+
+export const joursCongesParAn = (t: TypePersonnel) => ({
+  PERMANENT: 30,
+  PERSONNEL_SECURITE: 30,
+  PERSONNEL_APPUI: 10,
+  EXTERNE: 0,
+}[t])
+
+export const fmtTypePersonnel = (t: TypePersonnel) => ({
+  PERMANENT: 'Permanent',
+  PERSONNEL_SECURITE: 'Personnel de sécurité',
+  PERSONNEL_APPUI: "Personnel d'appui",
+  EXTERNE: 'Externe',
+}[t])
 
 export type StatutAbsence = 'EN_ATTENTE_CHEF' | 'EN_ATTENTE_CSA' | 'EN_ATTENTE_DIRECTEUR' | 'VALIDEE' | 'REJETEE'
+
+// CONGE : absence planifiée, décompte le solde de congés annuel.
+// AUTORISATION : permission ponctuelle (rdv, urgence...), ne décompte rien.
+export type TypeAbsence = 'CONGE' | 'AUTORISATION'
 
 export interface DemandeAbsence {
   id: string
   demandeurId: string
   demandeurNom: string
   divisionId?: string | null
+  type: TypeAbsence
   nombreJours: number
   dateDebut: string
   dateFin: string
@@ -34,12 +86,16 @@ export interface DemandeAbsence {
   statut: StatutAbsence
 
   validationChef: boolean
+  rejetChef?: boolean
   validateurChef?: string
-  dateValidationChef?: string
+  motifRejetChef?: string
+  dateTraitementChef?: string
 
   validationCsa: boolean
+  rejetCsa?: boolean
   validateurCsa?: string
-  dateValidationCsa?: string
+  motifRejetCsa?: string
+  dateTraitementCsa?: string
 
   validationDirecteur: boolean
   validateurDirecteur?: string
@@ -61,14 +117,22 @@ export const fmtStatutAbsence = (s: StatutAbsence) => ({
   REJETEE: 'Rejetée',
 }[s])
 
+export interface LigneMission {
+  agentId: string
+  agentNom?: string
+  disponibiliteVoiture: boolean
+  voitureId: string
+  voitureImmatriculation?: string
+}
+
 export interface OrdreMission {
   id: string
-  agentId: string
-  agentNom: string
-  destination: string
+  regionIds: string[]
+  regionNoms: string[]
   motif: string
   dateDebut: string
   dateFin: string
+  lignes: LigneMission[]
   creeParId: string
   creeParNom: string
   dateCreation: string

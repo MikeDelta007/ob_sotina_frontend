@@ -5,10 +5,10 @@ import { UserContext } from '@/app/userContext';
 import "primeicons/primeicons.css";
 
 type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE'
-    | 'CHEF_SERVICE' | 'CSA' | 'DIRECTEUR' | 'CHEF_COMPTABLE' | 'AGENT_COMPTABLE';
+    | 'CHEF_SERVICE' | 'CSA' | 'DIRECTEUR' | 'CHEF_COMPTABLE' | 'AGENT_COMPTABLE' | 'AGENT';
 
 const ROLES: Role[] = ['ADMIN', 'PLANIFICATION', 'PEDAGOGIE',
-    'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE'];
+    'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'AGENT'];
 
 const AppMenu = () => {
 
@@ -202,20 +202,27 @@ const AppMenu = () => {
         icon: 'pi pi-user',
         items: [
             { label: 'Mon profil', icon: 'pi pi-fw pi-id-card', to: '/personnel/mon-profil' },
+            { label: 'Demandes de congés', icon: 'pi pi-fw pi-calendar-plus', to: '/personnel/conges' },
             { label: "Autorisation d'absence", icon: 'pi pi-fw pi-calendar-times', to: '/personnel/absences' },
             { label: 'Mes missions', icon: 'pi pi-fw pi-send', to: '/personnel/missions' }
         ]
     });
 
     // =========================
-    // GESTION PERSONNEL (Services & Fonctions)
+    // GESTION PERSONNEL (Divisions, Fonctions, Véhicules, Chauffeurs — un menu par entité)
     // =========================
     if (hasAccess(['ADMIN', 'CSA', 'DIRECTEUR'])) {
         model.push({ separator: true });
         model.push({
+            label: 'GESTION PERSONNEL',
             icon: 'pi pi-sitemap',
             items: [
-                { label: 'Divisions & Fonctions', icon: 'pi pi-fw pi-sitemap', to: '/personnel/gestion-personnel' }
+                { label: 'Personnel', icon: 'pi pi-fw pi-users', to: '/personnel/personnels' },
+                { label: 'Divisions', icon: 'pi pi-fw pi-sitemap', to: '/personnel/divisions' },
+                { label: 'Fonctions', icon: 'pi pi-fw pi-briefcase', to: '/personnel/fonctions' },
+                { label: 'Véhicules', icon: 'pi pi-fw pi-car', to: '/personnel/voitures' },
+                { label: 'Chauffeurs', icon: 'pi pi-fw pi-id-card', to: '/personnel/chauffeurs' },
+                { label: "Motifs d'absence", icon: 'pi pi-fw pi-list', to: '/personnel/motifs-absence' }
             ]
         });
     }

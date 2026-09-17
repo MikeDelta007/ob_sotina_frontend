@@ -15,3 +15,9 @@ $sidebarShadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1p
 @import './_config';
 @import './_responsive';
 @import './_breadcrumb';
+
+// Liste déroulante multi-sélection sans les cases à cocher : l'élément sélectionné
+// est simplement surligné (classe p-highlight déjà posée par PrimeReact).
+.multiselect-sans-checkbox .p-multiselect-checkbox {
+    display: none;
+}

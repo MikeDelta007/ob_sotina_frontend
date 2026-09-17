@@ -150,32 +150,59 @@ export interface Fonction {
   actif: boolean;
 }
 
-export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_APPUI';
+export type TypePersonnel = 'PERMANENT' | 'PERSONNEL_SECURITE' | 'PERSONNEL_APPUI' | 'EXTERNE';
 
-export interface User {
+export type ProprietaireVoiture = 'OFFICE' | 'AGENT' | 'EXTERNE';
+
+export interface Voiture {
+  id: string;
+  immatriculation: string;
+  marque?: string;
+  capacite: number;
+  actif: boolean;
+  proprietaireType: ProprietaireVoiture;
+  proprietaireAgentId?: string | null;
+  proprietaireAgentNom?: string | null;
+  proprietairePersonnelId?: string | null;
+  proprietairePersonnelNom?: string | null;
+}
+
+// Identité + informations personnel/RH, indépendamment de tout compte applicatif.
+// Un User interne embarque son propre Personnel ; un chauffeur externe (sans compte) est un
+// Personnel autonome (voir /personnel/personnels).
+export interface Personnel {
   id: string;
   firstname: string;
   lastname: string;
-  login: string;
-  email: string;
-  state_account: boolean;
-  sessionId : string;
-  profil: Profil;
-  acteur: Acteur; // Tu peux le typer plus tard si tu souhaites gérer les acteurs aussi proprement
-  // Informations personnel/RH
+  phone?: string;
+  email?: string;
   bank?: string;
   matricule?: string;
   civilite?: string;
   division?: Division | null;
   fonction?: Fonction | null;
   code_bank?: string;
-  matricule_voiture?: string;
+  voiture?: Voiture | null;
   code_agc?: string;
   num_compte?: string;
   key_rib?: string;
-  // Congés
   typePersonnel?: TypePersonnel | null;
   soldeConges?: number | null;
+  // Jours d'autorisation d'absence pris depuis le dernier congé validé, pas encore régularisés
+  joursAutorisationCumules?: number | null;
+  // Solde réellement disponible pour un nouveau congé (soldeConges - joursAutorisationCumules), calculé côté backend
+  soldeDisponible?: number | null;
+  actif?: boolean;
+}
+
+export interface User {
+  id: string;
+  login: string;
+  state_account: boolean;
+  sessionId : string;
+  profil: Profil;
+  acteur: Acteur; // Tu peux le typer plus tard si tu souhaites gérer les acteurs aussi proprement
+  personnel: Personnel;
 }
 
 

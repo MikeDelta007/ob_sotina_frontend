@@ -1,12 +1,36 @@
 import { create } from 'zustand'
 import axiosInstance from '@/app/api/axiosInstance'
-import type { Division, Fonction } from './types'
+import type { Division, Fonction, Voiture, Chauffeur, ProprietaireVoiture, TypePersonnel } from './types'
+
+interface VoitureData {
+  immatriculation: string
+  marque?: string
+  actif?: boolean
+  proprietaireType: ProprietaireVoiture
+  proprietaireAgentId?: string | null
+  proprietairePersonnelId?: string | null
+}
+
+interface PersonnelData {
+  firstname: string
+  lastname: string
+  phone?: string
+  email?: string
+  matricule?: string
+  civilite?: string | null
+  division?: Division | null
+  fonction?: Fonction | null
+  typePersonnel?: TypePersonnel | null
+  actif?: boolean
+}
 
 interface PersonnelStore {
   divisions: Division[]
   allDivisions: Division[]
   fonctions: Fonction[]
   allFonctions: Fonction[]
+  allVoitures: Voiture[]
+  allChauffeurs: Chauffeur[]
   loading: boolean
   error: string | null
 
@@ -22,6 +46,17 @@ interface PersonnelStore {
   updateFonction: (id: string, data: { libelle: string; actif: boolean }) => Promise<void>
   deleteFonction: (id: string) => Promise<void>
 
+  fetchAllVoitures: () => Promise<void>
+  createVoiture: (data: VoitureData) => Promise<void>
+  updateVoiture: (id: string, data: VoitureData & { actif: boolean }) => Promise<void>
+  deleteVoiture: (id: string) => Promise<void>
+
+  fetchAllChauffeurs: () => Promise<void>
+  createChauffeur: (data: PersonnelData) => Promise<void>
+  updateChauffeur: (id: string, data: PersonnelData & { actif: boolean }) => Promise<void>
+  deleteChauffeur: (id: string) => Promise<void>
+  importPersonnels: (file: File) => Promise<string>
+
   clearError: () => void
 }
 
@@ -30,6 +65,8 @@ export const usePersonnelStore = create<PersonnelStore>((set, get) => ({
   allDivisions: [],
   fonctions: [],
   allFonctions: [],
+  allVoitures: [],
+  allChauffeurs: [],
   loading: false,
   error: null,
 
@@ -123,6 +160,103 @@ export const usePersonnelStore = create<PersonnelStore>((set, get) => ({
       await Promise.all([get().fetchFonctions(), get().fetchAllFonctions()])
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur désactivation de la fonction' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  fetchAllVoitures: async () => {
+    try {
+      const { data } = await axiosInstance.get('personnel/voitures/all')
+      set({ allVoitures: data })
+    } catch { set({ error: 'Erreur chargement des véhicules' }) }
+  },
+
+  createVoiture: async (data) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.post('personnel/voitures', data)
+      await get().fetchAllVoitures()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur création du véhicule' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  updateVoiture: async (id, data) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.put(`personnel/voitures/${id}`, data)
+      await get().fetchAllVoitures()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur modification du véhicule' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  deleteVoiture: async (id) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.delete(`personnel/voitures/${id}`)
+      await get().fetchAllVoitures()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur désactivation du véhicule' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  fetchAllChauffeurs: async () => {
+    try {
+      const { data } = await axiosInstance.get('personnel/personnels/all')
+      set({ allChauffeurs: data })
+    } catch { set({ error: 'Erreur chargement des chauffeurs' }) }
+  },
+
+  createChauffeur: async (data) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.post('personnel/personnels', data)
+      await get().fetchAllChauffeurs()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur création du chauffeur' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  updateChauffeur: async (id, data) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.put(`personnel/personnels/${id}`, data)
+      await get().fetchAllChauffeurs()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur modification du chauffeur' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  deleteChauffeur: async (id) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.delete(`personnel/personnels/${id}`)
+      await get().fetchAllChauffeurs()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur désactivation du chauffeur' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  importPersonnels: async (file) => {
+    set({ loading: true, error: null })
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data } = await axiosInstance.post('personnel/personnels/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      await get().fetchAllChauffeurs()
+      return data as string
+    } catch (e: any) {
+      const msg = e.response?.data ?? "Erreur lors de l'import du fichier"
+      set({ error: typeof msg === 'string' ? msg : "Erreur lors de l'import du fichier" })
       throw e
     } finally { set({ loading: false }) }
   },

@@ -65,8 +65,9 @@ const Login: React.FC = () => {
                             DIRECTEUR: '/expression-besoin',
                             CHEF_COMPTABLE: '/caisse-avance',
                             AGENT_COMPTABLE: '/caisse-avance',
+                            AGENT: '/personnel/mon-profil',
                         };
-                        window.location.replace(destinationParProfil[response.user.profil.name] ?? '/expression-besoin');
+                        window.location.replace(destinationParProfil[response.user.profil.name] ?? '/personnel/mon-profil');
                     } else {
                         window.location.replace('/');
                     }
