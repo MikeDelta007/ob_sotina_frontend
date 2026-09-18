@@ -24,6 +24,7 @@ interface ExpressionBesoinStore {
   lieesAMoi: ExpressionBesoin[]
   aValider: ExpressionBesoin[]
   validees: ExpressionBesoin[]
+  rejetees: ExpressionBesoin[]
   aTraiter: ExpressionBesoin[]
   traitees: ExpressionBesoin[]
   loading: boolean
@@ -36,6 +37,7 @@ interface ExpressionBesoinStore {
   fetchLieesAMoi:       () => Promise<void>
   fetchAValider:        () => Promise<void>
   fetchValidees:        () => Promise<void>
+  fetchRejetees:        () => Promise<void>
   fetchATraiter:        () => Promise<void>
   fetchTraitees:        () => Promise<void>
   creer:                 (payload: CreerPayload) => Promise<void>
@@ -71,6 +73,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
   lieesAMoi: [],
   aValider: [],
   validees: [],
+  rejetees: [],
   aTraiter: [],
   traitees: [],
   loading: false,
@@ -124,6 +127,15 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       const { data } = await axiosInstance.get('expression-besoin/validees')
       set({ validees: data })
     } catch { set({ error: 'Erreur chargement des expressions validées' }) }
+    finally { set({ loading: false }) }
+  },
+
+  fetchRejetees: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('expression-besoin/rejetees')
+      set({ rejetees: data })
+    } catch { set({ error: 'Erreur chargement des expressions rejetées' }) }
     finally { set({ loading: false }) }
   },
 

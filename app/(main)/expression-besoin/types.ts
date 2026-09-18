@@ -36,6 +36,13 @@ export interface ExpressionBesoin {
   validateurCsaNom?: string
   dateValidationCsa?: string
 
+  // Rejet du CSA : n'interrompt la chaîne que si le Directeur doit aussi se prononcer
+  // (montant > seuil) — sinon il est immédiatement définitif (cf. motifRejet ci-dessous).
+  rejetCsa?: boolean
+  motifRejetCsa?: string
+  rejeteParCsaNom?: string
+  dateRejetCsa?: string
+
   validationDirecteur: boolean
   validateurDirecteur?: string
   validateurDirecteurNom?: string
@@ -89,30 +96,31 @@ export interface EtapeTrace {
   motif?: string
 }
 
+// Comme pour les congés/autorisations : un rejet du CSA n'arrête pas la chaîne si le
+// Directeur doit aussi se prononcer — elle continue jusqu'à lui, seul décisionnaire final
+// dans ce cas. La trace affiche donc chaque étape indépendamment (CSA puis Directeur),
+// plutôt que de s'arrêter au premier rejet rencontré.
 export const tracesEb = (eb: ExpressionBesoin): EtapeTrace[] => {
   const etapes: EtapeTrace[] = [
     { role: 'Créateur', nom: eb.creeParNom ?? eb.creePar, date: eb.dateCreation, statut: 'valide' },
   ]
 
-  if (eb.statut === 'REJETEE' && eb.rejeteParNom) {
-    etapes.push({ role: 'Rejet', nom: eb.rejeteParNom, date: eb.dateRejet, statut: 'rejete', motif: eb.motifRejet })
-    return etapes
+  if (eb.validationCsa) {
+    etapes.push({ role: 'CSA', nom: eb.validateurCsaNom, date: eb.dateValidationCsa, statut: 'valide' })
+  } else if (eb.rejetCsa) {
+    etapes.push({ role: 'CSA', nom: eb.rejeteParCsaNom, date: eb.dateRejetCsa, statut: 'rejete', motif: eb.motifRejetCsa })
+  } else {
+    etapes.push({ role: 'CSA', statut: 'attente' })
   }
 
-  etapes.push({
-    role: 'CSA',
-    nom: eb.validateurCsaNom,
-    date: eb.dateValidationCsa,
-    statut: eb.validationCsa ? 'valide' : 'attente',
-  })
-
   if (directeurRequis(eb.montantInitial)) {
-    etapes.push({
-      role: 'Directeur',
-      nom: eb.validateurDirecteurNom,
-      date: eb.dateValidationDirecteur,
-      statut: eb.validationDirecteur ? 'valide' : 'attente',
-    })
+    if (eb.validationDirecteur) {
+      etapes.push({ role: 'Directeur', nom: eb.validateurDirecteurNom, date: eb.dateValidationDirecteur, statut: 'valide' })
+    } else if (eb.statut === 'REJETEE') {
+      etapes.push({ role: 'Directeur', nom: eb.rejeteParNom, date: eb.dateRejet, statut: 'rejete', motif: eb.motifRejet })
+    } else {
+      etapes.push({ role: 'Directeur', statut: 'attente' })
+    }
   }
 
   if (eb.statut === 'TRAITEE' && eb.traiteParNom) {

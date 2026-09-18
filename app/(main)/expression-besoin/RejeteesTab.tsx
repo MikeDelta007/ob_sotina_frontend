@@ -7,37 +7,18 @@ import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import TraceButton from './TraceButton'
-import { fmt, directeurRequis, designationEb, type ExpressionBesoin, type StatutEB } from './types'
+import { fmt, designationEb, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
-const STATUT_SEVERITE: Record<StatutEB, 'warning' | 'success' | 'danger' | 'info'> = {
-  EN_ATTENTE: 'warning', VALIDEE: 'info', REJETEE: 'danger', TRAITEE: 'success',
-}
-const STATUT_LABEL: Record<StatutEB, string> = {
-  EN_ATTENTE: 'En attente', VALIDEE: 'Validée', REJETEE: 'Rejetée', TRAITEE: 'Traitée',
-}
-
-export default function ValideesTab() {
-  const { validees, fetchValidees } = useExpressionBesoinStore()
+export default function RejeteesTab() {
+  const { rejetees, fetchRejetees } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
 
-  useEffect(() => { fetchValidees() }, [])
+  useEffect(() => { fetchRejetees() }, [])
 
   const dateBody = (eb: ExpressionBesoin) => (
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
-  )
-
-  const statutBody = (eb: ExpressionBesoin) => <Tag severity={STATUT_SEVERITE[eb.statut]} value={STATUT_LABEL[eb.statut]} />
-
-  const validationsBody = (eb: ExpressionBesoin) => (
-    <div className="flex gap-1 flex-wrap justify-content-center">
-      <Tag severity={eb.validationCsa ? 'success' : eb.rejetCsa ? 'danger' : 'warning'}
-        value={`CSA ${eb.validationCsa ? '✓' : eb.rejetCsa ? '✗ rejeté' : '…'}`} />
-      {directeurRequis(eb.montantInitial) && (
-        <Tag severity={eb.validationDirecteur ? 'success' : 'warning'} value={`Directeur ${eb.validationDirecteur ? '✓' : '…'}`} />
-      )}
-    </div>
   )
 
   const pieceBody = (eb: ExpressionBesoin) => {
@@ -54,12 +35,12 @@ export default function ValideesTab() {
   return (
     <div>
       <p className="text-color-secondary mb-3">
-        {validees.length} expression(s) validée(s)
+        {rejetees.length} expression(s) rejetée(s)
       </p>
 
-      <DataTable value={validees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune expression de besoin validée" responsiveLayout="scroll"
-        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar']}
+      <DataTable value={rejetees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
+        emptyMessage="Aucune expression de besoin rejetée" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar', 'motifRejet', 'rejeteParNom']}
         header={
           <div className="flex justify-content-end">
             <span className="p-input-icon-left">
@@ -73,9 +54,9 @@ export default function ValideesTab() {
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
+        <Column header="Motif de rejet" body={(eb: ExpressionBesoin) => eb.motifRejet || '—'} />
+        <Column header="Rejeté par" body={(eb: ExpressionBesoin) => eb.rejeteParNom || '—'} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
-        <Column header="Validations" body={validationsBody} align="center" alignHeader="center" />
-        <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
         <Column header="Traçabilité" body={(eb: ExpressionBesoin) => <TraceButton eb={eb} />} align="center" alignHeader="center" />
       </DataTable>
     </div>
