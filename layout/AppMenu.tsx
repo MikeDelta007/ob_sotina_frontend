@@ -177,7 +177,7 @@ const AppMenu = () => {
     // =========================
     // EXPRESSION DE BESOIN
     // =========================
-    if (hasAccess(['CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'ADMIN'])) {
+    if (hasAccess(['AGENT', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'ADMIN'])) {
 
         model.push({
             label: 'EXPRESSION DE BESOIN',

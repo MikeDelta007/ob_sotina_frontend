@@ -3,6 +3,7 @@ import { useContext } from 'react'
 import { TabPanel, TabView } from 'primereact/tabview'
 import { UserContext } from '@/app/userContext'
 import MesExpressionsTab from './MesExpressionsTab'
+import MesExpressionsLieesTab from './MesExpressionsLieesTab'
 import AValiderTab from './AValiderTab'
 import ValideesTab from './ValideesTab'
 import ATraiterTab from './ATraiterTab'
@@ -15,11 +16,15 @@ export default function ExpressionBesoinPage() {
   const peutTraiter = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE'
   const peutValider = role === 'CSA' || role === 'DIRECTEUR'
   const peutSoumettre = role === 'CHEF_SERVICE' || peutTraiter || peutValider
+  // Un agent simple ne crée jamais d'expression de besoin : il consulte, en lecture seule,
+  // celles où son chef l'a déclaré bénéficiaire.
+  const estAgentSimple = role === 'AGENT'
   // CSA/Directeur voient ce que traite la comptabilité, mais en lecture seule
   const peutVoirTraitement = peutTraiter || peutValider
 
   const onglets = [
     peutSoumettre && { key: 'mes', header: 'Mes expressions de besoin', leftIcon: 'pi pi-file-edit mr-2', content: <MesExpressionsTab /> },
+    estAgentSimple && { key: 'liees', header: 'Mes expressions de besoin', leftIcon: 'pi pi-eye mr-2', content: <MesExpressionsLieesTab /> },
     peutValider && { key: 'avalider', header: 'À valider', leftIcon: 'pi pi-check-square mr-2', content: <AValiderTab /> },
     peutValider && { key: 'validees', header: 'Validées', leftIcon: 'pi pi-verified mr-2', content: <ValideesTab /> },
     peutVoirTraitement && { key: 'atraiter', header: 'À traiter', leftIcon: 'pi pi-wallet mr-2', content: <ATraiterTab lectureSeule={!peutTraiter} /> },

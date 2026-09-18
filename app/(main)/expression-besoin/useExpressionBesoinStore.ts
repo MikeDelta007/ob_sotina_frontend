@@ -21,6 +21,7 @@ interface ExpressionBesoinStore {
   motifs: Motif[]
   mesAgents: AgentDivision[]
   mesExpressions: ExpressionBesoin[]
+  lieesAMoi: ExpressionBesoin[]
   aValider: ExpressionBesoin[]
   validees: ExpressionBesoin[]
   aTraiter: ExpressionBesoin[]
@@ -32,6 +33,7 @@ interface ExpressionBesoinStore {
   fetchMotifs:          () => Promise<void>
   fetchMesAgents:       () => Promise<void>
   fetchMesExpressions:  () => Promise<void>
+  fetchLieesAMoi:       () => Promise<void>
   fetchAValider:        () => Promise<void>
   fetchValidees:        () => Promise<void>
   fetchATraiter:        () => Promise<void>
@@ -66,6 +68,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
   motifs: [],
   mesAgents: [],
   mesExpressions: [],
+  lieesAMoi: [],
   aValider: [],
   validees: [],
   aTraiter: [],
@@ -94,6 +97,15 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       const { data } = await axiosInstance.get('expression-besoin/mine')
       set({ mesExpressions: data })
     } catch { set({ error: 'Erreur chargement de vos expressions de besoin' }) }
+    finally { set({ loading: false }) }
+  },
+
+  fetchLieesAMoi: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('expression-besoin/liees-a-moi')
+      set({ lieesAMoi: data })
+    } catch { set({ error: 'Erreur chargement des expressions vous concernant' }) }
     finally { set({ loading: false }) }
   },
 
