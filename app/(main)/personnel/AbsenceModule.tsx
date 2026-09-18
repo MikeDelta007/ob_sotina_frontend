@@ -29,6 +29,31 @@ const statutSeverity: Record<StatutAbsence, 'warning' | 'success' | 'danger' | '
 
 const toIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
+// Détail complet de la chaîne de validation, affiché directement dans les listes (pas
+// seulement dans un dialogue) : qui a validé ou rejeté à chaque étape, et pourquoi en cas de
+// rejet — visible par toutes les parties concernées (agent, chef, CSA, directeur). Un rejet du
+// chef ou du CSA n'arrête pas la chaîne — il reste visible ici comme avis, la décision finale
+// appartient au Directeur.
+const etapeLigne = (label: string, valide?: boolean, rejete?: boolean, par?: string, motif?: string) => {
+  if (!valide && !rejete) return null
+  return (
+    <div key={label} className="text-xs">
+      <span className="font-medium">{label}</span> : {valide
+        ? <span className="text-green-600 font-medium">Validé</span>
+        : <span className="text-red-600 font-medium">Rejeté</span>}
+      {par ? ` (${par})` : ''}
+      {rejete && motif && <div className="text-red-500">Motif : {motif}</div>}
+    </div>
+  )
+}
+const etapesBody = (d: DemandeAbsence) => (
+  <div className="flex flex-column gap-1">
+    {etapeLigne('Chef', d.validationChef, d.rejetChef, d.validateurChef, d.motifRejetChef)}
+    {etapeLigne('CSA', d.validationCsa, d.rejetCsa, d.validateurCsa, d.motifRejetCsa)}
+    {etapeLigne('Directeur', d.validationDirecteur, !d.validationDirecteur && d.statut === 'REJETEE', d.validateurDirecteur ?? d.rejetePar, d.motifRejet)}
+  </div>
+)
+
 function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const toast = useRef<Toast>(null)
   const { mesDemandes, loading, error, fetchMesDemandes, creer, clearError } = useAbsenceStore()
@@ -101,7 +126,7 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
 
       <DataTable value={mesDemandes} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage={type === 'CONGE' ? 'Aucune demande de congés' : "Aucune demande d'autorisation d'absence"} responsiveLayout="scroll"
-        globalFilter={globalFilter} globalFilterFields={['motif', 'motifRejet', 'statut']}
+        globalFilter={globalFilter} globalFilterFields={['motif', 'motifRejet', 'motifRejetChef', 'motifRejetCsa', 'statut']}
         header={
           <div className="flex justify-content-end">
             <span className="p-input-icon-left">
@@ -114,7 +139,7 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
         <Column header="Jours" field="nombreJours" />
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
         <Column header="Statut" body={statutBody} />
-        <Column header="Motif de rejet" field="motifRejet" body={(d: DemandeAbsence) => d.motifRejet || '—'} />
+        <Column header="Étapes" body={etapesBody} />
       </DataTable>
 
       <Dialog header={type === 'CONGE' ? 'Nouvelle demande de congés' : "Nouvelle demande d'autorisation d'absence"} visible={dialogOpen}
@@ -196,26 +221,6 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
   )
   const statutBody = (d: DemandeAbsence) => <Tag severity={statutSeverity[d.statut]} value={fmtStatutAbsence(d.statut)} />
 
-  // Un rejet du chef ou du CSA n'arrête plus la chaîne — il reste visible ici comme avis, la
-  // décision finale appartient au Directeur.
-  const etapeLigne = (label: string, valide?: boolean, rejete?: boolean, par?: string) => {
-    if (!valide && !rejete) return null
-    return (
-      <div key={label} className="text-xs">
-        {label} : {valide
-          ? <span className="text-green-600 font-medium">Validé</span>
-          : <span className="text-red-600 font-medium">Rejeté</span>}
-        {par ? ` (${par})` : ''}
-      </div>
-    )
-  }
-  const etapesBody = (d: DemandeAbsence) => (
-    <div className="flex flex-column gap-1">
-      {etapeLigne('Chef', d.validationChef, d.rejetChef, d.validateurChef)}
-      {etapeLigne('CSA', d.validationCsa, d.rejetCsa, d.validateurCsa)}
-    </div>
-  )
-
   // Le chef ne peut agir que sur les demandes encore à l'étape chef (vue "Demandes de mes
   // agents", qui montre tout l'historique) ; CSA/Directeur voient déjà une liste pré-filtrée
   // sur leur propre étape (aValider), donc toujours actionnable.
@@ -237,7 +242,7 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
       <Toast ref={toast} />
       <DataTable value={demandes} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage={pourAgentsDuChef ? "Aucune demande de vos agents" : "Aucune demande en attente de votre validation"} responsiveLayout="scroll"
-        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut']}
+        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut', 'motifRejetChef', 'motifRejetCsa', 'motifRejet']}
         header={
           <div className="flex justify-content-end">
             <span className="p-input-icon-left">
@@ -298,24 +303,6 @@ function DejaTraiteesTab({ type, peutTelecharger }: { type: TypeAbsence; peutTel
     <span>{new Date(d.dateDebut).toLocaleDateString('fr-FR')} → {new Date(d.dateFin).toLocaleDateString('fr-FR')}</span>
   )
   const statutBody = (d: DemandeAbsence) => <Tag severity={statutSeverity[d.statut]} value={fmtStatutAbsence(d.statut)} />
-  const etapeLigne = (label: string, valide?: boolean, rejete?: boolean, par?: string) => {
-    if (!valide && !rejete) return null
-    return (
-      <div key={label} className="text-xs">
-        {label} : {valide
-          ? <span className="text-green-600 font-medium">Validé</span>
-          : <span className="text-red-600 font-medium">Rejeté</span>}
-        {par ? ` (${par})` : ''}
-      </div>
-    )
-  }
-  const etapesBody = (d: DemandeAbsence) => (
-    <div className="flex flex-column gap-1">
-      {etapeLigne('Chef', d.validationChef, d.rejetChef, d.validateurChef)}
-      {etapeLigne('CSA', d.validationCsa, d.rejetCsa, d.validateurCsa)}
-      {etapeLigne('Directeur', d.validationDirecteur, !d.validationDirecteur && d.statut === 'REJETEE', d.validateurDirecteur ?? d.rejetePar)}
-    </div>
-  )
   const actionsBody = (d: DemandeAbsence) => (
     peutTelecharger && type === 'AUTORISATION' && d.statut === 'VALIDEE' && (
       <Button label="Télécharger" icon="pi pi-download" size="small"
@@ -328,7 +315,7 @@ function DejaTraiteesTab({ type, peutTelecharger }: { type: TypeAbsence; peutTel
       <Toast ref={toast} />
       <DataTable value={demandesTraitees} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune demande déjà traitée" responsiveLayout="scroll"
-        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut']}
+        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut', 'motifRejetChef', 'motifRejetCsa', 'motifRejet']}
         header={
           <div className="flex justify-content-end">
             <span className="p-input-icon-left">
