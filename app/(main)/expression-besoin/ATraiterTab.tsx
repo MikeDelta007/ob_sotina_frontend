@@ -6,6 +6,7 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
 import { InputNumber } from 'primereact/inputnumber'
+import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
@@ -21,6 +22,7 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
   const [selected, setSelected] = useState<ExpressionBesoin | null>(null)
   const [montantReel, setMontantReel] = useState<number | null>(null)
   const [err, setErr] = useState('')
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchATraiter() }, [])
 
@@ -72,7 +74,16 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
       </p>
 
       <DataTable value={aTraiter} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune expression de besoin à traiter" responsiveLayout="scroll">
+        emptyMessage="Aucune expression de besoin à traiter" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />

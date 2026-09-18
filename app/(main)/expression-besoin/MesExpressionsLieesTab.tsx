@@ -1,8 +1,9 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
+import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import TraceButton from './TraceButton'
@@ -21,6 +22,7 @@ const STATUT_LABEL: Record<StatutEB, string> = {
 // déclaré bénéficiaire par son chef de service (il n'en crée ni ne les modifie jamais).
 export default function MesExpressionsLieesTab() {
   const { lieesAMoi, loading, fetchLieesAMoi } = useExpressionBesoinStore()
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchLieesAMoi() }, [])
 
@@ -47,7 +49,16 @@ export default function MesExpressionsLieesTab() {
       </p>
 
       <DataTable value={lieesAMoi} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        loading={loading} emptyMessage="Aucune expression de besoin ne vous concerne pour le moment" responsiveLayout="scroll">
+        loading={loading} emptyMessage="Aucune expression de besoin ne vous concerne pour le moment" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'creeParNom', 'creePar', 'motifRejet', 'statut']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />

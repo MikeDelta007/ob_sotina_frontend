@@ -16,6 +16,7 @@ import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
 import { GrView } from 'react-icons/gr';
 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -342,7 +343,16 @@ const UploadPdf = () => {
                             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                             currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
                             globalFilter={globalFilter}
+                            globalFilterFields={['session', 'id']}
                             emptyMessage="Aucun versement n'a été effectué"
+                            header={
+                                <div className="flex justify-content-end">
+                                    <span className="p-input-icon-left">
+                                        <i className="pi pi-search" />
+                                        <InputText value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+                                    </span>
+                                </div>
+                            }
                             responsiveLayout="scroll"
                         >
                             <Column field="id" header="Id" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>

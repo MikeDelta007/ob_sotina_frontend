@@ -23,6 +23,7 @@ function DivisionsContent() {
   const [libelle, setLibelle] = useState('')
   const [chefServiceId, setChefServiceId] = useState<string | null>(null)
   const [actif, setActif] = useState(true)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchAllDivisions() }, [])
   useEffect(() => {
@@ -82,7 +83,16 @@ function DivisionsContent() {
       </div>
 
       <DataTable value={allDivisions} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune division enregistrée" responsiveLayout="scroll">
+        emptyMessage="Aucune division enregistrée" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['libelle']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Libellé" field="libelle" />
         <Column header="Chef de service" body={chefBody} />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />

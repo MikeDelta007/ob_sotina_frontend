@@ -19,6 +19,7 @@ function FonctionsContent() {
   const [editing, setEditing] = useState<Fonction | null>(null)
   const [libelle, setLibelle] = useState('')
   const [actif, setActif] = useState(true)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchAllFonctions() }, [])
 
@@ -65,7 +66,16 @@ function FonctionsContent() {
       </div>
 
       <DataTable value={allFonctions} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune fonction enregistrée" responsiveLayout="scroll">
+        emptyMessage="Aucune fonction enregistrée" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['libelle']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Libellé" field="libelle" />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />

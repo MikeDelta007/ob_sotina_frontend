@@ -73,6 +73,7 @@ export default function CaisseAvancePage() {
   const [exportingMandatements, setExportingMandatements] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [piecesMandatement, setPiecesMandatement] = useState<Mandatement | null>(null)
+  const [globalFilterApprov, setGlobalFilterApprov] = useState('')
   const toast = useRef<Toast>(null)
 
   useEffect(() => {
@@ -392,7 +393,16 @@ export default function CaisseAvancePage() {
           </div>
 
           <DataTable value={approvisionnements} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-            emptyMessage="Aucun approvisionnement enregistré" responsiveLayout="scroll">
+            emptyMessage="Aucun approvisionnement enregistré" responsiveLayout="scroll"
+            globalFilter={globalFilterApprov} globalFilterFields={['description', 'creePar']}
+            header={
+              <div className="flex justify-content-end">
+                <span className="p-input-icon-left">
+                  <i className="pi pi-search" />
+                  <InputText value={globalFilterApprov} onChange={e => setGlobalFilterApprov(e.target.value)} placeholder="Rechercher…" />
+                </span>
+              </div>
+            }>
             <Column header="Date" body={approvDateBody} />
             <Column header="Montant ajouté" body={approvMontantBody} align="right" alignHeader="right" />
             <Column header="Solde avant" body={approvSoldeAvantBody} align="right" alignHeader="right" />

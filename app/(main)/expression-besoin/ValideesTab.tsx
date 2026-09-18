@@ -1,8 +1,9 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
+import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import TraceButton from './TraceButton'
@@ -19,6 +20,7 @@ const STATUT_LABEL: Record<StatutEB, string> = {
 
 export default function ValideesTab() {
   const { validees, fetchValidees } = useExpressionBesoinStore()
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchValidees() }, [])
 
@@ -55,7 +57,16 @@ export default function ValideesTab() {
       </p>
 
       <DataTable value={validees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune expression de besoin validée" responsiveLayout="scroll">
+        emptyMessage="Aucune expression de besoin validée" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />

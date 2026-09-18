@@ -22,6 +22,7 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
   const [actif, setActif]     = useState(true)
   const [requiertSatisfaction, setRequiertSatisfaction] = useState(false)
   const [err, setErr]         = useState('')
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const openCreate = () => {
     setEditing(null); setLibelle(''); setActif(true); setRequiertSatisfaction(false)
@@ -84,7 +85,16 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
       )}
 
       <DataTable value={allMotifs} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucun motif enregistré" responsiveLayout="scroll">
+        emptyMessage="Aucun motif enregistré" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['libelle']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Libellé" field="libelle" />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />
         <Column header="Satisfaction requise" body={satisfactionBody} align="center" alignHeader="center" />

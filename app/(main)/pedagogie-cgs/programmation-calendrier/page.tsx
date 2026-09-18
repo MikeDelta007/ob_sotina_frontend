@@ -38,6 +38,7 @@ const PlanningRegleMatiere = () => {
     const [loading, setLoading] = useState(true);
     const [loadingMatieres, setLoadingMatieres] = useState(false); // 🔹 NOUVEAU : état séparé pour les matières
     const [submitted, setSubmitted] = useState(false);
+    const [globalFilter, setGlobalFilter] = useState('');
 
     const levelOptions = [
         { label: 'PREMIERE', value: 'PREMIERE' },
@@ -184,7 +185,16 @@ const PlanningRegleMatiere = () => {
                 <Button label="Nouvelle règle" icon="pi pi-plus" onClick={openNew} />
             </div>
 
-            <DataTable value={regles} paginator rows={10} responsiveLayout="scroll">
+            <DataTable value={regles} paginator rows={10} responsiveLayout="scroll"
+                globalFilter={globalFilter} globalFilterFields={['valeur', 'level', 'date', 'heure']}
+                header={
+                    <div className="flex justify-content-end">
+                        <span className="p-input-icon-left">
+                            <i className="pi pi-search" />
+                            <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+                        </span>
+                    </div>
+                }>
                 <Column field="valeur" header="Type" />
                 <Column field="level" header="Classe" />
                 <Column field="date" header="Date" />

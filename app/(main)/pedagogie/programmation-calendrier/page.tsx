@@ -50,6 +50,7 @@ const PlanningRegleMatiere = () => {
     const [dialogVisible, setDialogVisible] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitted, setSubmitted] = useState(false);
+    const [globalFilter, setGlobalFilter] = useState('');
 
     const typeOptions = [
         { label: 'OBLIGATOIRE', value: 'SERIE' },
@@ -220,7 +221,16 @@ const PlanningRegleMatiere = () => {
                 <Button label="Nouvelle règle" icon="pi pi-plus" onClick={openNew} />
             </div>
 
-            <DataTable value={regles} paginator rows={10} responsiveLayout="scroll">
+            <DataTable value={regles} paginator rows={10} responsiveLayout="scroll"
+                globalFilter={globalFilter} globalFilterFields={['code', 'type', 'date1', 'heure1', 'date2', 'heure2']}
+                header={
+                    <div className="flex justify-content-end">
+                        <span className="p-input-icon-left">
+                            <i className="pi pi-search" />
+                            <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+                        </span>
+                    </div>
+                }>
                 <Column field="code" header="Code" />
                 <Column field="type" header="Type" />
                 <Column field="date1" header="Date 1" />

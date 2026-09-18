@@ -1548,6 +1548,7 @@ const CalendarDemo = () => {
                                                     currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
                                                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                                                     globalFilter={globalFilter}
+                                                    globalFilterFields={['jury', 'centreEcrit', 'session', 'effectif']}
                                                     emptyMessage="Aucune donnée n'a été trouvée"
                                                     header={header}
                                                 >

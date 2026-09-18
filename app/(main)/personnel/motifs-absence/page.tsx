@@ -26,6 +26,7 @@ function MotifsAbsenceContent() {
   const [editing, setEditing] = useState<MotifAbsence | null>(null)
   const [libelle, setLibelle] = useState('')
   const [actif, setActif] = useState(true)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const fetchAll = () => {
     setLoading(true)
@@ -85,7 +86,16 @@ function MotifsAbsenceContent() {
       </div>
 
       <DataTable value={motifs} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucun motif enregistré" responsiveLayout="scroll">
+        emptyMessage="Aucun motif enregistré" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['libelle']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Libellé" field="libelle" />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />

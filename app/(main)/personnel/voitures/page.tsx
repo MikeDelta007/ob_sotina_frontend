@@ -34,6 +34,7 @@ function VoituresContent() {
   const [proprietaireType, setProprietaireType] = useState<ProprietaireVoiture>('OFFICE')
   const [proprietaireAgentId, setProprietaireAgentId] = useState<string | null>(null)
   const [proprietairePersonnelId, setProprietairePersonnelId] = useState<string | null>(null)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     fetchAllVoitures()
@@ -114,7 +115,16 @@ function VoituresContent() {
       </div>
 
       <DataTable value={allVoitures} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucun véhicule enregistré" responsiveLayout="scroll">
+        emptyMessage="Aucun véhicule enregistré" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['immatriculation', 'marque', 'proprietaireAgentNom', 'proprietairePersonnelNom']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Immatriculation" field="immatriculation" />
         <Column header="Marque" field="marque" body={(v: Voiture) => v.marque || '—'} />
         <Column header="Places" field="capacite" />

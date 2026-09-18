@@ -46,6 +46,7 @@ function MissionsContent() {
   const [dateDebut, setDateDebut] = useState<Date | null>(null)
   const [dateFin, setDateFin] = useState<Date | null>(null)
   const [lignes, setLignes] = useState<LigneForm[]>([ligneVide()])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     if (peutGerer) fetchToutes()
@@ -148,7 +149,16 @@ function MissionsContent() {
       </div>
 
       <DataTable value={data} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucun ordre de mission" responsiveLayout="scroll">
+        emptyMessage="Aucun ordre de mission" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motif']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         {peutGerer && <Column header="Agents" body={agentsBody} />}
         <Column header="Véhicules" body={vehiculesBody} />
         <Column header="Destination" body={regionsBody} />

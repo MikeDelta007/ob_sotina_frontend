@@ -1149,6 +1149,7 @@ const CalendarDemo = () => {
                                                 currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
                                                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                                                 globalFilter={globalFilter}
+                                                globalFilterFields={['academia', 'centreExam', 'centreEcrit', 'session', 'effectif', 'f6', 'lprime', 'l1A', 'l1B', 'l2', 'lA', 'lAR', 's1', 's1A', 's2', 's2A', 's3', 's4', 's5', 'steg', 'stidd', 't1', 't2', 'fd', 'fi', 'fb']}
                                                 emptyMessage="Aucune donnée n'a été trouvée"
                                                 header={header}
                                                 >

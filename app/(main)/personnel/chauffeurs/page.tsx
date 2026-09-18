@@ -26,6 +26,7 @@ function ChauffeursContent() {
   const [phone, setPhone] = useState('')
   const [fonctionId, setFonctionId] = useState<string | null>(null)
   const [actif, setActif] = useState(true)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchAllChauffeurs(); fetchAllFonctions() }, [])
 
@@ -86,7 +87,16 @@ function ChauffeursContent() {
       </div>
 
       <DataTable value={allChauffeurs} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucun chauffeur enregistré" responsiveLayout="scroll">
+        emptyMessage="Aucun chauffeur enregistré" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['firstname', 'lastname', 'phone', 'fonction.libelle']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Prénom" field="firstname" />
         <Column header="Nom" field="lastname" />
         <Column header="Téléphone" field="phone" body={(c: Chauffeur) => c.phone || '—'} />

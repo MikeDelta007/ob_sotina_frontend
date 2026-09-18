@@ -7,6 +7,7 @@ import { Dialog } from 'primereact/dialog'
 import { Dropdown } from 'primereact/dropdown'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
 import { InputNumber } from 'primereact/inputnumber'
+import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
@@ -36,6 +37,7 @@ export default function MesExpressionsTab() {
   const [pdfDeclarationHonneur, setPdfDeclarationHonneur] = useState<File | null>(null)
   const [err, setErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchMotifs(); fetchMesAgents(); fetchMesExpressions() }, [])
 
@@ -108,12 +110,18 @@ export default function MesExpressionsTab() {
 
   return (
     <div>
-      <div className="flex justify-content-end mb-3">
-        <Button label="Nouvelle expression de besoin" icon="pi pi-plus" onClick={openCreate} />
-      </div>
-
       <DataTable value={mesExpressions} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        loading={loading} emptyMessage="Aucune expression de besoin" responsiveLayout="scroll">
+        loading={loading} emptyMessage="Aucune expression de besoin" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'motifRejet', 'statut']}
+        header={
+          <div className="flex justify-content-between align-items-center">
+            <Button label="Nouvelle expression de besoin" icon="pi pi-plus" onClick={openCreate} />
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />

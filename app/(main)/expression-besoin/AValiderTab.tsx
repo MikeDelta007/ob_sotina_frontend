@@ -6,14 +6,22 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
 import { InputNumber } from 'primereact/inputnumber'
+import { InputText } from 'primereact/inputtext'
 import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import TraceButton from './TraceButton'
-import { fmt, directeurRequis, designationEb, type ExpressionBesoin } from './types'
+import { fmt, directeurRequis, designationEb, type ExpressionBesoin, type StatutEB } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
+
+const STATUT_SEVERITE: Record<StatutEB, 'warning' | 'success' | 'danger' | 'info'> = {
+  EN_ATTENTE: 'warning', VALIDEE: 'info', REJETEE: 'danger', TRAITEE: 'success',
+}
+const STATUT_LABEL: Record<StatutEB, string> = {
+  EN_ATTENTE: 'En attente', VALIDEE: 'Validée', REJETEE: 'Rejetée', TRAITEE: 'Traitée',
+}
 
 export default function AValiderTab() {
   const { aValider, actionLoadingId, fetchAValider, valider, rejeter } = useExpressionBesoinStore()
@@ -22,6 +30,7 @@ export default function AValiderTab() {
   const [validerTarget, setValiderTarget] = useState<ExpressionBesoin | null>(null)
   const [quantiteAccordee, setQuantiteAccordee] = useState<number | null>(null)
   const [err, setErr] = useState('')
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchAValider() }, [])
 
@@ -64,6 +73,8 @@ export default function AValiderTab() {
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
   )
 
+  const statutBody = (eb: ExpressionBesoin) => <Tag severity={STATUT_SEVERITE[eb.statut]} value={STATUT_LABEL[eb.statut]} />
+
   const validationsBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-1 flex-wrap justify-content-center">
       <Tag severity={eb.validationCsa ? 'success' : 'warning'} value={`CSA ${eb.validationCsa ? '✓' : '…'}`} />
@@ -87,27 +98,44 @@ export default function AValiderTab() {
   const actionsBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-1 align-items-center justify-content-center">
       <TraceButton eb={eb} />
-      <Button label="Valider" icon="pi pi-check" size="small" severity="success"
-        loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
-      <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
-        loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
+      {eb.statut === 'EN_ATTENTE' && (
+        <>
+          <Button label="Valider" icon="pi pi-check" size="small" severity="success"
+            loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
+          <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
+            loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
+        </>
+      )}
     </div>
   )
+
+  const nbEnAttente = aValider.filter(eb => eb.statut === 'EN_ATTENTE').length
 
   return (
     <div>
       <p className="text-color-secondary mb-3">
-        {aValider.length} expression(s) en attente de validation
+        {nbEnAttente} expression(s) en attente de validation
       </p>
 
       <DataTable value={aValider} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune expression de besoin en attente" responsiveLayout="scroll">
+        emptyMessage="Aucune expression de besoin en attente ou rejetée" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
+        <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
+        <Column header="Motif de rejet" body={(eb: ExpressionBesoin) => eb.motifRejet || '—'} />
         <Column header="Validations requises" body={validationsBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>

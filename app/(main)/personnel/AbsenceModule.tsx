@@ -11,6 +11,7 @@ import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
 import { Calendar } from 'primereact/calendar'
 import { Dropdown } from 'primereact/dropdown'
+import { InputText } from 'primereact/inputtext'
 import { InputTextarea } from 'primereact/inputtextarea'
 import { Tag } from 'primereact/tag'
 import { Message } from 'primereact/message'
@@ -37,6 +38,7 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const [motif, setMotif] = useState('')
   const [soldeConges, setSoldeConges] = useState<number | null>(null)
   const [motifsOptions, setMotifsOptions] = useState<{ id: string; libelle: string }[]>([])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchMesDemandes(type) }, [type])
 
@@ -98,7 +100,16 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
       </div>
 
       <DataTable value={mesDemandes} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage={type === 'CONGE' ? 'Aucune demande de congés' : "Aucune demande d'autorisation d'absence"} responsiveLayout="scroll">
+        emptyMessage={type === 'CONGE' ? 'Aucune demande de congés' : "Aucune demande d'autorisation d'absence"} responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motif', 'motifRejet', 'statut']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Période" body={dateBody} />
         <Column header="Jours" field="nombreJours" />
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
@@ -156,6 +167,7 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
   } = useAbsenceStore()
   const [rejetDialogFor, setRejetDialogFor] = useState<DemandeAbsence | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const demandes = pourAgentsDuChef ? demandesDeMesAgents : aValider
 
@@ -224,7 +236,16 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
     <div>
       <Toast ref={toast} />
       <DataTable value={demandes} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage={pourAgentsDuChef ? "Aucune demande de vos agents" : "Aucune demande en attente de votre validation"} responsiveLayout="scroll">
+        emptyMessage={pourAgentsDuChef ? "Aucune demande de vos agents" : "Aucune demande en attente de votre validation"} responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Demandeur" field="demandeurNom" />
         <Column header="Période" body={dateBody} />
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
@@ -257,6 +278,7 @@ function DejaTraiteesTab({ type, peutTelecharger }: { type: TypeAbsence; peutTel
   const toast = useRef<Toast>(null)
   const { demandesTraitees, loading, fetchDemandesTraitees } = useAbsenceStore()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchDemandesTraitees(type) }, [type])
 
@@ -305,7 +327,16 @@ function DejaTraiteesTab({ type, peutTelecharger }: { type: TypeAbsence; peutTel
     <div>
       <Toast ref={toast} />
       <DataTable value={demandesTraitees} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune demande déjà traitée" responsiveLayout="scroll">
+        emptyMessage="Aucune demande déjà traitée" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="Demandeur" field="demandeurNom" />
         <Column header="Période" body={dateBody} />
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
@@ -333,6 +364,7 @@ interface Agent {
 function MesAgentsTab() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(false)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -351,7 +383,16 @@ function MesAgentsTab() {
 
   return (
     <DataTable value={agents} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-      emptyMessage="Aucun agent dans votre division" responsiveLayout="scroll">
+      emptyMessage="Aucun agent dans votre division" responsiveLayout="scroll"
+      globalFilter={globalFilter} globalFilterFields={['firstname', 'lastname', 'matricule', 'phone', 'fonction.libelle']}
+      header={
+        <div className="flex justify-content-end">
+          <span className="p-input-icon-left">
+            <i className="pi pi-search" />
+            <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+          </span>
+        </div>
+      }>
       <Column header="Nom" body={nomBody} />
       <Column header="Matricule" field="matricule" body={(a: Agent) => a.matricule || '—'} />
       <Column header="Fonction" body={fonctionBody} />

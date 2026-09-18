@@ -31,7 +31,8 @@ const PanelDemo = () => {
     const [groupedEtabs, setGroupedEtabs] = useState([]);
     const [productDialog, setProductDialog] = useState(false);
     const [submitted, setSubmitted] = useState(false);
-    
+    const [globalFilter, setGlobalFilter] = useState('');
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [reloadTrigger, setReloadTrigger] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -688,7 +689,13 @@ const PanelDemo = () => {
                                 </form>
                             </Dialog>
                         
-                        <h5>Listing des établissements du Sénégal par académie</h5>
+                        <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center mb-3">
+                            <h5 className="m-0">Listing des établissements du Sénégal par académie</h5>
+                            <span className="block mt-2 md:mt-0 p-input-icon-left">
+                                <i className="pi pi-search" />
+                                <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+                            </span>
+                        </div>
                         <Accordion multiple activeIndex={0}>
                             {groupedEtabs && groupedEtabs.length > 0 ? (
                                 groupedEtabs.map((group) => (
@@ -701,6 +708,8 @@ const PanelDemo = () => {
                                     className="p-datatable-sm"
                                     currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
                                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                    globalFilter={globalFilter}
+                                    globalFilterFields={['code', 'name']}
                                     >
                                     <Column field="code" header="Code" sortable />
                                     <Column field="name" header="Nom" sortable />

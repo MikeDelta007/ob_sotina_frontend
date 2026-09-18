@@ -1511,6 +1511,7 @@ const CalendarDemo = () => {
                                                     rowsPerPageOptions={[5, 10]}
                                                     className="p-datatable-sm"
                                                     globalFilter={globalFilter}
+                                                    globalFilterFields={['centreEcrit', 'niveau', 'effectif']}
                                                     emptyMessage="Aucune donnée n'a été trouvée"
                                                     header={header}
                                                 >

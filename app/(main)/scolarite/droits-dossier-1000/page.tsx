@@ -477,8 +477,16 @@ const statutVBodyTemplate = (rowData) => {
                                   paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                                   currentPageReportTemplate="Affichage de {first} à {last} des {totalRecords} enregistrement (s)"
                                   globalFilter={globalFilter}
+                                  globalFilterFields={['session', 'phone', 'paid']}
                                   emptyMessage="Aucune transaction n'a été trouvée"
-                                  
+                                  header={
+                                      <div className="flex justify-content-end">
+                                          <span className="p-input-icon-left">
+                                              <i className="pi pi-search" />
+                                              <InputText value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+                                          </span>
+                                      </div>
+                                  }
                                   responsiveLayout="scroll"
                               >
                                   <Column field="session" header="Session" sortable body={sessionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>

@@ -5,6 +5,7 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
+import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useCaisseStore } from './useCaisseStore'
@@ -17,6 +18,7 @@ export default function ReliquatsTab({ lectureSeule = false }: Props) {
   const [selected, setSelected] = useState<Mandatement | null>(null)
   const [piecesJustificatives, setPiecesJustificatives] = useState<File | null>(null)
   const [err, setErr]             = useState('')
+  const [globalFilter, setGlobalFilter] = useState('')
 
   const soldeCaisse = caisse?.montant ?? 0
   const reliquats = mandatements.filter(m =>
@@ -76,7 +78,16 @@ export default function ReliquatsTab({ lectureSeule = false }: Props) {
       </p>
 
       <DataTable value={reliquats} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucun reliquat en attente" responsiveLayout="scroll">
+        emptyMessage="Aucun reliquat en attente" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['montantTotal', 'montantAvance', 'montantReliquat']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
         <Column header="N° Facture(s)" body={facturesBody} />
         <Column header="Total" body={(m: Mandatement) => fmt(m.montantTotal)} align="right" alignHeader="right" />
         <Column header="Avance versée" body={(m: Mandatement) => fmt(m.montantAvance ?? 0)} align="right" alignHeader="right" />
