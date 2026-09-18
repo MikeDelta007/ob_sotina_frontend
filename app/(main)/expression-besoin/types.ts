@@ -37,7 +37,8 @@ export interface ExpressionBesoin {
   dateValidationCsa?: string
 
   // Rejet du CSA : n'interrompt la chaîne que si le Directeur doit aussi se prononcer
-  // (montant > seuil) — sinon il est immédiatement définitif (cf. motifRejet ci-dessous).
+  // (montant > seuil) — en dessous, le Directeur n'intervient jamais sur cette expression,
+  // le rejet du CSA y est donc immédiatement définitif (cf. motifRejet ci-dessous).
   rejetCsa?: boolean
   motifRejetCsa?: string
   rejeteParCsaNom?: string
