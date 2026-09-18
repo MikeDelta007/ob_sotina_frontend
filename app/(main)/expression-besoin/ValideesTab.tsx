@@ -5,7 +5,8 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, directeurRequis, designationLignes, type ExpressionBesoin, type StatutEB } from './types'
+import TraceButton from './TraceButton'
+import { fmt, directeurRequis, designationEb, type ExpressionBesoin, type StatutEB } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -56,12 +57,14 @@ export default function ValideesTab() {
       <DataTable value={validees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune expression de besoin validée" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" body={(eb: ExpressionBesoin) => designationLignes(eb.lignes)} />
+        <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
-        <Column header="Demandeur" field="creePar" />
+        <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
+        <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
         <Column header="Validations" body={validationsBody} align="center" alignHeader="center" />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
+        <Column header="Traçabilité" body={(eb: ExpressionBesoin) => <TraceButton eb={eb} />} align="center" alignHeader="center" />
       </DataTable>
     </div>
   )

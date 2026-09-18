@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Button } from 'primereact/button'
-import { Checkbox } from 'primereact/checkbox'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
@@ -11,7 +10,9 @@ import { InputNumber } from 'primereact/inputnumber'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, designationLignes, ebRequiertSatisfaction, type ExpressionBesoin, type StatutEB } from './types'
+import TraceButton from './TraceButton'
+import TwCheckbox from './TwCheckbox'
+import { fmt, designationEb, type ExpressionBesoin, type StatutEB } from './types'
 
 const STATUT_SEVERITE: Record<StatutEB, 'warning' | 'success' | 'danger' | 'info'> = {
   EN_ATTENTE: 'warning', VALIDEE: 'info', REJETEE: 'danger', TRAITEE: 'success',
@@ -20,72 +21,56 @@ const STATUT_LABEL: Record<StatutEB, string> = {
   EN_ATTENTE: 'En attente', VALIDEE: 'Validée', REJETEE: 'Rejetée', TRAITEE: 'Traitée',
 }
 
-interface LigneLocale {
-  _localId: string
-  motifId: string
-  motifLibelle?: string
-  quantite: number | null
-  prixUnitaire: number | null
-}
-
-const nouvelleLigne = (): LigneLocale => ({
-  _localId: Math.random().toString(36).slice(2),
-  motifId: '', quantite: null, prixUnitaire: null,
-})
-
 export default function MesExpressionsTab() {
-  const { motifs, mesExpressions, loading, error, actionLoadingId,
-          fetchMotifs, fetchMesExpressions, creer, modifier, confirmerSatisfaction } = useExpressionBesoinStore()
+  const { motifs, mesAgents, mesExpressions, loading, error, actionLoadingId,
+          fetchMotifs, fetchMesAgents, fetchMesExpressions, creer, modifier, confirmerSatisfaction } = useExpressionBesoinStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ExpressionBesoin | null>(null)
-  const [lignes, setLignes] = useState<LigneLocale[]>([nouvelleLigne()])
+  const [motifId, setMotifId] = useState('')
+  const [quantite, setQuantite] = useState<number | null>(null)
+  const [prixUnitaire, setPrixUnitaire] = useState<number | null>(null)
+  const [beneficiaireMoiMeme, setBeneficiaireMoiMeme] = useState(true)
+  const [beneficiaireId, setBeneficiaireId] = useState('')
   const [aFacturePreformat, setAFacturePreformat] = useState(false)
   const [pdfFactureProforma, setPdfFactureProforma] = useState<File | null>(null)
   const [pdfDeclarationHonneur, setPdfDeclarationHonneur] = useState<File | null>(null)
   const [err, setErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { fetchMotifs(); fetchMesExpressions() }, [])
+  useEffect(() => { fetchMotifs(); fetchMesAgents(); fetchMesExpressions() }, [])
 
   const openCreate = () => {
-    setEditing(null); setLignes([nouvelleLigne()]); setAFacturePreformat(false)
+    setEditing(null)
+    setMotifId(''); setQuantite(null); setPrixUnitaire(null)
+    setBeneficiaireMoiMeme(true); setBeneficiaireId('')
+    setAFacturePreformat(false)
     setPdfFactureProforma(null); setPdfDeclarationHonneur(null); setErr(''); setDialogOpen(true)
   }
   const openEdit = (eb: ExpressionBesoin) => {
     setEditing(eb)
-    setLignes((eb.lignes ?? []).map(l => ({
-      _localId: Math.random().toString(36).slice(2),
-      motifId: l.motifId, motifLibelle: l.motifLibelle, quantite: l.quantite, prixUnitaire: l.prixUnitaire,
-    })))
+    setMotifId(eb.motifId); setQuantite(eb.quantite ?? null); setPrixUnitaire(eb.prixUnitaire)
+    setBeneficiaireMoiMeme(eb.beneficiaireMoiMeme ?? true); setBeneficiaireId(eb.beneficiaireMoiMeme ? '' : (eb.beneficiaireId ?? ''))
     setAFacturePreformat(eb.aFacturePreformat); setPdfFactureProforma(null); setPdfDeclarationHonneur(null)
     setErr(''); setDialogOpen(true)
   }
   const fermer = () => setDialogOpen(false)
 
-  const updLigne = (id: string, patch: Partial<LigneLocale>) =>
-    setLignes(ls => ls.map(l => l._localId === id ? { ...l, ...patch } : l))
-  const addLigne = () => setLignes(ls => [...ls, nouvelleLigne()])
-  const removeLigne = (id: string) => setLignes(ls => ls.filter(l => l._localId !== id))
-
-  const montantLigne = (l: LigneLocale) => (l.quantite ?? 1) * (l.prixUnitaire ?? 0)
-  const total = lignes.reduce((s, l) => s + montantLigne(l), 0)
-  const lignesValides = lignes.length > 0
-    && lignes.every(l => !!l.motifId && !!l.prixUnitaire && l.prixUnitaire > 0)
-  const pieceValide = aFacturePreformat
-    ? (!!pdfFactureProforma || (!!editing && editing.aFacturePreformat && !!editing.urlPdfFactureProforma))
-    : (!!pdfDeclarationHonneur || (!!editing && !editing.aFacturePreformat && !!editing.urlPdfDeclarationHonneur))
-  const formulaireValide = lignesValides && pieceValide
+  const montant = (quantite ?? 1) * (prixUnitaire ?? 0)
+  const formulaireValide = !!motifId && !!prixUnitaire && prixUnitaire > 0
+    && (beneficiaireMoiMeme || !!beneficiaireId)
+    && (aFacturePreformat
+      ? (!!pdfFactureProforma || (!!editing && editing.aFacturePreformat && !!editing.urlPdfFactureProforma))
+      : (!!pdfDeclarationHonneur || (!!editing && !editing.aFacturePreformat && !!editing.urlPdfDeclarationHonneur)))
 
   const enregistrer = async () => {
-    if (!formulaireValide) { setErr('Veuillez compléter toutes les lignes et la pièce jointe requise'); return }
+    if (!formulaireValide) { setErr('Veuillez compléter le motif, le bénéficiaire et la pièce jointe requise'); return }
     setSubmitting(true)
     try {
+      const motif = motifs.find(m => m.id === motifId)
       const payload = {
-        lignes: lignes.map(l => {
-          const motif = motifs.find(m => m.id === l.motifId)
-          return { motifId: l.motifId, motifLibelle: motif?.libelle ?? l.motifLibelle, quantite: l.quantite ?? undefined, prixUnitaire: l.prixUnitaire! }
-        }),
-        aFacturePreformat, pdfFactureProforma, pdfDeclarationHonneur,
+        motifId, motifLibelle: motif?.libelle, quantite: quantite ?? undefined, prixUnitaire: prixUnitaire!,
+        aFacturePreformat, beneficiaireMoiMeme, beneficiaireId: beneficiaireMoiMeme ? undefined : beneficiaireId,
+        pdfFactureProforma, pdfDeclarationHonneur,
       }
       if (editing) await modifier(editing.id, payload)
       else await creer(payload)
@@ -98,25 +83,28 @@ export default function MesExpressionsTab() {
   }
 
   const statutBody = (eb: ExpressionBesoin) => <Tag severity={STATUT_SEVERITE[eb.statut]} value={STATUT_LABEL[eb.statut]} />
-  const designationBody = (eb: ExpressionBesoin) => designationLignes(eb.lignes)
   const dateBody = (eb: ExpressionBesoin) => (
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
   )
   const satisfactionBody = (eb: ExpressionBesoin) => {
-    if (!ebRequiertSatisfaction(eb)) return <span className="text-color-secondary">—</span>
+    if (!eb.requiertSatisfaction) return <span className="text-color-secondary">—</span>
     return eb.satisfactionConfirmee
       ? <Tag severity="success" icon="pi pi-check" value="Confirmée" />
       : <Tag severity="warning" value="En attente" />
   }
 
-  const actionsBody = (eb: ExpressionBesoin) => {
-    if (eb.statut === 'EN_ATTENTE')
-      return <Button icon="pi pi-pencil" label="Modifier" text size="small" onClick={() => openEdit(eb)} />
-    if (eb.statut === 'TRAITEE' && ebRequiertSatisfaction(eb) && !eb.satisfactionConfirmee)
-      return <Button label="Confirmer ma satisfaction" icon="pi pi-check" size="small" severity="success"
-        loading={actionLoadingId === eb.id} onClick={() => confirmerSatisfaction(eb.id)} />
-    return null
-  }
+  const actionsBody = (eb: ExpressionBesoin) => (
+    <div className="flex gap-1 align-items-center justify-content-center">
+      <TraceButton eb={eb} />
+      {eb.statut === 'EN_ATTENTE' && (
+        <Button icon="pi pi-pencil" label="Modifier" text size="small" onClick={() => openEdit(eb)} />
+      )}
+      {eb.statut === 'TRAITEE' && eb.requiertSatisfaction && !eb.satisfactionConfirmee && (
+        <Button label="Confirmer ma satisfaction" icon="pi pi-check" size="small" severity="success"
+          loading={actionLoadingId === eb.id} onClick={() => confirmerSatisfaction(eb.id)} />
+      )}
+    </div>
+  )
 
   return (
     <div>
@@ -127,18 +115,18 @@ export default function MesExpressionsTab() {
       <DataTable value={mesExpressions} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         loading={loading} emptyMessage="Aucune expression de besoin" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" body={designationBody} />
+        <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
+        <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
         <Column header="Montant réel" body={(eb: ExpressionBesoin) => eb.montantReel ? fmt(eb.montantReel) : '—'} align="right" alignHeader="right" />
-        <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaire || '—'} />
         <Column header="Motif de rejet" body={(eb: ExpressionBesoin) => eb.motifRejet || '—'} />
         <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>
 
       <Dialog header={editing ? 'Modifier l\'expression de besoin' : 'Nouvelle expression de besoin'}
-        visible={dialogOpen} onHide={fermer} style={{ width: '42rem' }} draggable={false}
+        visible={dialogOpen} onHide={fermer} style={{ width: '32rem' }} draggable={false}
         footer={
           <div className="flex gap-2">
             <Button label="Annuler" outlined className="flex-1" onClick={fermer} disabled={submitting} />
@@ -147,57 +135,49 @@ export default function MesExpressionsTab() {
           </div>
         }>
         <div className="flex flex-column gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Lignes de la demande *</label>
-            {lignes.map((l, i) => (
-              <div key={l._localId} className="card mb-2 p-3">
-                <div className="flex align-items-center justify-content-between mb-2">
-                  <span className="text-sm font-medium text-color-secondary">Ligne {i + 1}</span>
-                  {lignes.length > 1 && (
-                    <Button icon="pi pi-trash" text severity="danger" size="small"
-                      onClick={() => removeLigne(l._localId)} />
-                  )}
-                </div>
-                <div className="grid formgrid">
-                  <div className="col-12 field mb-2">
-                    <label className="block text-sm text-color-secondary mb-1">Désignation</label>
-                    <Dropdown value={l.motifId} options={motifs.map(m => ({ label: m.libelle, value: m.id }))}
-                      onChange={e => updLigne(l._localId, { motifId: e.value })}
-                      className="w-full" placeholder="Choisir un motif…" />
-                  </div>
-                  <div className="col-6 field mb-0">
-                    <label className="block text-sm text-color-secondary mb-1">Quantité (optionnelle)</label>
-                    <InputNumber value={l.quantite} min={1} className="w-full"
-                      onValueChange={e => updLigne(l._localId, { quantite: e.value ?? null })} placeholder="—" />
-                  </div>
-                  <div className="col-6 field mb-0">
-                    <label className="block text-sm text-color-secondary mb-1">Prix unitaire (FCFA)</label>
-                    <InputNumber value={l.prixUnitaire} min={1} className="w-full"
-                      onValueChange={e => updLigne(l._localId, { prixUnitaire: e.value ?? null })} placeholder="0" />
-                  </div>
-                </div>
-                {!!l.prixUnitaire && (
-                  <div className="text-right text-sm text-color-secondary mt-2">
-                    Sous-total : <strong>{fmt(montantLigne(l))}</strong>
-                  </div>
-                )}
-              </div>
-            ))}
-            <Button type="button" label="Ajouter une ligne" icon="pi pi-plus" outlined
-              className="w-full" onClick={addLigne} />
+          <div className="grid formgrid">
+            <div className="col-12 field mb-2">
+              <label className="block text-sm text-color-secondary mb-1">Désignation *</label>
+              <Dropdown value={motifId} options={motifs.map(m => ({ label: m.libelle, value: m.id }))}
+                onChange={e => setMotifId(e.value)} className="w-full" placeholder="Choisir un motif…" />
+            </div>
+            <div className="col-6 field mb-0">
+              <label className="block text-sm text-color-secondary mb-1">Quantité (optionnelle)</label>
+              <InputNumber value={quantite} min={1} className="w-full"
+                onValueChange={e => setQuantite(e.value ?? null)} placeholder="—" />
+            </div>
+            <div className="col-6 field mb-0">
+              <label className="block text-sm text-color-secondary mb-1">Prix unitaire (FCFA) *</label>
+              <InputNumber value={prixUnitaire} min={1} className="w-full"
+                onValueChange={e => setPrixUnitaire(e.value ?? null)} placeholder="0" />
+            </div>
           </div>
 
-          {total > 0 && (
+          {!!prixUnitaire && (
             <div className="card mt-0 flex justify-content-between align-items-center py-2">
-              <span className="text-color-secondary">Montant initial total</span>
-              <strong>{fmt(total)}</strong>
+              <span className="text-color-secondary">Montant initial</span>
+              <strong>{fmt(montant)}</strong>
             </div>
           )}
 
-          <div className="flex align-items-center gap-2">
-            <Checkbox inputId="aProforma" checked={aFacturePreformat}
-              onChange={e => setAFacturePreformat(!!e.checked)} />
-            <label htmlFor="aProforma" className="text-sm">J&apos;ai une facture proforma</label>
+          <div>
+            <label className="block text-sm font-medium mb-2">Bénéficiaire *</label>
+            <div className="tw-flex tw-flex-col tw-gap-2">
+              <TwCheckbox id="beneficiaireMoiMeme" checked={beneficiaireMoiMeme}
+                onChange={c => { setBeneficiaireMoiMeme(c); if (c) setBeneficiaireId('') }}
+                label="Moi-même" />
+              {!beneficiaireMoiMeme && (
+                <Dropdown value={beneficiaireId} options={mesAgents.map(a => ({ label: `${a.firstname} ${a.lastname}`, value: a.id }))}
+                  onChange={e => setBeneficiaireId(e.value)} className="w-full" filter
+                  placeholder={mesAgents.length ? 'Choisir un agent de ma division…' : 'Aucun agent dans ma division'}
+                  disabled={!mesAgents.length} />
+              )}
+            </div>
+          </div>
+
+          <div>
+            <TwCheckbox id="aProforma" checked={aFacturePreformat}
+              onChange={c => setAFacturePreformat(c)} label="J'ai une facture proforma" />
           </div>
 
           {aFacturePreformat ? (

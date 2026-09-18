@@ -1,26 +1,25 @@
 // store/useExpressionBesoinStore.ts
 import { create } from 'zustand'
 import axiosInstance from '@/app/api/axiosInstance'
-import type { ExpressionBesoin } from './types'
+import type { AgentDivision, ExpressionBesoin } from './types'
 
 interface Motif { id: string; libelle: string; actif: boolean }
 
-interface LignePayload {
+interface CreerPayload {
   motifId: string
   motifLibelle?: string
-  quantite: number
+  quantite?: number
   prixUnitaire: number
-}
-
-interface CreerPayload {
-  lignes: LignePayload[]
   aFacturePreformat: boolean
+  beneficiaireMoiMeme: boolean
+  beneficiaireId?: string
   pdfFactureProforma?: File | null
   pdfDeclarationHonneur?: File | null
 }
 
 interface ExpressionBesoinStore {
   motifs: Motif[]
+  mesAgents: AgentDivision[]
   mesExpressions: ExpressionBesoin[]
   aValider: ExpressionBesoin[]
   validees: ExpressionBesoin[]
@@ -31,6 +30,7 @@ interface ExpressionBesoinStore {
   actionLoadingId: string | null
 
   fetchMotifs:          () => Promise<void>
+  fetchMesAgents:       () => Promise<void>
   fetchMesExpressions:  () => Promise<void>
   fetchAValider:        () => Promise<void>
   fetchValidees:        () => Promise<void>
@@ -38,9 +38,9 @@ interface ExpressionBesoinStore {
   fetchTraitees:        () => Promise<void>
   creer:                 (payload: CreerPayload) => Promise<void>
   modifier:               (id: string, payload: CreerPayload) => Promise<void>
-  valider:                (id: string, quantitesAccordees?: (number | null)[]) => Promise<void>
+  valider:                (id: string, quantiteAccordee?: number | null) => Promise<void>
   rejeter:                (id: string, motif: string) => Promise<void>
-  traiter:                (id: string, montantReel: number, beneficiaire: string) => Promise<void>
+  traiter:                (id: string, montantReel: number) => Promise<void>
   confirmerSatisfaction:  (id: string) => Promise<void>
   clearError:             () => void
 }
@@ -48,8 +48,13 @@ interface ExpressionBesoinStore {
 const buildForm = (payload: CreerPayload) => {
   const form = new FormData()
   const data = new Blob([JSON.stringify({
-    lignes: payload.lignes,
+    motifId: payload.motifId,
+    motifLibelle: payload.motifLibelle,
+    quantite: payload.quantite ?? undefined,
+    prixUnitaire: payload.prixUnitaire,
     aFacturePreformat: payload.aFacturePreformat,
+    beneficiaireMoiMeme: payload.beneficiaireMoiMeme,
+    beneficiaireId: payload.beneficiaireMoiMeme ? undefined : payload.beneficiaireId,
   })], { type: 'application/json' })
   form.append('data', data)
   if (payload.pdfFactureProforma) form.append('pdfFactureProforma', payload.pdfFactureProforma)
@@ -59,6 +64,7 @@ const buildForm = (payload: CreerPayload) => {
 
 export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get) => ({
   motifs: [],
+  mesAgents: [],
   mesExpressions: [],
   aValider: [],
   validees: [],
@@ -73,6 +79,13 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       const { data } = await axiosInstance.get('caisse-avance/motifs')
       set({ motifs: data })
     } catch { set({ error: 'Erreur chargement des motifs' }) }
+  },
+
+  fetchMesAgents: async () => {
+    try {
+      const { data } = await axiosInstance.get('personnel/mes-agents')
+      set({ mesAgents: data })
+    } catch { set({ mesAgents: [] }) }
   },
 
   fetchMesExpressions: async () => {
@@ -144,10 +157,10 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
     } finally { set({ loading: false }) }
   },
 
-  valider: async (id, quantitesAccordees) => {
+  valider: async (id, quantiteAccordee) => {
     set({ actionLoadingId: id, error: null })
     try {
-      await axiosInstance.put(`expression-besoin/${id}/valider`, { quantitesAccordees })
+      await axiosInstance.put(`expression-besoin/${id}/valider`, { quantiteAccordee })
       await get().fetchAValider()
     } catch (e: any) {
       set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la validation' })
@@ -166,10 +179,10 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
     } finally { set({ actionLoadingId: null }) }
   },
 
-  traiter: async (id, montantReel, beneficiaire) => {
+  traiter: async (id, montantReel) => {
     set({ actionLoadingId: id, error: null })
     try {
-      await axiosInstance.put(`expression-besoin/${id}/traiter`, { montantReel, beneficiaire })
+      await axiosInstance.put(`expression-besoin/${id}/traiter`, { montantReel })
       await get().fetchATraiter()
     } catch (e: any) {
       set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors du traitement' })

@@ -5,7 +5,8 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, designationLignes, ebRequiertSatisfaction, type ExpressionBesoin } from './types'
+import TraceButton from './TraceButton'
+import { fmt, designationEb, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -30,7 +31,7 @@ export default function TraiteesTab() {
   }
 
   const satisfactionBody = (eb: ExpressionBesoin) => {
-    if (!ebRequiertSatisfaction(eb)) return <span className="text-color-secondary">—</span>
+    if (!eb.requiertSatisfaction) return <span className="text-color-secondary">—</span>
     return eb.satisfactionConfirmee
       ? <Tag severity="success" icon="pi pi-check" value="Confirmée" />
       : <Tag severity="warning" value="En attente" />
@@ -38,7 +39,7 @@ export default function TraiteesTab() {
 
   const mandatementBody = (eb: ExpressionBesoin) => {
     if (eb.utiliseePourMandatement) return <Tag severity="success" icon="pi pi-check" value="Déjà traité" />
-    if (ebRequiertSatisfaction(eb) && !eb.satisfactionConfirmee)
+    if (eb.requiertSatisfaction && !eb.satisfactionConfirmee)
       return <Tag severity="danger" value="Bloqué (satisfaction)" />
     return <Tag severity="warning" value="Disponible" />
   }
@@ -52,14 +53,15 @@ export default function TraiteesTab() {
       <DataTable value={traitees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune expression de besoin traitée" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" body={(eb: ExpressionBesoin) => designationLignes(eb.lignes)} />
+        <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Montant réel" body={(eb: ExpressionBesoin) => eb.montantReel ? fmt(eb.montantReel) : '—'} align="right" alignHeader="right" />
-        <Column header="Bénéficiaire" field="beneficiaire" />
-        <Column header="Demandeur" field="creePar" />
+        <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
+        <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
         <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Mandatement" body={mandatementBody} align="center" alignHeader="center" />
+        <Column header="Traçabilité" body={(eb: ExpressionBesoin) => <TraceButton eb={eb} />} align="center" alignHeader="center" />
       </DataTable>
     </div>
   )

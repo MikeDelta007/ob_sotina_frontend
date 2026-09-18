@@ -10,7 +10,8 @@ import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import { fmt, directeurRequis, designationLignes, type ExpressionBesoin } from './types'
+import TraceButton from './TraceButton'
+import { fmt, directeurRequis, designationEb, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -19,7 +20,7 @@ export default function AValiderTab() {
   const [rejetTarget, setRejetTarget] = useState<ExpressionBesoin | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
   const [validerTarget, setValiderTarget] = useState<ExpressionBesoin | null>(null)
-  const [quantitesAccordees, setQuantitesAccordees] = useState<(number | null)[]>([])
+  const [quantiteAccordee, setQuantiteAccordee] = useState<number | null>(null)
   const [err, setErr] = useState('')
 
   useEffect(() => { fetchAValider() }, [])
@@ -40,19 +41,19 @@ export default function AValiderTab() {
 
   const ouvrirValidation = (eb: ExpressionBesoin) => {
     setValiderTarget(eb)
-    setQuantitesAccordees((eb.lignes ?? []).map(l => l.quantiteAccordeeDirecteur ?? l.quantiteAccordeeCsa ?? l.quantite ?? null))
+    setQuantiteAccordee(eb.quantiteAccordeeDirecteur ?? eb.quantiteAccordeeCsa ?? eb.quantite ?? null)
     setErr('')
   }
   const fermerValidation = () => setValiderTarget(null)
 
   const confirmerValidation = async () => {
     if (!validerTarget) return
-    const lignes = validerTarget.lignes ?? []
-    const manquante = lignes.some((l, i) => l.quantite != null && !quantitesAccordees[i])
-    if (manquante) { setErr('La quantité accordée est requise pour chaque ligne avec une quantité demandée'); return }
+    if (validerTarget.quantite != null && !quantiteAccordee) {
+      setErr('La quantité accordée est requise'); return
+    }
     setErr('')
     try {
-      await valider(validerTarget.id, quantitesAccordees)
+      await valider(validerTarget.id, quantiteAccordee)
       fermerValidation()
     } catch (e: any) {
       setErr(e?.response?.data?.errorMessage ?? e?.response?.data?.message ?? 'Erreur lors de la validation')
@@ -84,7 +85,8 @@ export default function AValiderTab() {
   }
 
   const actionsBody = (eb: ExpressionBesoin) => (
-    <div className="flex gap-2 justify-content-center">
+    <div className="flex gap-1 align-items-center justify-content-center">
+      <TraceButton eb={eb} />
       <Button label="Valider" icon="pi pi-check" size="small" severity="success"
         loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
       <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
@@ -101,9 +103,10 @@ export default function AValiderTab() {
       <DataTable value={aValider} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage="Aucune expression de besoin en attente" responsiveLayout="scroll">
         <Column header="Date" body={dateBody} />
-        <Column header="Désignation" body={(eb: ExpressionBesoin) => designationLignes(eb.lignes)} />
+        <Column header="Désignation" body={designationEb} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
-        <Column header="Demandeur" field="creePar" />
+        <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
+        <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
         <Column header="Validations requises" body={validationsBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
@@ -140,20 +143,16 @@ export default function AValiderTab() {
         {validerTarget && (
           <div className="flex flex-column gap-3">
             <p className="m-0">
-              Confirmez-vous la validation de la demande <b>{designationLignes(validerTarget.lignes)}</b> de{' '}
-              <b>{validerTarget.creePar}</b> pour un montant initial de <b>{fmt(validerTarget.montantInitial)}</b> ?
+              Confirmez-vous la validation de la demande <b>{designationEb(validerTarget)}</b> pour{' '}
+              <b>{validerTarget.beneficiaireNom || '—'}</b> (demandée par <b>{validerTarget.creeParNom || validerTarget.creePar}</b>)
+              pour un montant initial de <b>{fmt(validerTarget.montantInitial)}</b> ?
             </p>
 
-            {(validerTarget.lignes ?? []).some(l => l.quantite != null) && (
-              <div className="flex flex-column gap-2">
-                <label className="text-sm font-medium">Quantité accordée par ligne *</label>
-                {(validerTarget.lignes ?? []).map((l, i) => l.quantite != null && (
-                  <div key={i} className="flex align-items-center justify-content-between gap-2">
-                    <span className="text-sm">{l.motifLibelle ?? '—'} (demandée : {l.quantite})</span>
-                    <InputNumber value={quantitesAccordees[i] ?? null} min={0} max={l.quantite} style={{ width: '7rem' }}
-                      onValueChange={e => setQuantitesAccordees(qs => qs.map((q, j) => j === i ? (e.value ?? null) : q))} />
-                  </div>
-                ))}
+            {validerTarget.quantite != null && (
+              <div className="flex align-items-center justify-content-between gap-2">
+                <span className="text-sm font-medium">Quantité accordée * (demandée : {validerTarget.quantite})</span>
+                <InputNumber value={quantiteAccordee} min={0} max={validerTarget.quantite} style={{ width: '7rem' }}
+                  onValueChange={e => setQuantiteAccordee(e.value ?? null)} />
               </div>
             )}
 

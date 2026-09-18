@@ -49,9 +49,12 @@
     "@types/geojson": "^7946.0.16",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "autoprefixer": "^10.6.1",
     "eslint": "8.35.0",
     "eslint-config-next": "13.4.9",
+    "postcss": "^8.5.28",
     "prettier": "2.8.4",
-    "sass": "^1.58.3"
+    "sass": "^1.58.3",
+    "tailwindcss": "^3.4.19"
   }
 }
