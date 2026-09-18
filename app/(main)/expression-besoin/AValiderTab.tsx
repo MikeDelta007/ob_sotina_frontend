@@ -11,8 +11,8 @@ import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import TraceButton from './TraceButton'
-import { fmt, directeurRequis, designationEb, type ExpressionBesoin } from './types'
+import EtapesColonne from './EtapesColonne'
+import { fmt, designationEb, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -66,16 +66,6 @@ export default function AValiderTab() {
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
   )
 
-  const validationsBody = (eb: ExpressionBesoin) => (
-    <div className="flex gap-1 flex-wrap justify-content-center">
-      <Tag severity={eb.validationCsa ? 'success' : eb.rejetCsa ? 'danger' : 'warning'}
-        value={`CSA ${eb.validationCsa ? '✓' : eb.rejetCsa ? '✗ rejeté' : '…'}`} />
-      {directeurRequis(eb.montantInitial) && (
-        <Tag severity={eb.validationDirecteur ? 'success' : 'warning'} value={`Directeur ${eb.validationDirecteur ? '✓' : '…'}`} />
-      )}
-    </div>
-  )
-
   const pieceBody = (eb: ExpressionBesoin) => {
     const url = eb.aFacturePreformat ? eb.urlPdfFactureProforma : eb.urlPdfDeclarationHonneur
     if (!url) return '—'
@@ -89,7 +79,6 @@ export default function AValiderTab() {
 
   const actionsBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-1 align-items-center justify-content-center">
-      <TraceButton eb={eb} />
       <Button label="Valider" icon="pi pi-check" size="small" severity="success"
         loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
       <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
@@ -120,7 +109,7 @@ export default function AValiderTab() {
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
-        <Column header="Validations requises" body={validationsBody} align="center" alignHeader="center" />
+        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>
 

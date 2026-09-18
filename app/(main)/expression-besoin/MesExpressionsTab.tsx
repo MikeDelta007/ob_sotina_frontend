@@ -11,7 +11,7 @@ import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import TraceButton from './TraceButton'
+import EtapesColonne from './EtapesColonne'
 import TwCheckbox from './TwCheckbox'
 import { fmt, designationEb, type ExpressionBesoin, type StatutEB } from './types'
 
@@ -97,7 +97,6 @@ export default function MesExpressionsTab() {
 
   const actionsBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-1 align-items-center justify-content-center">
-      <TraceButton eb={eb} />
       {eb.statut === 'EN_ATTENTE' && (
         <Button icon="pi pi-pencil" label="Modifier" text size="small" onClick={() => openEdit(eb)} />
       )}
@@ -128,7 +127,7 @@ export default function MesExpressionsTab() {
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
         <Column header="Montant réel" body={(eb: ExpressionBesoin) => eb.montantReel ? fmt(eb.montantReel) : '—'} align="right" alignHeader="right" />
-        <Column header="Motif de rejet" body={(eb: ExpressionBesoin) => eb.motifRejet || '—'} />
+        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
         <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>

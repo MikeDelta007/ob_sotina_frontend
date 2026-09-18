@@ -113,10 +113,17 @@ export const tracesEb = (eb: ExpressionBesoin): EtapeTrace[] => {
     etapes.push({ role: 'CSA', statut: 'attente' })
   }
 
+  // Le rejet définitif (motifRejet/rejetePar) n'est celui du Directeur que s'il diffère du
+  // rejet du CSA — sinon (dossiers créés avant l'introduction du rejet non bloquant du CSA),
+  // c'est bien le rejet du CSA lui-même qui a été, à l'époque, immédiatement définitif : le
+  // Directeur n'a jamais agi, il ne faut pas lui attribuer à tort ce rejet.
+  const rejetDirecteurDistinctDuCsa = eb.statut === 'REJETEE'
+    && (!eb.rejetCsa || eb.dateRejet !== eb.dateRejetCsa || eb.rejeteParNom !== eb.rejeteParCsaNom)
+
   if (directeurRequis(eb.montantInitial)) {
     if (eb.validationDirecteur) {
       etapes.push({ role: 'Directeur', nom: eb.validateurDirecteurNom, date: eb.dateValidationDirecteur, statut: 'valide' })
-    } else if (eb.statut === 'REJETEE') {
+    } else if (rejetDirecteurDistinctDuCsa) {
       etapes.push({ role: 'Directeur', nom: eb.rejeteParNom, date: eb.dateRejet, statut: 'rejete', motif: eb.motifRejet })
     } else {
       etapes.push({ role: 'Directeur', statut: 'attente' })

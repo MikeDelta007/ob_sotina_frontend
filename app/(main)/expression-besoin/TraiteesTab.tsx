@@ -6,7 +6,7 @@ import { DataTable } from 'primereact/datatable'
 import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import TraceButton from './TraceButton'
+import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
@@ -72,7 +72,7 @@ export default function TraiteesTab() {
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
         <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Mandatement" body={mandatementBody} align="center" alignHeader="center" />
-        <Column header="Traçabilité" body={(eb: ExpressionBesoin) => <TraceButton eb={eb} />} align="center" alignHeader="center" />
+        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
       </DataTable>
     </div>
   )

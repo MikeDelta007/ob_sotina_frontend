@@ -10,7 +10,7 @@ import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import TraceButton from './TraceButton'
+import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, type ExpressionBesoin } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
@@ -59,7 +59,6 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
 
   const actionsBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-1 align-items-center justify-content-center">
-      <TraceButton eb={eb} />
       {!lectureSeule && (
         <Button label="Traiter" icon="pi pi-pencil" size="small"
           loading={actionLoadingId === eb.id} onClick={() => ouvrir(eb)} />
@@ -90,6 +89,7 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
+        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>
 

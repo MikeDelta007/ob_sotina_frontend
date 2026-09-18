@@ -6,8 +6,8 @@ import { DataTable } from 'primereact/datatable'
 import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
-import TraceButton from './TraceButton'
-import { fmt, directeurRequis, designationEb, type ExpressionBesoin, type StatutEB } from './types'
+import EtapesColonne from './EtapesColonne'
+import { fmt, designationEb, type ExpressionBesoin, type StatutEB } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -29,16 +29,6 @@ export default function ValideesTab() {
   )
 
   const statutBody = (eb: ExpressionBesoin) => <Tag severity={STATUT_SEVERITE[eb.statut]} value={STATUT_LABEL[eb.statut]} />
-
-  const validationsBody = (eb: ExpressionBesoin) => (
-    <div className="flex gap-1 flex-wrap justify-content-center">
-      <Tag severity={eb.validationCsa ? 'success' : eb.rejetCsa ? 'danger' : 'warning'}
-        value={`CSA ${eb.validationCsa ? '✓' : eb.rejetCsa ? '✗ rejeté' : '…'}`} />
-      {directeurRequis(eb.montantInitial) && (
-        <Tag severity={eb.validationDirecteur ? 'success' : 'warning'} value={`Directeur ${eb.validationDirecteur ? '✓' : '…'}`} />
-      )}
-    </div>
-  )
 
   const pieceBody = (eb: ExpressionBesoin) => {
     const url = eb.aFacturePreformat ? eb.urlPdfFactureProforma : eb.urlPdfDeclarationHonneur
@@ -74,9 +64,8 @@ export default function ValideesTab() {
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
-        <Column header="Validations" body={validationsBody} align="center" alignHeader="center" />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
-        <Column header="Traçabilité" body={(eb: ExpressionBesoin) => <TraceButton eb={eb} />} align="center" alignHeader="center" />
+        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
       </DataTable>
     </div>
   )
