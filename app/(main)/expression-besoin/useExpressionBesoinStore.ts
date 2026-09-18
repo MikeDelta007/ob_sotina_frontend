@@ -127,7 +127,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
         { headers: { 'Content-Type': 'multipart/form-data' } })
       await get().fetchMesExpressions()
     } catch (e: any) {
-      set({ error: e.response?.data?.message ?? 'Erreur lors de la création' })
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la création' })
       throw e
     } finally { set({ loading: false }) }
   },
@@ -139,7 +139,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
         { headers: { 'Content-Type': 'multipart/form-data' } })
       await get().fetchMesExpressions()
     } catch (e: any) {
-      set({ error: e.response?.data?.message ?? 'Erreur lors de la modification' })
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la modification' })
       throw e
     } finally { set({ loading: false }) }
   },
@@ -150,7 +150,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await axiosInstance.put(`expression-besoin/${id}/valider`, { quantitesAccordees })
       await get().fetchAValider()
     } catch (e: any) {
-      set({ error: e.response?.data?.message ?? 'Erreur lors de la validation' })
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la validation' })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },
@@ -161,7 +161,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await axiosInstance.put(`expression-besoin/${id}/rejeter`, { motif })
       await get().fetchAValider()
     } catch (e: any) {
-      set({ error: e.response?.data?.message ?? 'Erreur lors du rejet' })
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors du rejet' })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },
@@ -172,7 +172,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await axiosInstance.put(`expression-besoin/${id}/traiter`, { montantReel, beneficiaire })
       await get().fetchATraiter()
     } catch (e: any) {
-      set({ error: e.response?.data?.message ?? 'Erreur lors du traitement' })
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors du traitement' })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },
@@ -183,7 +183,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await axiosInstance.put(`expression-besoin/${id}/confirmer-satisfaction`)
       await get().fetchMesExpressions()
     } catch (e: any) {
-      set({ error: e.response?.data?.message ?? 'Erreur lors de la confirmation de satisfaction' })
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la confirmation de satisfaction' })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },

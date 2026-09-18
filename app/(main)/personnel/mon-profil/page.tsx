@@ -119,9 +119,9 @@ function MonProfilContent() {
             <label className="block text-sm text-color-secondary mb-1">Solde de congés disponible</label>
             <div className="font-medium">{p.soldeDisponible ?? p.soldeConges ?? '—'} jour(s)</div>
             {!!p.joursAutorisationCumules && (
-              <small className="text-color-secondary">
+              <div className="text-red-600 text-sm">
                 Dont {p.joursAutorisationCumules} j. d&apos;autorisation à régulariser au prochain congé
-              </small>
+              </div>
             )}
           </div>
         </div>

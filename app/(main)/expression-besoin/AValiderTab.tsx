@@ -55,7 +55,7 @@ export default function AValiderTab() {
       await valider(validerTarget.id, quantitesAccordees)
       fermerValidation()
     } catch (e: any) {
-      setErr(e?.response?.data?.message ?? 'Erreur lors de la validation')
+      setErr(e?.response?.data?.errorMessage ?? e?.response?.data?.message ?? 'Erreur lors de la validation')
     }
   }
 
