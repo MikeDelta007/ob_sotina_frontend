@@ -484,27 +484,90 @@ export const CandidatureService = {
   },
 
   // SOTINA
-  getEtiquettes(matiere, groupe) {
+  getEtiquettes(matiere, groupe, session) {
   return axiosInstance.get('/pdf/generate-etiquette-paysage', {
-    params: {
-      matiere: matiere,
-      groupe: groupe
-    },
-    responseType: 'blob'
+    params: { matiere, groupe, session },
+    responseType: 'blob',
+    validateStatus: (status) => status === 200 || status === 204 || status === 400
+  })
+    .then(async (response) => {
+      // ================= CAS 1 : AUCUNE DONNEE (204) =================
+      if (response.status === 204) {
+        console.log('Aucune étiquette à générer pour ces critères');
+        return null; // le composant appelant décide quoi afficher à l'utilisateur
+      }
+
+      // ================= CAS 1 bis : CRITERES INVALIDES (400) =================
+      // Le back refuse notamment TOUTES_LES_MATIERES sans groupe (1ER / 2ND).
+      if (response.status === 400) {
+        throw new Error(
+          'Critères invalides : la matière et le groupe (1ER ou 2ND) sont obligatoires.'
+        );
+      }
+
+      // ================= CAS 2 : LE BLOB EST EN FAIT UNE ERREUR JSON =================
+      // (arrive si le back plante après avoir déjà positionné le Content-Type
+      // en zip/pdf, ou si un proxy/handler renvoie du JSON malgré un statut 200)
+      const contentType = response.headers['content-type'] || '';
+      if (contentType.includes('application/json')) {
+        const text = await response.data.text();
+        let message = text;
+        try {
+          const json = JSON.parse(text);
+          message = json.message || json.error || text;
+        } catch {
+          // texte non-JSON, on garde tel quel
+        }
+        throw new Error(`Erreur serveur : ${message}`);
+      }
+
+      // ================= CAS 3 : TELECHARGEMENT NORMAL =================
+      // Une matière précise => un PDF. TOUTES_LES_MATIERES => un ZIP
+      // contenant un répertoire par matière, avec les étiquettes à l'intérieur.
+      const disposition = response.headers['content-disposition'];
+      const isZip = contentType.includes('zip');
+      const extension = isZip ? 'zip' : 'pdf';
+
+      // Le back streame le ZIP : s'il n'a finalement trouvé aucune étiquette,
+      // il a déjà envoyé les entêtes et renvoie une archive vide (22 octets).
+      if (isZip && response.data.size < 100) {
+        console.log('Aucune étiquette à générer pour ces critères (archive vide)');
+        return null;
+      }
+
+      let filename = isZip
+        ? `etiquettes_toutes_matieres_du_${groupe}_groupe.zip`
+        : `etiquettes_epreuve_${matiere}_du_${groupe}_groupe.${extension}`; // fallback
+
+      if (disposition) {
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      saveAs(response.data, filename);
+      console.log('Fichier téléchargé avec succès :', filename);
+      return filename;
     })
-      .then(response => {
-        const filename = `etiquettes_epreuve_${matiere}_du_${groupe}_groupe.pdf`;
-        saveAs(response.data, filename);
-        console.log('PDF téléchargé avec succès');
-        return filename;
-      })
-      .catch(error => {
-        console.error('Erreur lors du téléchargement du PDF :', error);
-        console.error('Code HTTP :', error.response?.status);
-        console.error('Message :', error.response?.data);
-        throw error;
-      });
-  },
+    .catch(async (error) => {
+      // Si l'erreur vient d'axios avec un blob JSON dans error.response.data
+      // (cas d'un vrai statut 4xx/5xx, différent du cas 2 ci-dessus)
+      if (error.response?.data instanceof Blob && error.response.data.type.includes('json')) {
+        const text = await error.response.data.text();
+        try {
+          const json = JSON.parse(text);
+          console.error('Erreur serveur :', json.message || json.error || text);
+        } catch {
+          console.error('Erreur serveur (non-JSON) :', text);
+        }
+      } else {
+        console.error('Erreur lors du téléchargement :', error);
+      }
+      console.error('Code HTTP :', error.response?.status);
+      throw error;
+    });
+},
 
   // SOTINA
   getEtiquettesCant() {

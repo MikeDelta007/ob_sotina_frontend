@@ -111,7 +111,6 @@ const CalendarDemo = () => {
 
     const [dialogVisible0, setDialogVisible0] = useState(false);
 
-    const [session, setSession] = useState(2024);
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
     const [resultat__, setResultat__] = useState([]);
@@ -130,8 +129,11 @@ const CalendarDemo = () => {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     const [regles, setRegles] = useState<RegleMatiere[]>([]);
+    //
     const [regle, setRegle] = useState('');
     const [groupe, setGroupe] = useState('');
+    const [session, setSession] = useState(0);
+
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -144,6 +146,11 @@ const CalendarDemo = () => {
         { label: 'AUTORISATION RECEPTION', value: 'AUTORISATION_RECEPTION' },
         { label: 'RECEPTIONNISTE', value: 'RECEPTIONNISTE' }
         //{ label: 'STATISTIQUES', value: 'STATISTIQUES' }
+    ];
+
+    const sessionOptions = [
+    { label: 'Normale', value: 1 },
+    { label: 'Remplacement', value: 2 }
     ];
 
     useEffect(() => {
@@ -444,31 +451,37 @@ const CalendarDemo = () => {
     };
 
     const exportAllEtiquettes = async () => {
+        const toutesLesMatieres = regle === 'TOUTES_LES_MATIERES';
+
         try {
             console.log("Début export...");
             setExporting(true);
-            setExportStep('📡 Récupération des données...');
 
-            // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getEtiquettes(regle, groupe);
+            // TOUTES_LES_MATIERES : le back génère un PDF par matière puis les
+            // assemble dans un ZIP (un répertoire par matière).
+            setExportStep(toutesLesMatieres
+                ? '📦 Génération des étiquettes de toutes les matières...'
+                : '📡 Génération des étiquettes...');
 
-            if (!allCandidats || allCandidats.length === 0) {
-                setExportStep('✅ Aucune donnée à exporter');
-                setTimeout(() => setExporting(false), 1000);
+            // 1. Appel API : récupère le fichier avec le groupe choisi
+            const fichier = await CandidatureService.getEtiquettes(regle, groupe, session);
+
+            // Le service renvoie null quand il n'y a aucune étiquette (204 ou archive vide)
+            if (!fichier) {
+                setExportStep('✅ Aucune étiquette à générer pour ces critères');
+                setTimeout(() => setExporting(false), 1500);
                 return;
             }
 
-            setExportStep('🔄 Préparation des données...');
-
-            setExportStep('💾 Génération du fichier Excel...');
-
-            setExportStep('✅ Export terminé avec succès !');
+            setExportStep(toutesLesMatieres
+                ? '✅ Archive ZIP téléchargée avec succès !'
+                : '✅ Export terminé avec succès !');
             setTimeout(() => setExporting(false), 1500);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("❌ Erreur export :", error);
-            setExportStep('❌ Erreur lors de l’export');
-            setTimeout(() => setExporting(false), 2000);
+            setExportStep(`❌ ${error?.message || 'Erreur lors de l’export'}`);
+            setTimeout(() => setExporting(false), 3000);
         }
     };
 
@@ -679,7 +692,12 @@ const CalendarDemo = () => {
             try {
                 setLoading(true);
                 const data = await ParametrageService.getAllRegles();
-                setRegles(data || []);
+                // Tri alphabétique sur l'intitulé (localeCompare 'fr' pour les accents)
+                // afin que le dropdown des matières sorte dans l'ordre.
+                const triees = [...(data || [])].sort((a: any, b: any) =>
+                    String(a?.code ?? '').localeCompare(String(b?.code ?? ''), 'fr', { sensitivity: 'base' })
+                );
+                setRegles(triees);
             } catch (e) {
                 toast.current?.show({
                     severity: 'error',
@@ -776,7 +794,7 @@ const CalendarDemo = () => {
                     type="button"
                     icon="pi pi-tag"
                     severity="help"
-                    label="Exporter les etiquettes"
+                    label="Exporter les étiquettes"
                     onClick={() => setDialogVisible_(true)}
                     className="p-button-primary"
                 />
@@ -785,7 +803,7 @@ const CalendarDemo = () => {
                     type="button"
                     icon="pi pi-file-excel"
                     severity="success"
-                    label="Exporter le chiffrage"
+                    label="Exporter les stats de tirage"
                     onClick={() => setDialogVisible(true)}
                     className="p-button-primary"
                 />
@@ -799,10 +817,10 @@ const CalendarDemo = () => {
                     className="p-button-primary"
                 />
                 <Button
-                    severity="info"
+                    severity="contrast"
                     onClick={exportAllEtCant}
                     icon="pi pi-download"
-                    label="Générez les etiquettes de cantine"
+                    label="Générer les etiquettes de cantine"
                     className="p-button-primary"
                 />
             </div>
@@ -2041,56 +2059,65 @@ const CalendarDemo = () => {
                                         </div>
                         </Dialog>
 
+                        <Dialog
+                            header="Export des étiquettes"
+                            visible={dialogVisible_}
+                            style={{ width: '520px' }}
+                            footer={dialogFooter_}
+                            onHide={() => setDialogVisible_(false)}
+                        >
+                            <div className="p-fluid">
 
-                         <Dialog
-                                        header="Export des etiquettes"
-                                        visible={dialogVisible_}
-                                        style={{ width: '520px' }}
-                                        footer={dialogFooter_}
-                                        onHide={() => setDialogVisible_(false)}
-                                    >
-                                        <div className="p-fluid">
-                        
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Liste des Matières</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            filter
+                                            value={regle}
+                                            optionLabel="code"
+                                            optionValue="code"
+                                            options={[
+                                                { code: 'TOUTES_LES_MATIERES' },
+                                                ...regles
+                                            ]}
+                                            onChange={(e) => setRegle(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
 
-                                            <div className="field grid">
-                                                <label className="col-4 mb-0">Liste des Matières</label>
-                                                <div className="col-5">
-                                                    <Dropdown
-                                                        filter
-                                                        value={regle}
-                                                        optionLabel="code"
-                                                        optionValue="code"
-                                                        options={regles}
-                                                        onChange={(e) =>
-                                                            setRegle(e.value)
-                                                        }
-                                                        placeholder="Sélectionner"
-                                                    />
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Groupe</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            value={groupe}
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            options={typeOptions}
+                                            onChange={(e) => setGroupe(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
 
-                                                    
-                                                </div>
-                                            </div>
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Session</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            value={session}
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            options={[
+                                                { label: 'Normale', value: 1 },
+                                                { label: 'Remplacement', value: 2 }
+                                            ]}
+                                            onChange={(e) => setSession(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
 
-                                            <div className="field grid">
-                                                <label className="col-4 mb-0">Groupe</label>
-                                                <div className="col-5">
-                                                    <Dropdown
-                                                        value={groupe}
-                                                        optionLabel="label"
-                                                        optionValue="value"
-                                                        options={typeOptions}
-                                                        onChange={(e) =>
-                                                            setGroupe(e.value)
-                                                        }
-                                                        placeholder="Sélectionner"
-                                                    />
-
-                                                    
-                                                </div>
-                                            </div>
-
-                                          
-                                        </div>
+                            </div>
                         </Dialog>
 
 
