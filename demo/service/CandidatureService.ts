@@ -1,4 +1,5 @@
 import axiosInstance from "@/app/api/axiosInstance";
+import { API_BASE_URL } from "@/app/api/apiConfig";
 import { Candidat } from "@/types/candidat";
 import { SujetCandidatsDTO } from "@/types/sujetToCandidats";
 import { saveAs } from 'file-saver';
@@ -485,6 +486,34 @@ export const CandidatureService = {
 
   // SOTINA
   getEtiquettes(matiere, groupe, session) {
+  // TOUTES_LES_MATIERES => gros ZIP : on le laisse télécharger par le navigateur lui-même.
+  // Reçu par XHR/axios en blob, Chrome le garde en mémoire et coupe la réponse en cours de
+  // route (net::ERR_FAILED alors que le back a répondu 200). Un téléchargement natif est
+  // écrit directement sur disque. L'endpoint /pdf/** est ouvert : pas de jeton à envoyer.
+  if (matiere === 'TOUTES_LES_MATIERES') {
+    if (groupe !== '1ER' && groupe !== '2ND') {
+      return Promise.reject(
+        new Error('Critères invalides : la matière et le groupe (1ER ou 2ND) sont obligatoires.')
+      );
+    }
+
+    const url = `${API_BASE_URL}pdf/generate-etiquette-paysage?` + new URLSearchParams({
+      matiere,
+      groupe,
+      session: String(session ?? 0),
+    }).toString();
+
+    const lien = document.createElement('a');
+    lien.href = url;
+    lien.download = `etiquettes_toutes_matieres_${groupe}_groupe.zip`; // nom réel fourni par le back
+    lien.style.display = 'none';
+    document.body.appendChild(lien);
+    lien.click();
+    document.body.removeChild(lien);
+
+    return Promise.resolve(lien.download);
+  }
+
   return axiosInstance.get('/pdf/generate-etiquette-paysage', {
     params: { matiere, groupe, session },
     responseType: 'blob',
@@ -570,9 +599,9 @@ export const CandidatureService = {
 },
 
   // SOTINA
-  getEtiquettesCant() {
+  getEtiquettesCant(session) {
   return axiosInstance.get('/pdf/generate-etiquetteCantine-paysage', {
-    params: {},
+    params: { session }, // 1 = SESSION NORMALE, 2 = SESSION DE REMPLACEMENT
     responseType: 'blob'
     })
       .then(response => {
@@ -609,8 +638,9 @@ export const CandidatureService = {
   },
 
   // SOTINA
-  getBLSujets(jurysExclus) {
+  getBLSujets(jurysExclus, session) {
     return axiosInstance.post('/pdf/generate-bdr', jurysExclus, {
+      params: { session }, // 1 = SESSION NORMALE, 2 = SESSION DE REMPLACEMENT (titre du bordereau)
       responseType: 'blob'
     })
       .then(response => {

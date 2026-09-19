@@ -111,6 +111,8 @@ const CalendarDemo = () => {
 
     const [dialogVisible0, setDialogVisible0] = useState(false);
 
+    const [dialogVisibleCant, setDialogVisibleCant] = useState(false);
+
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
     const [resultat__, setResultat__] = useState([]);
@@ -379,13 +381,22 @@ const CalendarDemo = () => {
     };
 
 
+    // Nom de fichier / répertoire valide dans un ZIP (mêmes règles que le back pour les étiquettes)
+    const nomSur = (nom: string) =>
+        (nom ?? '').toString().trim().replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ') || 'sans_nom';
+
     const exportAllCandidats = async () => {
+    const toutesLesMatieres = regle === 'TOUTES_LES_MATIERES';
+
     try {
         console.log("Début export...");
         setExporting(true);
-        setExportStep('📡 Récupération des données...');
+        setExportStep(toutesLesMatieres
+            ? '📦 Récupération des données de toutes les matières...'
+            : '📡 Récupération des données...');
 
         // 1. Appel API : récupère les données avec le groupe choisi
+        // (TOUTES_LES_MATIERES : le back boucle sur toutes les matières du groupe)
         const allCandidats = await ParametrageService.getAllDataCP(regle, groupe);
 
         if (!allCandidats || allCandidats.length === 0) {
@@ -399,52 +410,72 @@ const CalendarDemo = () => {
         // 2. Import dynamique XLSX
         const { utils, write } = await import('xlsx');
 
-        // 3. Transformation des données
-        const worksheetData = [];
+        const ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
 
-        // Boucle sur toutes les lignes récupérées
-        for (let i = 0; i < allCandidats.length; i++) {
-            const row = allCandidats[i];
-            //let totalEffectif = 0;
-            //let totalNt = 0;
+        const versLigne = (row: any) => ({
+            "Matière": row.matiere,
+            "Session": row.session,
+            "Jury": row.jury,
+            "Centre d'Ecrit": row.centreEcrit,
+            "Académie": row.academia,
+            "Effectif": row.effectif,
+            [ntTitle]: row.effectif_tirage,
+        });
 
-            // Objet de base avec les infos principales
-            let ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
-
-            // let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) + 1 : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
-
-            //totalEffectif += Math.round(row.effectif);
-            //totalNt += ntValue;
-
-            let data = {
-                "Matière": row.matiere,
-                "Session": row.session,
-                "Jury": row.jury,
-                "Centre d'Ecrit": row.centreEcrit,
-                "Académie": row.academia,
-                "Effectif": row.effectif,
-                [ntTitle]: row.effectif_tirage,
-            };
-
-            worksheetData.push(data);
-        }
+        // Un classeur Excel (une feuille) à partir des lignes d'une matière
+        const genererExcel = (lignes: any[], nomFeuille: string) => {
+            const worksheet = utils.json_to_sheet(lignes.map(versLigne));
+            const workbook = utils.book_new();
+            // Excel limite le nom d'une feuille à 31 caractères
+            utils.book_append_sheet(workbook, worksheet, nomFeuille.substring(0, 31));
+            return write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
+        };
 
         setExportStep('💾 Génération du fichier Excel...');
 
-        // 4. Création du workbook
-        const worksheet = utils.json_to_sheet(worksheetData);
-        const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, `${regle}_${groupe}_GRP`);
+        if (!toutesLesMatieres) {
+            // 3a. Une matière => un fichier Excel
+            const excelBuffer = genererExcel(allCandidats, `${regle}_${groupe}_GRP`);
+            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `Export_repartition_tirage_${regle}_${groupe}_GROUPE.xlsx`);
+        } else {
+            // 3b. Toutes les matières => un ZIP : un répertoire par matière (intitulé),
+            // contenant l'Excel de la répartition nommé d'après le code de la matière.
+            // Le back renvoie les matières déjà triées : Map conserve l'ordre d'insertion.
+            const parMatiere = new Map<string, any[]>();
+            for (const row of allCandidats) {
+                const code = row.matiere;
+                if (!parMatiere.has(code)) parMatiere.set(code, []);
+                parMatiere.get(code)!.push(row);
+            }
 
-        // 5. Génération du fichier
-        const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
-        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `Export_repartition_tirage_${regle}_${groupe}_GROUPE.xlsx`);
+            const JSZip = (await import('jszip')).default;
+            const zip = new JSZip();
+            const cheminsUtilises = new Set<string>();
+
+            parMatiere.forEach((lignes, code) => {
+                const repertoire = nomSur(lignes[0]?.libelle || code);
+                let chemin = `${repertoire}/${nomSur(code)}_${groupe}_groupe.xlsx`;
+
+                // Deux matières peuvent porter le même code/intitulé : on évite d'écraser l'entrée
+                for (let suffixe = 2; cheminsUtilises.has(chemin); suffixe++) {
+                    chemin = `${repertoire}/${nomSur(code)}_${groupe}_groupe_${suffixe}.xlsx`;
+                }
+                cheminsUtilises.add(chemin);
+
+                zip.file(chemin, genererExcel(lignes, `${code}_${groupe}_GRP`));
+            });
+
+            setExportStep('📦 Création de l’archive ZIP...');
+            const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }) // les .xlsx sont déjà compressés;
+            saveAs(zipBlob, `Export_repartition_tirage_toutes_matieres_${groupe}_GROUPE.zip`);
+        }
 
         setExportStep('✅ Export terminé avec succès !');
         setTimeout(() => setExporting(false), 1500);
 
     } catch (error) {
+        console.error("❌ Erreur export :", error);
         setExportStep('❌ Erreur lors de l’export');
         setTimeout(() => setExporting(false), 2000);
     }
@@ -474,9 +505,9 @@ const CalendarDemo = () => {
             }
 
             setExportStep(toutesLesMatieres
-                ? '✅ Archive ZIP téléchargée avec succès !'
+                ? '✅ Génération lancée : le ZIP se téléchargera dans le navigateur une fois prêt.'
                 : '✅ Export terminé avec succès !');
-            setTimeout(() => setExporting(false), 1500);
+            setTimeout(() => setExporting(false), toutesLesMatieres ? 4000 : 1500);
 
         } catch (error: any) {
             console.error("❌ Erreur export :", error);
@@ -487,13 +518,23 @@ const CalendarDemo = () => {
 
 
     const exportAllEtCant = async () => {
+        // La session conditionne le titre des étiquettes : elle est obligatoire
+        if (session !== 1 && session !== 2) {
+            setExporting(true);
+            setExportStep('⚠️ Veuillez choisir la session (Normale ou Remplacement)');
+            setTimeout(() => setExporting(false), 2500);
+            return;
+        }
+
+        setDialogVisibleCant(false);
+
         try {
             console.log("Début export...");
             setExporting(true);
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getEtiquettesCant();
+            const allCandidats = await CandidatureService.getEtiquettesCant(session);
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -517,13 +558,21 @@ const CalendarDemo = () => {
 
 
     const exportAllBLSujet = async () => {
+        // La session conditionne le titre du bordereau : elle est obligatoire
+        if (session !== 1 && session !== 2) {
+            setExporting(true);
+            setExportStep('⚠️ Veuillez choisir la session (Normale ou Remplacement)');
+            setTimeout(() => setExporting(false), 2500);
+            return;
+        }
+
         try {
             console.log("Début export...");
             setExporting(true);
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getBLSujets(selectedJurys);
+            const allCandidats = await CandidatureService.getBLSujets(selectedJurys, session);
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -551,6 +600,13 @@ const CalendarDemo = () => {
             <>
                 <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible(false)} />
                 <Button label="Valider" icon="pi pi-check" onClick={exportAllCandidats} />
+            </>
+    );
+
+    const dialogFooterCant = (
+            <>
+                <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisibleCant(false)} />
+                <Button label="Valider" icon="pi pi-check" onClick={exportAllEtCant} />
             </>
     );
 
@@ -818,7 +874,7 @@ const CalendarDemo = () => {
                 />
                 <Button
                     severity="contrast"
-                    onClick={exportAllEtCant}
+                    onClick={() => setDialogVisibleCant(true)}
                     icon="pi pi-download"
                     label="Générer les etiquettes de cantine"
                     className="p-button-primary"
@@ -2026,7 +2082,10 @@ const CalendarDemo = () => {
                                                         value={regle}
                                                         optionLabel="code"
                                                         optionValue="code"
-                                                        options={regles}
+                                                        options={[
+                                                            { code: 'TOUTES_LES_MATIERES' },
+                                                            ...regles
+                                                        ]}
                                                         onChange={(e) =>
                                                             setRegle(e.value)
                                                         }
@@ -2122,6 +2181,30 @@ const CalendarDemo = () => {
 
 
                         <Dialog
+                            header="Export des étiquettes de cantine"
+                            visible={dialogVisibleCant}
+                            style={{ width: '520px' }}
+                            footer={dialogFooterCant}
+                            onHide={() => setDialogVisibleCant(false)}
+                        >
+                            <div className="p-fluid">
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Session</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            value={session}
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            options={sessionOptions}
+                                            onChange={(e) => setSession(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </Dialog>
+
+                        <Dialog
                                         header="Export des bordereaux de convoyage de sujets"
                                         visible={dialogVisible0}
                                         style={{ width: '520px' }}
@@ -2148,6 +2231,20 @@ const CalendarDemo = () => {
                                                         display="chip"
                                                         className="w-full"
                                                         filterPlaceholder="Rechercher un jury..."
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Session</label>
+                                                <div className="col-5">
+                                                    <Dropdown
+                                                        value={session}
+                                                        optionLabel="label"
+                                                        optionValue="value"
+                                                        options={sessionOptions}
+                                                        onChange={(e) => setSession(e.value)}
+                                                        placeholder="Sélectionner"
                                                     />
                                                 </div>
                                             </div>

@@ -818,7 +818,7 @@ export const ParametrageService = {
           }
       })
       .then(response => {
-          console.log('Données reçues:', response.data);
+          console.log('Lignes reçues:', response.data?.length);
           return response.data; // retourne les données
       })
       .catch(error => {
