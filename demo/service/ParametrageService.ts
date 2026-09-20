@@ -654,7 +654,7 @@ export const ParametrageService = {
   },
 
 
-  uploadFileCGS(file) 
+  uploadFileCGS(file)
   {
     const formData = new FormData();
     formData.append('file', file);
@@ -669,6 +669,44 @@ export const ParametrageService = {
         console.error('Code HTTP:', error.response?.status);
         console.error('Message:', error.response?.data);
         return null; // ou {} ou throw error selon le choix
+      });
+  },
+
+  // Import des clés (PJ / CC) pour la répartition sur le centre d'écrit principal
+  importClesCEP(file)
+  {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return axiosInstance.post(`/import-data/import-cles`, formData, {headers: {'Content-Type': 'multipart/form-data'}})
+      .then(response => {
+        console.log('Clés importées avec succès:', response.data);
+        return response.data;
+      })
+      .catch(error => {
+        console.error('Erreur lors de l’import des clés :', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        throw error;
+      });
+  },
+
+  // Import des clés (PJ / CC) pour la répartition sur le centre d'écrit secondaire
+  importClesCS(file)
+  {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return axiosInstance.post(`/import-data/import-cles-CS`, formData, {headers: {'Content-Type': 'multipart/form-data'}})
+      .then(response => {
+        console.log('Clés importées avec succès:', response.data);
+        return response.data;
+      })
+      .catch(error => {
+        console.error('Erreur lors de l’import des clés :', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        throw error;
       });
   },
 
@@ -759,6 +797,19 @@ export const ParametrageService = {
         console.error('Message:', error.response?.data);
         return []; // on peut retourner un tableau vide pour éviter un crash
     });
+  },
+
+  getLastUpdateDataCandidats() {
+    return axiosInstance.get('/import-data/data-candidats/last-update')
+      .then(response => {
+        return response.data?.lastUpdated ?? null;
+      })
+      .catch(error => {
+        console.error('Erreur Axios:', error);
+        console.error('Code HTTP:', error.response?.status);
+        console.error('Message:', error.response?.data);
+        return null;
+      });
   },
 
   getFusionRep() {

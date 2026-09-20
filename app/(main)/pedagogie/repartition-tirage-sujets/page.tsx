@@ -136,6 +136,16 @@ const CalendarDemo = () => {
     const [groupe, setGroupe] = useState('');
     const [session, setSession] = useState(0);
 
+    // Import des clés (PJ / CC)
+    const [clesDialogVisible, setClesDialogVisible] = useState(false);
+    const [fileClesCEP, setFileClesCEP] = useState(null);
+    const [fileClesCS, setFileClesCS] = useState(null);
+    const [uploadingCles, setUploadingCles] = useState(false);
+    const [errorClesCEP, setErrorClesCEP] = useState('');
+    const [errorClesCS, setErrorClesCS] = useState('');
+
+    const [lastUpdateFichierA, setLastUpdateFichierA] = useState(null);
+
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -175,6 +185,12 @@ const CalendarDemo = () => {
     useEffect(() => {
         ParametrageService.getInfoUsers().then((response) => {
             setInfosUsers(response);
+        });
+    }, []);
+
+    useEffect(() => {
+        ParametrageService.getLastUpdateDataCandidats().then((date) => {
+            setLastUpdateFichierA(date);
         });
     }, []);
 
@@ -384,6 +400,15 @@ const CalendarDemo = () => {
     // Nom de fichier / répertoire valide dans un ZIP (mêmes règles que le back pour les étiquettes)
     const nomSur = (nom: string) =>
         (nom ?? '').toString().trim().replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ') || 'sans_nom';
+
+    const formatDateHeure = (isoDateStr: string) => {
+        if (!isoDateStr) return '';
+        const date = new Date(isoDateStr);
+        if (isNaN(date.getTime())) return '';
+        const datePart = date.toLocaleDateString('fr-FR');
+        const heurePart = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return `${datePart} à ${heurePart}`;
+    };
 
     const exportAllCandidats = async () => {
     const toutesLesMatieres = regle === 'TOUTES_LES_MATIERES';
@@ -835,6 +860,11 @@ const CalendarDemo = () => {
 
             <div>
                 <h3>Gestion de la répartition des tirages</h3>
+                {lastUpdateFichierA && (
+                    <div className="text-lg text-red-500 mb-2">
+                        <b>Le fichier "A" a été mis à jour le : {formatDateHeure(lastUpdateFichierA)}</b>
+                    </div>
+                )}
             </div>
 
             <div className="flex align-items-center gap-1 flex-wrap">
@@ -877,6 +907,15 @@ const CalendarDemo = () => {
                     onClick={() => setDialogVisibleCant(true)}
                     icon="pi pi-download"
                     label="Générer les etiquettes de cantine"
+                    className="p-button-primary"
+                />
+
+                <Button
+                    type="button"
+                    icon="pi pi-key"
+                    severity="secondary"
+                    label="Importer les clés de malle"
+                    onClick={() => setClesDialogVisible(true)}
                     className="p-button-primary"
                 />
             </div>
@@ -1570,7 +1609,55 @@ const CalendarDemo = () => {
             setLoading(false);
             setResultImport(message);
             toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Fichier chargé avec succès', life: 4000 });
-            
+
+        }
+    };
+
+    const hideClesDialog = () => {
+        setClesDialogVisible(false);
+        setFileClesCEP(null);
+        setFileClesCS(null);
+        setErrorClesCEP('');
+        setErrorClesCS('');
+    };
+
+    const handleFileChangeClesCEP = (e) => {
+        setFileClesCEP(e.files?.[0] ?? null);
+        setErrorClesCEP('');
+    };
+
+    const handleFileChangeClesCS = (e) => {
+        setFileClesCS(e.files?.[0] ?? null);
+        setErrorClesCS('');
+    };
+
+    const handleUploadCles = async () => {
+        if (!fileClesCEP || !fileClesCS) {
+            const msg = "⚠️ Veuillez charger les deux fichiers (CEP et CS) avant de lancer l'import.";
+            if (!fileClesCEP) setErrorClesCEP(msg);
+            if (!fileClesCS) setErrorClesCS(msg);
+            return;
+        }
+
+        setUploadingCles(true);
+        setErrorClesCEP('');
+        setErrorClesCS('');
+
+        try {
+            await Promise.all([
+                ParametrageService.importClesCEP(fileClesCEP),
+                ParametrageService.importClesCS(fileClesCS)
+            ]);
+            toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Clés (CEP et CS) importées avec succès', life: 4000 });
+            hideClesDialog();
+            await loadData()
+        } 
+        catch (error)
+        {
+            toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: "Erreur lors de l'import des clés", life: 4000 });
+        } 
+        finally {
+            setUploadingCles(false);
         }
     };
 
@@ -1844,8 +1931,61 @@ const CalendarDemo = () => {
                             </div>
                         </Dialog>
 
-                        <Dialog 
-                            visible={productDialog2} 
+                        <Dialog visible={clesDialogVisible} style={{ width: '900px' }} header="Import des clés (PJ / CC)" modal className="p-fluid" onHide={hideClesDialog}>
+                            <div style={{ color: 'red' }}>
+                                <span><b>Mention utile : </b>Veuillez charger exclusivement un fichier Excel (.xls, .xlsx).</span>
+                                <br />
+                                <span>Le fichier devra contenir, dans l&apos;ordre : la colonne Jury (pour le centre d&apos;écrit principal uniquement), le Centre d&apos;Ecrit, puis les colonnes Clé PJ, Clé CC et Groupe.</span>
+                            </div>
+
+                            <div className="grid mt-3">
+                                <div className="col-6">
+                                    <h5>Clés de malle des centres d&apos;Ecrit Principal</h5>
+                                    <FileUpload
+                                        mode="basic"
+                                        accept=".xls, .xlsx"
+                                        customUpload
+                                        name="xlsClesCEP"
+                                        chooseLabel="Charger le fichier excel (Clés malle CEP)"
+                                        onSelect={handleFileChangeClesCEP}
+                                        onClear={() => setFileClesCEP(null)}
+                                        className="mr-2"
+                                    />
+                                    {fileClesCEP && <div className="mt-2"><i className="pi pi-file-excel mr-1" />{fileClesCEP.name}</div>}
+                                    {errorClesCEP && <div style={{ color: 'red', marginTop: '10px' }}>{errorClesCEP}</div>}
+                                </div>
+
+                                <div className="col-6">
+                                    <h5>Clés de malle des centres d&apos;Ecrit Secondaire</h5>
+                                    <FileUpload
+                                        mode="basic"
+                                        accept=".xls, .xlsx"
+                                        customUpload
+                                        name="xlsClesCS"
+                                        chooseLabel="Charger le fichier excel (Clés malle CES)"
+                                        onSelect={handleFileChangeClesCS}
+                                        onClear={() => setFileClesCS(null)}
+                                        className="mr-2"
+                                    />
+                                    {fileClesCS && <div className="mt-2"><i className="pi pi-file-excel mr-1" />{fileClesCS.name}</div>}
+                                    {errorClesCS && <div style={{ color: 'red', marginTop: '10px' }}>{errorClesCS}</div>}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-content-center mt-4">
+                                <Button
+                                    label="Importer les clés"
+                                    icon="pi pi-upload"
+                                    className="p-button-success"
+                                    loading={uploadingCles}
+                                    disabled={!fileClesCEP || !fileClesCS || uploadingCles}
+                                    onClick={handleUploadCles}
+                                />
+                            </div>
+                        </Dialog>
+
+                        <Dialog
+                            visible={productDialog2}
                             style={{ width: '65%', maxHeight: '95vh' }} 
                             header="Panneau d'édition d'un accés" 
                             modal 

@@ -754,13 +754,13 @@ const CalendarDemo = () => {
 
                         <Dialog visible={codifDialog} style={{ width: '1000px' }} header="Chargement des données" modal className="p-fluid" onHide={hideDialog4}>
                             <div style={{ color: 'red' }}>
-                                <span><b>Mention utile 1 : </b>Veuillez charger exclusivement un fichier Excel.</span>
+                                <span><b>Mention utile 1 : </b>Veuillez charger exclusivement les données des candidats en fonction du gabarit indiqué.</span>
                             </div>
                             <div className="col-md-6">
-                                <FileUpload mode="basic" accept=".xls, .xlsx" customUpload name="xls" chooseLabel="Charger le fichier excel" onSelect={handleFileChange} className="mr-2 mt-5" />
+                                <FileUpload mode="basic" accept=".xls, .xlsx" customUpload name="xls" chooseLabel="Charger le fichier A" onSelect={handleFileChange} onClear={() => setFile(null)} className="mr-2 mt-5" />
                                 {errorMessage && <div style={{ color: 'red', marginTop: '10px' }}>{errorMessage}</div>}
 
-                                <Button label="Enregistrer les données" icon="pi pi-upload" className="p-button-success mt-2" onClick={handleUpload} />
+                                <Button label="Enregistrer les données" icon="pi pi-upload" className="p-button-success mt-2" disabled={!file} onClick={handleUpload} />
                             </div>
                         </Dialog>
 
@@ -776,7 +776,7 @@ const CalendarDemo = () => {
                                 {loading && (
                                     <div className="flex flex-column justify-content-center align-items-center" style={{ height: '100px' }}>
                                         <ProgressSpinner style={{ width: '50px', height: '50px' }} strokeWidth="6" />
-                                        <span>Les données sont en cours de chargement...</span>
+                                        <span>Veuillez patienter, les données sont en cours de chargement...</span>
                                     </div>
                                 )}
 
@@ -784,7 +784,12 @@ const CalendarDemo = () => {
                                     <div className="flex flex-column align-items-center">
                                         <span>
                                             <b style={{ color: "green" }}>
-                                                {resultImport}
+                                                {String(resultImport).split('<br>').map((ligne, i) => (
+                                                    <React.Fragment key={i}>
+                                                        {i > 0 && <br />}
+                                                        {ligne}
+                                                    </React.Fragment>
+                                                ))}
                                             </b>
                                         </span>
                                         <Button 
