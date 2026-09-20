@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -12,6 +12,8 @@ import { ProgressSpinner } from 'primereact/progressspinner';
 import { classNames } from 'primereact/utils';
 import { ParametrageService } from '@/demo/service/ParametrageService';
 import { MultiSelect } from 'primereact/multiselect';
+import { UserContext } from '@/app/userContext';
+import ProtectedRoute from '@/layout/ProtectedRoute';
 
 interface RegleMatiere {
     id?: string;
@@ -29,6 +31,9 @@ interface RegleMatiere {
 
 const PlanningRegleMatiere = () => {
     const toast = useRef<any>(null);
+    const { user } = useContext(UserContext);
+    // Seul l'ADMIN peut modifier ; PEDAGOGIE et PLANIFICATION consultent en lecture seule
+    const lectureSeule = user?.profil?.name !== 'ADMIN';
 
     const emptyRegle: RegleMatiere = {
         code: '',
@@ -51,6 +56,24 @@ const PlanningRegleMatiere = () => {
     const [loading, setLoading] = useState(true);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
+
+    // Une matière ne doit apparaître qu'une seule fois dans « Matière concernée »
+    // (insensible à la casse, aux accents et aux espaces superflus)
+    const matieresUniques = useMemo(() => {
+        const cle = (nom: string) =>
+            (nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+        const vues = new Set<string>();
+        return (matieres || [])
+            .filter((m: any) => {
+                const k = cle(m?.name);
+                if (!k || vues.has(k)) return false;
+                vues.add(k);
+                return true;
+            })
+            .sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr'));
+    }, [matieres]);
+
+    const champVisible = regle.type === 'OPTION' || regle.type === 'FACULTATIVE';
 
     const typeOptions = [
         { label: 'OBLIGATOIRE', value: 'SERIE' },
@@ -167,17 +190,20 @@ const PlanningRegleMatiere = () => {
 
         console.log(regle);
 
+        if (lectureSeule) return;
         if (!regle.code) return;
+
+        const payload = { ...regle, champ: champVisible ? regle.champ : '' };
 
         try {
             if (regle.id) {
-                await ParametrageService.updateRegle(regle.id, regle);
+                await ParametrageService.updateRegle(regle.id, payload);
                 toast.current.show({
                     severity: 'success',
                     summary: 'Mis à jour'
                 });
             } else {
-                await ParametrageService.createRegle(regle);
+                await ParametrageService.createRegle(payload);
                 toast.current.show({
                     severity: 'success',
                     summary: 'Créé'
@@ -196,14 +222,19 @@ const PlanningRegleMatiere = () => {
     };
 
     // 🔹 ACTIONS COLUMN
-    const actionBody = (row: RegleMatiere) => (
-        <div className="flex gap-2">
-            <Button icon="pi pi-pencil" rounded onClick={() => editRegle(row)} />
-            <Button icon="pi pi-trash" severity="danger" rounded onClick={() => deleteRegle(row)} />
-        </div>
-    );
+    const actionBody = (row: RegleMatiere) =>
+        lectureSeule ? (
+            <Button icon="pi pi-eye" rounded severity="info" tooltip="Consulter" tooltipOptions={{ position: 'bottom' }} onClick={() => editRegle(row)} />
+        ) : (
+            <div className="flex gap-2">
+                <Button icon="pi pi-pencil" rounded onClick={() => editRegle(row)} />
+                <Button icon="pi pi-trash" severity="danger" rounded onClick={() => deleteRegle(row)} />
+            </div>
+        );
 
-    const dialogFooter = (
+    const dialogFooter = lectureSeule ? (
+        <Button label="Fermer" icon="pi pi-times" outlined onClick={() => setDialogVisible(false)} />
+    ) : (
         <>
             <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible(false)} />
             <Button label="Enregistrer" icon="pi pi-check" onClick={saveRegle} />
@@ -217,8 +248,8 @@ const PlanningRegleMatiere = () => {
             <Toast ref={toast} />
 
             <div className="flex justify-content-between mb-3">
-                <h3>Gestion des règles matières & Programmation du calendrier au BAC</h3>
-                <Button label="Nouvelle règle" icon="pi pi-plus" onClick={openNew} />
+                <h3>{lectureSeule ? 'Règles matières & Programmation du calendrier au BAC (lecture seule)' : 'Gestion des règles matières & Programmation du calendrier au BAC'}</h3>
+                {!lectureSeule && <Button label="Nouvelle règle" icon="pi pi-plus" onClick={openNew} />}
             </div>
 
             <DataTable value={regles} paginator rows={10} responsiveLayout="scroll"
@@ -241,7 +272,7 @@ const PlanningRegleMatiere = () => {
             </DataTable>
 
             <Dialog
-                header="Règle matière"
+                header={lectureSeule ? 'Règle matière (lecture seule)' : 'Règle matière'}
                 visible={dialogVisible}
                 style={{ width: '520px' }}
                 footer={dialogFooter}
@@ -259,8 +290,14 @@ const PlanningRegleMatiere = () => {
                             <Dropdown
                                 value={regle.type}
                                 options={typeOptions}
+                                disabled={lectureSeule}
                                 onChange={(e) =>
-                                    setRegle(prev => ({ ...prev, type: e.value }))
+                                    setRegle(prev => ({
+                                        ...prev,
+                                        type: e.value,
+                                        // le champ n'existe que pour OPTIONNELLE / FACULTATIVE
+                                        champ: e.value === 'OPTION' || e.value === 'FACULTATIVE' ? prev.champ : ''
+                                    }))
                                 }
                                 placeholder="Sélectionner"
                             />
@@ -274,6 +311,7 @@ const PlanningRegleMatiere = () => {
                             <div className="col-12">
                                 <MultiSelect
                                     value={regle.series}
+                                    disabled={lectureSeule}
                                     options={series}
                                     optionLabel="code"
                                     optionValue="code"
@@ -291,13 +329,14 @@ const PlanningRegleMatiere = () => {
                         </div>
                     )}
 
-                    {/* OPTION */}
-                    
+                    {/* Champ concerné : uniquement pour OPTIONNELLE / FACULTATIVE */}
+                    {champVisible && (
                             <div className="field grid">
                                 <label className="col-4 mb-0">Champ concerné</label>
                                 <div className="col-8">
                                     <Dropdown
                                         showClear
+                                        disabled={lectureSeule}
                                         value={regle.champ}
                                         options={champs}
                                         onChange={(e) =>
@@ -307,6 +346,7 @@ const PlanningRegleMatiere = () => {
                                     />
                                 </div>
                             </div>
+                    )}
 
                             <div className="field grid">
                                 <label className="col-4 mb-0">Matière concernée</label>
@@ -314,8 +354,9 @@ const PlanningRegleMatiere = () => {
                                     <Dropdown
                                         showClear
                                         filter
+                                        disabled={lectureSeule}
                                         value={regle.valeur}
-                                        options={matieres}
+                                        options={matieresUniques}
                                         optionLabel="name"
                                         optionValue="name"
                                         onChange={(e) =>
@@ -331,6 +372,7 @@ const PlanningRegleMatiere = () => {
                                 <label className="col-4 mb-0">Code Répartition</label>
                                 <div className="col-5">
                                     <InputText
+                                        disabled={lectureSeule}
                                         value={regle.code}
                                         onChange={(e) =>
                                             setRegle(prev => ({ ...prev, code: e.target.value }))
@@ -344,6 +386,7 @@ const PlanningRegleMatiere = () => {
                         <label className="col-4 mb-0">Groupe concerné</label>
                         <div className="col-8">
                             <Dropdown
+                                disabled={lectureSeule}
                                 value={regle.groupe}
                                 options={groupes}
                                 onChange={(e) =>
@@ -361,6 +404,7 @@ const PlanningRegleMatiere = () => {
                             <div className="field col-6">
                                 <label>Date 1</label>
                                 <InputText
+                                    disabled={lectureSeule}
                                     value={regle.date1}
                                     onChange={(e) =>
                                         setRegle(prev => ({ ...prev, date1: e.target.value }))
@@ -371,6 +415,7 @@ const PlanningRegleMatiere = () => {
                             <div className="field col-6">
                                 <label>Heure 1</label>
                                 <InputText
+                                    disabled={lectureSeule}
                                     value={regle.heure1}
                                     onChange={(e) =>
                                         setRegle(prev => ({ ...prev, heure1: e.target.value }))
@@ -386,6 +431,7 @@ const PlanningRegleMatiere = () => {
                             <div className="field col-6">
                                 <label>Date 2</label>
                                 <InputText
+                                    disabled={lectureSeule}
                                     value={regle.date2}
                                     onChange={(e) =>
                                         setRegle(prev => ({ ...prev, date2: e.target.value }))
@@ -396,6 +442,7 @@ const PlanningRegleMatiere = () => {
                             <div className="field col-6">
                                 <label>Heure 2</label>
                                 <InputText
+                                    disabled={lectureSeule}
                                     value={regle.heure2}
                                     onChange={(e) =>
                                         setRegle(prev => ({ ...prev, heure2: e.target.value }))
@@ -411,4 +458,10 @@ const PlanningRegleMatiere = () => {
     );
 };
 
-export default PlanningRegleMatiere;
+const ProgrammationCalendrierPage = () => (
+    <ProtectedRoute allowedRoles={['ADMIN', 'PEDAGOGIE', 'PLANIFICATION']}>
+        <PlanningRegleMatiere />
+    </ProtectedRoute>
+);
+
+export default ProgrammationCalendrierPage;
