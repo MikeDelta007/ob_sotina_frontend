@@ -559,7 +559,7 @@ const CalendarDemo = () => {
                     <h3>Gestion de la répartition des feuilles de composition</h3>
                     {lastUpdateFichierA && (
                         <div className="text-lg text-red-500 mb-2">
-                            <b>Le fichier "A" a été mis à jour le : {formatDateHeure(lastUpdateFichierA)}</b>
+                            <b>Le fichier &quot;A&quot; a été mis à jour le : {formatDateHeure(lastUpdateFichierA)}</b>
                         </div>
                     )}
                 </div>
