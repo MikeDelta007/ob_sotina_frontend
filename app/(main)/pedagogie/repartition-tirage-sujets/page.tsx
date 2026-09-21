@@ -111,7 +111,8 @@ const CalendarDemo = () => {
 
     const [dialogVisible0, setDialogVisible0] = useState(false);
 
-    const [session, setSession] = useState(2024);
+    const [dialogVisibleCant, setDialogVisibleCant] = useState(false);
+
     const [resultat, setResultat] = useState([]);
     const [resultat_, setResultat_] = useState([]);
     const [resultat__, setResultat__] = useState([]);
@@ -130,8 +131,21 @@ const CalendarDemo = () => {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     const [regles, setRegles] = useState<RegleMatiere[]>([]);
+    //
     const [regle, setRegle] = useState('');
     const [groupe, setGroupe] = useState('');
+    const [session, setSession] = useState(0);
+
+    // Import des clés (PJ / CC)
+    const [clesDialogVisible, setClesDialogVisible] = useState(false);
+    const [fileClesCEP, setFileClesCEP] = useState(null);
+    const [fileClesCS, setFileClesCS] = useState(null);
+    const [uploadingCles, setUploadingCles] = useState(false);
+    const [errorClesCEP, setErrorClesCEP] = useState('');
+    const [errorClesCS, setErrorClesCS] = useState('');
+
+    const [lastUpdateFichierA, setLastUpdateFichierA] = useState(null);
+
 
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
@@ -144,6 +158,11 @@ const CalendarDemo = () => {
         { label: 'AUTORISATION RECEPTION', value: 'AUTORISATION_RECEPTION' },
         { label: 'RECEPTIONNISTE', value: 'RECEPTIONNISTE' }
         //{ label: 'STATISTIQUES', value: 'STATISTIQUES' }
+    ];
+
+    const sessionOptions = [
+    { label: 'Normale', value: 1 },
+    { label: 'Remplacement', value: 2 }
     ];
 
     useEffect(() => {
@@ -166,6 +185,12 @@ const CalendarDemo = () => {
     useEffect(() => {
         ParametrageService.getInfoUsers().then((response) => {
             setInfosUsers(response);
+        });
+    }, []);
+
+    useEffect(() => {
+        ParametrageService.getLastUpdateDataCandidats().then((date) => {
+            setLastUpdateFichierA(date);
         });
     }, []);
 
@@ -372,13 +397,31 @@ const CalendarDemo = () => {
     };
 
 
+    // Nom de fichier / répertoire valide dans un ZIP (mêmes règles que le back pour les étiquettes)
+    const nomSur = (nom: string) =>
+        (nom ?? '').toString().trim().replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ') || 'sans_nom';
+
+    const formatDateHeure = (isoDateStr: string) => {
+        if (!isoDateStr) return '';
+        const date = new Date(isoDateStr);
+        if (isNaN(date.getTime())) return '';
+        const datePart = date.toLocaleDateString('fr-FR');
+        const heurePart = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return `${datePart} à ${heurePart}`;
+    };
+
     const exportAllCandidats = async () => {
+    const toutesLesMatieres = regle === 'TOUTES_LES_MATIERES';
+
     try {
         console.log("Début export...");
         setExporting(true);
-        setExportStep('📡 Récupération des données...');
+        setExportStep(toutesLesMatieres
+            ? '📦 Récupération des données de toutes les matières...'
+            : '📡 Récupération des données...');
 
         // 1. Appel API : récupère les données avec le groupe choisi
+        // (TOUTES_LES_MATIERES : le back boucle sur toutes les matières du groupe)
         const allCandidats = await ParametrageService.getAllDataCP(regle, groupe);
 
         if (!allCandidats || allCandidats.length === 0) {
@@ -392,95 +435,131 @@ const CalendarDemo = () => {
         // 2. Import dynamique XLSX
         const { utils, write } = await import('xlsx');
 
-        // 3. Transformation des données
-        const worksheetData = [];
+        const ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
 
-        // Boucle sur toutes les lignes récupérées
-        for (let i = 0; i < allCandidats.length; i++) {
-            const row = allCandidats[i];
-            //let totalEffectif = 0;
-            //let totalNt = 0;
+        const versLigne = (row: any) => ({
+            "Matière": row.matiere,
+            "Session": row.session,
+            "Jury": row.jury,
+            "Centre d'Ecrit": row.centreEcrit,
+            "Académie": row.academia,
+            "Effectif": row.effectif,
+            [ntTitle]: row.effectif_tirage,
+        });
 
-            // Objet de base avec les infos principales
-            let ntTitle = groupe === "1ER" ? "NT 1er Groupe" : groupe === "2ND" ? "NT 2nd Groupe" : "NT";
-
-            // let ntValue = groupe === "1ER" ? Math.round(1.05 * row.effectif) + 1 : groupe === "2ND" ? Math.round(row.effectif / 2) + 1 : Math.round(row.effectif);
-
-            //totalEffectif += Math.round(row.effectif);
-            //totalNt += ntValue;
-
-            let data = {
-                "Matière": row.matiere,
-                "Session": row.session,
-                "Jury": row.jury,
-                "Centre d'Ecrit": row.centreEcrit,
-                "Académie": row.academia,
-                "Effectif": row.effectif,
-                [ntTitle]: row.effectif_tirage,
-            };
-
-            worksheetData.push(data);
-        }
+        // Un classeur Excel (une feuille) à partir des lignes d'une matière
+        const genererExcel = (lignes: any[], nomFeuille: string) => {
+            const worksheet = utils.json_to_sheet(lignes.map(versLigne));
+            const workbook = utils.book_new();
+            // Excel limite le nom d'une feuille à 31 caractères
+            utils.book_append_sheet(workbook, worksheet, nomFeuille.substring(0, 31));
+            return write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
+        };
 
         setExportStep('💾 Génération du fichier Excel...');
 
-        // 4. Création du workbook
-        const worksheet = utils.json_to_sheet(worksheetData);
-        const workbook = utils.book_new();
-        utils.book_append_sheet(workbook, worksheet, `${regle}_${groupe}_GRP`);
+        if (!toutesLesMatieres) {
+            // 3a. Une matière => un fichier Excel
+            const excelBuffer = genererExcel(allCandidats, `${regle}_${groupe}_GRP`);
+            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `Export_repartition_tirage_${regle}_${groupe}_GROUPE.xlsx`);
+        } else {
+            // 3b. Toutes les matières => un ZIP : un répertoire par matière (intitulé),
+            // contenant l'Excel de la répartition nommé d'après le code de la matière.
+            // Le back renvoie les matières déjà triées : Map conserve l'ordre d'insertion.
+            const parMatiere = new Map<string, any[]>();
+            for (const row of allCandidats) {
+                const code = row.matiere;
+                if (!parMatiere.has(code)) parMatiere.set(code, []);
+                parMatiere.get(code)!.push(row);
+            }
 
-        // 5. Génération du fichier
-        const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array', compression: true });
-        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `Export_repartition_tirage_${regle}_${groupe}_GROUPE.xlsx`);
+            const JSZip = (await import('jszip')).default;
+            const zip = new JSZip();
+            const cheminsUtilises = new Set<string>();
+
+            parMatiere.forEach((lignes, code) => {
+                const repertoire = nomSur(lignes[0]?.libelle || code);
+                let chemin = `${repertoire}/${nomSur(code)}_${groupe}_groupe.xlsx`;
+
+                // Deux matières peuvent porter le même code/intitulé : on évite d'écraser l'entrée
+                for (let suffixe = 2; cheminsUtilises.has(chemin); suffixe++) {
+                    chemin = `${repertoire}/${nomSur(code)}_${groupe}_groupe_${suffixe}.xlsx`;
+                }
+                cheminsUtilises.add(chemin);
+
+                zip.file(chemin, genererExcel(lignes, `${code}_${groupe}_GRP`));
+            });
+
+            setExportStep('📦 Création de l’archive ZIP...');
+            const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }) // les .xlsx sont déjà compressés;
+            saveAs(zipBlob, `Export_repartition_tirage_toutes_matieres_${groupe}_GROUPE.zip`);
+        }
 
         setExportStep('✅ Export terminé avec succès !');
         setTimeout(() => setExporting(false), 1500);
 
     } catch (error) {
+        console.error("❌ Erreur export :", error);
         setExportStep('❌ Erreur lors de l’export');
         setTimeout(() => setExporting(false), 2000);
     }
     };
 
     const exportAllEtiquettes = async () => {
+        const toutesLesMatieres = regle === 'TOUTES_LES_MATIERES';
+
         try {
             console.log("Début export...");
             setExporting(true);
-            setExportStep('📡 Récupération des données...');
 
-            // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getEtiquettes(regle, groupe);
+            // TOUTES_LES_MATIERES : le back génère un PDF par matière puis les
+            // assemble dans un ZIP (un répertoire par matière).
+            setExportStep(toutesLesMatieres
+                ? '📦 Génération des étiquettes de toutes les matières...'
+                : '📡 Génération des étiquettes...');
 
-            if (!allCandidats || allCandidats.length === 0) {
-                setExportStep('✅ Aucune donnée à exporter');
-                setTimeout(() => setExporting(false), 1000);
+            // 1. Appel API : récupère le fichier avec le groupe choisi
+            const fichier = await CandidatureService.getEtiquettes(regle, groupe, session);
+
+            // Le service renvoie null quand il n'y a aucune étiquette (204 ou archive vide)
+            if (!fichier) {
+                setExportStep('✅ Aucune étiquette à générer pour ces critères');
+                setTimeout(() => setExporting(false), 1500);
                 return;
             }
 
-            setExportStep('🔄 Préparation des données...');
+            setExportStep(toutesLesMatieres
+                ? '✅ Génération lancée : le ZIP se téléchargera dans le navigateur une fois prêt.'
+                : '✅ Export terminé avec succès !');
+            setTimeout(() => setExporting(false), toutesLesMatieres ? 4000 : 1500);
 
-            setExportStep('💾 Génération du fichier Excel...');
-
-            setExportStep('✅ Export terminé avec succès !');
-            setTimeout(() => setExporting(false), 1500);
-
-        } catch (error) {
+        } catch (error: any) {
             console.error("❌ Erreur export :", error);
-            setExportStep('❌ Erreur lors de l’export');
-            setTimeout(() => setExporting(false), 2000);
+            setExportStep(`❌ ${error?.message || 'Erreur lors de l’export'}`);
+            setTimeout(() => setExporting(false), 3000);
         }
     };
 
 
     const exportAllEtCant = async () => {
+        // La session conditionne le titre des étiquettes : elle est obligatoire
+        if (session !== 1 && session !== 2) {
+            setExporting(true);
+            setExportStep('⚠️ Veuillez choisir la session (Normale ou Remplacement)');
+            setTimeout(() => setExporting(false), 2500);
+            return;
+        }
+
+        setDialogVisibleCant(false);
+
         try {
             console.log("Début export...");
             setExporting(true);
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getEtiquettesCant();
+            const allCandidats = await CandidatureService.getEtiquettesCant(session);
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -504,13 +583,21 @@ const CalendarDemo = () => {
 
 
     const exportAllBLSujet = async () => {
+        // La session conditionne le titre du bordereau : elle est obligatoire
+        if (session !== 1 && session !== 2) {
+            setExporting(true);
+            setExportStep('⚠️ Veuillez choisir la session (Normale ou Remplacement)');
+            setTimeout(() => setExporting(false), 2500);
+            return;
+        }
+
         try {
             console.log("Début export...");
             setExporting(true);
             setExportStep('📡 Récupération des données...');
 
             // 1. Appel API : récupère les données avec le groupe choisi
-            const allCandidats = await CandidatureService.getBLSujets(selectedJurys);
+            const allCandidats = await CandidatureService.getBLSujets(selectedJurys, session);
 
             if (!allCandidats || allCandidats.length === 0) {
                 setExportStep('✅ Aucune donnée à exporter');
@@ -538,6 +625,13 @@ const CalendarDemo = () => {
             <>
                 <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisible(false)} />
                 <Button label="Valider" icon="pi pi-check" onClick={exportAllCandidats} />
+            </>
+    );
+
+    const dialogFooterCant = (
+            <>
+                <Button label="Annuler" icon="pi pi-times" outlined onClick={() => setDialogVisibleCant(false)} />
+                <Button label="Valider" icon="pi pi-check" onClick={exportAllEtCant} />
             </>
     );
 
@@ -679,7 +773,12 @@ const CalendarDemo = () => {
             try {
                 setLoading(true);
                 const data = await ParametrageService.getAllRegles();
-                setRegles(data || []);
+                // Tri alphabétique sur l'intitulé (localeCompare 'fr' pour les accents)
+                // afin que le dropdown des matières sorte dans l'ordre.
+                const triees = [...(data || [])].sort((a: any, b: any) =>
+                    String(a?.code ?? '').localeCompare(String(b?.code ?? ''), 'fr', { sensitivity: 'base' })
+                );
+                setRegles(triees);
             } catch (e) {
                 toast.current?.show({
                     severity: 'error',
@@ -761,6 +860,11 @@ const CalendarDemo = () => {
 
             <div>
                 <h3>Gestion de la répartition des tirages</h3>
+                {lastUpdateFichierA && (
+                    <div className="text-lg text-red-500 mb-2">
+                        <b>Le fichier "A" a été mis à jour le : {formatDateHeure(lastUpdateFichierA)}</b>
+                    </div>
+                )}
             </div>
 
             <div className="flex align-items-center gap-1 flex-wrap">
@@ -776,7 +880,7 @@ const CalendarDemo = () => {
                     type="button"
                     icon="pi pi-tag"
                     severity="help"
-                    label="Exporter les etiquettes"
+                    label="Exporter les étiquettes"
                     onClick={() => setDialogVisible_(true)}
                     className="p-button-primary"
                 />
@@ -785,7 +889,7 @@ const CalendarDemo = () => {
                     type="button"
                     icon="pi pi-file-excel"
                     severity="success"
-                    label="Exporter le chiffrage"
+                    label="Exporter les stats de tirage"
                     onClick={() => setDialogVisible(true)}
                     className="p-button-primary"
                 />
@@ -799,10 +903,19 @@ const CalendarDemo = () => {
                     className="p-button-primary"
                 />
                 <Button
-                    severity="info"
-                    onClick={exportAllEtCant}
+                    severity="contrast"
+                    onClick={() => setDialogVisibleCant(true)}
                     icon="pi pi-download"
-                    label="Générez les etiquettes de cantine"
+                    label="Générer les etiquettes de cantine"
+                    className="p-button-primary"
+                />
+
+                <Button
+                    type="button"
+                    icon="pi pi-key"
+                    severity="secondary"
+                    label="Importer les clés de malle"
+                    onClick={() => setClesDialogVisible(true)}
                     className="p-button-primary"
                 />
             </div>
@@ -1496,7 +1609,55 @@ const CalendarDemo = () => {
             setLoading(false);
             setResultImport(message);
             toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Fichier chargé avec succès', life: 4000 });
-            
+
+        }
+    };
+
+    const hideClesDialog = () => {
+        setClesDialogVisible(false);
+        setFileClesCEP(null);
+        setFileClesCS(null);
+        setErrorClesCEP('');
+        setErrorClesCS('');
+    };
+
+    const handleFileChangeClesCEP = (e) => {
+        setFileClesCEP(e.files?.[0] ?? null);
+        setErrorClesCEP('');
+    };
+
+    const handleFileChangeClesCS = (e) => {
+        setFileClesCS(e.files?.[0] ?? null);
+        setErrorClesCS('');
+    };
+
+    const handleUploadCles = async () => {
+        if (!fileClesCEP || !fileClesCS) {
+            const msg = "⚠️ Veuillez charger les deux fichiers (CEP et CS) avant de lancer l'import.";
+            if (!fileClesCEP) setErrorClesCEP(msg);
+            if (!fileClesCS) setErrorClesCS(msg);
+            return;
+        }
+
+        setUploadingCles(true);
+        setErrorClesCEP('');
+        setErrorClesCS('');
+
+        try {
+            await Promise.all([
+                ParametrageService.importClesCEP(fileClesCEP),
+                ParametrageService.importClesCS(fileClesCS)
+            ]);
+            toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Clés (CEP et CS) importées avec succès', life: 4000 });
+            hideClesDialog();
+            await loadData()
+        } 
+        catch (error)
+        {
+            toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: "Erreur lors de l'import des clés", life: 4000 });
+        } 
+        finally {
+            setUploadingCles(false);
         }
     };
 
@@ -1770,8 +1931,61 @@ const CalendarDemo = () => {
                             </div>
                         </Dialog>
 
-                        <Dialog 
-                            visible={productDialog2} 
+                        <Dialog visible={clesDialogVisible} style={{ width: '900px' }} header="Import des clés (PJ / CC)" modal className="p-fluid" onHide={hideClesDialog}>
+                            <div style={{ color: 'red' }}>
+                                <span><b>Mention utile : </b>Veuillez charger exclusivement un fichier Excel (.xls, .xlsx).</span>
+                                <br />
+                                <span>Le fichier devra contenir, dans l&apos;ordre : la colonne Jury (pour le centre d&apos;écrit principal uniquement), le Centre d&apos;Ecrit, puis les colonnes Clé PJ, Clé CC et Groupe.</span>
+                            </div>
+
+                            <div className="grid mt-3">
+                                <div className="col-6">
+                                    <h5>Clés de malle des centres d&apos;Ecrit Principal</h5>
+                                    <FileUpload
+                                        mode="basic"
+                                        accept=".xls, .xlsx"
+                                        customUpload
+                                        name="xlsClesCEP"
+                                        chooseLabel="Charger le fichier excel (Clés malle CEP)"
+                                        onSelect={handleFileChangeClesCEP}
+                                        onClear={() => setFileClesCEP(null)}
+                                        className="mr-2"
+                                    />
+                                    {fileClesCEP && <div className="mt-2"><i className="pi pi-file-excel mr-1" />{fileClesCEP.name}</div>}
+                                    {errorClesCEP && <div style={{ color: 'red', marginTop: '10px' }}>{errorClesCEP}</div>}
+                                </div>
+
+                                <div className="col-6">
+                                    <h5>Clés de malle des centres d&apos;Ecrit Secondaire</h5>
+                                    <FileUpload
+                                        mode="basic"
+                                        accept=".xls, .xlsx"
+                                        customUpload
+                                        name="xlsClesCS"
+                                        chooseLabel="Charger le fichier excel (Clés malle CES)"
+                                        onSelect={handleFileChangeClesCS}
+                                        onClear={() => setFileClesCS(null)}
+                                        className="mr-2"
+                                    />
+                                    {fileClesCS && <div className="mt-2"><i className="pi pi-file-excel mr-1" />{fileClesCS.name}</div>}
+                                    {errorClesCS && <div style={{ color: 'red', marginTop: '10px' }}>{errorClesCS}</div>}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-content-center mt-4">
+                                <Button
+                                    label="Importer les clés"
+                                    icon="pi pi-upload"
+                                    className="p-button-success"
+                                    loading={uploadingCles}
+                                    disabled={!fileClesCEP || !fileClesCS || uploadingCles}
+                                    onClick={handleUploadCles}
+                                />
+                            </div>
+                        </Dialog>
+
+                        <Dialog
+                            visible={productDialog2}
                             style={{ width: '65%', maxHeight: '95vh' }} 
                             header="Panneau d'édition d'un accés" 
                             modal 
@@ -2008,7 +2222,10 @@ const CalendarDemo = () => {
                                                         value={regle}
                                                         optionLabel="code"
                                                         optionValue="code"
-                                                        options={regles}
+                                                        options={[
+                                                            { code: 'TOUTES_LES_MATIERES' },
+                                                            ...regles
+                                                        ]}
                                                         onChange={(e) =>
                                                             setRegle(e.value)
                                                         }
@@ -2041,58 +2258,91 @@ const CalendarDemo = () => {
                                         </div>
                         </Dialog>
 
+                        <Dialog
+                            header="Export des étiquettes"
+                            visible={dialogVisible_}
+                            style={{ width: '520px' }}
+                            footer={dialogFooter_}
+                            onHide={() => setDialogVisible_(false)}
+                        >
+                            <div className="p-fluid">
 
-                         <Dialog
-                                        header="Export des etiquettes"
-                                        visible={dialogVisible_}
-                                        style={{ width: '520px' }}
-                                        footer={dialogFooter_}
-                                        onHide={() => setDialogVisible_(false)}
-                                    >
-                                        <div className="p-fluid">
-                        
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Liste des Matières</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            filter
+                                            value={regle}
+                                            optionLabel="code"
+                                            optionValue="code"
+                                            options={[
+                                                { code: 'TOUTES_LES_MATIERES' },
+                                                ...regles
+                                            ]}
+                                            onChange={(e) => setRegle(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
 
-                                            <div className="field grid">
-                                                <label className="col-4 mb-0">Liste des Matières</label>
-                                                <div className="col-5">
-                                                    <Dropdown
-                                                        filter
-                                                        value={regle}
-                                                        optionLabel="code"
-                                                        optionValue="code"
-                                                        options={regles}
-                                                        onChange={(e) =>
-                                                            setRegle(e.value)
-                                                        }
-                                                        placeholder="Sélectionner"
-                                                    />
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Groupe</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            value={groupe}
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            options={typeOptions}
+                                            onChange={(e) => setGroupe(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
 
-                                                    
-                                                </div>
-                                            </div>
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Session</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            value={session}
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            options={[
+                                                { label: 'Normale', value: 1 },
+                                                { label: 'Remplacement', value: 2 }
+                                            ]}
+                                            onChange={(e) => setSession(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
 
-                                            <div className="field grid">
-                                                <label className="col-4 mb-0">Groupe</label>
-                                                <div className="col-5">
-                                                    <Dropdown
-                                                        value={groupe}
-                                                        optionLabel="label"
-                                                        optionValue="value"
-                                                        options={typeOptions}
-                                                        onChange={(e) =>
-                                                            setGroupe(e.value)
-                                                        }
-                                                        placeholder="Sélectionner"
-                                                    />
-
-                                                    
-                                                </div>
-                                            </div>
-
-                                          
-                                        </div>
+                            </div>
                         </Dialog>
 
+
+                        <Dialog
+                            header="Export des étiquettes de cantine"
+                            visible={dialogVisibleCant}
+                            style={{ width: '520px' }}
+                            footer={dialogFooterCant}
+                            onHide={() => setDialogVisibleCant(false)}
+                        >
+                            <div className="p-fluid">
+                                <div className="field grid">
+                                    <label className="col-4 mb-0">Session</label>
+                                    <div className="col-5">
+                                        <Dropdown
+                                            value={session}
+                                            optionLabel="label"
+                                            optionValue="value"
+                                            options={sessionOptions}
+                                            onChange={(e) => setSession(e.value)}
+                                            placeholder="Sélectionner"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </Dialog>
 
                         <Dialog
                                         header="Export des bordereaux de convoyage de sujets"
@@ -2121,6 +2371,20 @@ const CalendarDemo = () => {
                                                         display="chip"
                                                         className="w-full"
                                                         filterPlaceholder="Rechercher un jury..."
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="field grid">
+                                                <label className="col-4 mb-0">Session</label>
+                                                <div className="col-5">
+                                                    <Dropdown
+                                                        value={session}
+                                                        optionLabel="label"
+                                                        optionValue="value"
+                                                        options={sessionOptions}
+                                                        onChange={(e) => setSession(e.value)}
+                                                        placeholder="Sélectionner"
                                                     />
                                                 </div>
                                             </div>

@@ -159,12 +159,13 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
           )}
           <div className="field">
             <label className="block text-sm font-medium mb-1">Date de début</label>
-            <Calendar value={dateDebut} onChange={e => setDateDebut(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full" />
+            <Calendar value={dateDebut} onChange={e => setDateDebut(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full"
+              minDate={new Date()} />
           </div>
           <div className="field">
             <label className="block text-sm font-medium mb-1">Date de fin</label>
             <Calendar value={dateFin} onChange={e => setDateFin(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full"
-              minDate={dateDebut ?? undefined} maxDate={maxDateFin} disabled={type === 'CONGE' && (!dateDebut || soldeConges == null)} />
+              minDate={dateDebut ?? new Date()} maxDate={maxDateFin} disabled={type === 'CONGE' && (!dateDebut || soldeConges == null)} />
           </div>
           {nombreJoursDemandes > 0 && (
             <div className={depasseSolde ? 'text-red-600 text-sm' : 'text-color-secondary text-sm'}>

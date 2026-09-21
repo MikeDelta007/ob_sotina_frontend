@@ -27,6 +27,12 @@ const AppMenu = () => {
 
     const model: MenuModal[] = [];
 
+    const progBacLectureSeule = {
+        label: 'Programmation BAC',
+        icon: 'pi pi-fw pi-calendar',
+        to: '/pedagogie/programmation-calendrier'
+    };
+
     // =========================
     // TABLEAU DE BORD
     // =========================
@@ -114,7 +120,9 @@ const AppMenu = () => {
                     label: 'Répartition Tirage CGS',
                     icon: 'pi pi-fw pi-sitemap',
                     to: '/pedagogie-cgs/repartition-tirage-sujets',
-                }
+                },
+                // Consultation seule (l'ADMIN l'a déjà, modifiable, dans ADMINISTRATION)
+                ...(hasAccess(['PEDAGOGIE']) ? [progBacLectureSeule] : [])
             ]
         });
 
@@ -134,7 +142,9 @@ const AppMenu = () => {
                     label: 'Répartition Feuille BAC',
                     icon: 'pi pi-fw pi-copy',
                     to: '/pedagogie/repartition-feuille'
-                }
+                },
+                // Consultation seule (l'ADMIN l'a déjà, modifiable, dans ADMINISTRATION)
+                ...(hasAccess(['PLANIFICATION']) ? [progBacLectureSeule] : [])
 
                 // {
                 //     label: 'Répartition Feuille CGS',

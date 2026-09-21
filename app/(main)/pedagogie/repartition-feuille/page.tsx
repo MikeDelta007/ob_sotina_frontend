@@ -94,6 +94,8 @@ const CalendarDemo = () => {
 
     const [errorMessage, setErrorMessage] = useState('');
 
+    const [lastUpdateFichierA, setLastUpdateFichierA] = useState(null);
+
     const profilsOptions = [
         { label: 'ADMIN', value: 'ADMIN' },
         { label: 'AGENT DE SAISIE', value: 'AGENT_DE_SAISIE' },
@@ -128,6 +130,21 @@ const CalendarDemo = () => {
             setInfosUsers(response);
         });
     }, []);
+
+    useEffect(() => {
+        ParametrageService.getLastUpdateDataCandidats().then((date) => {
+            setLastUpdateFichierA(date);
+        });
+    }, []);
+
+    const formatDateHeure = (isoDateStr: string) => {
+        if (!isoDateStr) return '';
+        const date = new Date(isoDateStr);
+        if (isNaN(date.getTime())) return '';
+        const datePart = date.toLocaleDateString('fr-FR');
+        const heurePart = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return `${datePart} à ${heurePart}`;
+    };
 
     const formatCurrency = (value) => {
         return value.toLocaleString('en-US', {
@@ -540,8 +557,13 @@ const CalendarDemo = () => {
     
                 <div>
                     <h3>Gestion de la répartition des feuilles de composition</h3>
+                    {lastUpdateFichierA && (
+                        <div className="text-lg text-red-500 mb-2">
+                            <b>Le fichier "A" a été mis à jour le : {formatDateHeure(lastUpdateFichierA)}</b>
+                        </div>
+                    )}
                 </div>
-    
+
                 <div className="flex align-items-center gap-1 flex-wrap">
                     <Button
                         severity="success"

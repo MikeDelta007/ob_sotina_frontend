@@ -1,6 +1,35 @@
 import axiosInstance from '@/app/api/axiosInstance';
 import { saveAs } from 'file-saver';
-import { PageSpring, ReleveDetail, ReleveResume, ReleveSaisieRequest } from './types';
+import { PageSpring, RechercheGlobaleResultat, ReleveDetail, ReleveResume, ReleveSaisieRequest } from './types';
+
+export interface RechercheGlobaleCriteres {
+    numeroTable?: string;
+    annee?: number | null;
+    nom?: string;
+    prenom?: string;
+    dateNaissance?: string;
+    lieuNaissance?: string;
+}
+
+/**
+ * Recherche un ou plusieurs relevés à travers les 29 séries de bottins, à
+ * partir de n'importe quelle combinaison de critères (N° de table, année,
+ * nom, prénom, date de naissance, lieu de naissance), sans connaître la
+ * série au préalable. Peut remonter plusieurs candidats (homonymes).
+ */
+export async function rechercherGlobal(criteres: RechercheGlobaleCriteres): Promise<RechercheGlobaleResultat[]> {
+    const res = await axiosInstance.get<RechercheGlobaleResultat[]>('/releves/rechercher', {
+        params: {
+            numeroTable: criteres.numeroTable?.trim() || undefined,
+            annee: criteres.annee || undefined,
+            nom: criteres.nom?.trim() || undefined,
+            prenom: criteres.prenom?.trim() || undefined,
+            dateNaissance: criteres.dateNaissance || undefined,
+            lieuNaissance: criteres.lieuNaissance?.trim() || undefined
+        }
+    });
+    return res.data;
+}
 
 /**
  * Fabrique une API CRUD + PDF + liste (paginée, filtrable par n° de table et
