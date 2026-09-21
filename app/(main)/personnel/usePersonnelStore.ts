@@ -21,6 +21,11 @@ interface PersonnelData {
   division?: Division | null
   fonction?: Fonction | null
   typePersonnel?: TypePersonnel | null
+  bank?: string
+  code_bank?: string
+  code_agc?: string
+  num_compte?: string
+  key_rib?: string
   actif?: boolean
 }
 

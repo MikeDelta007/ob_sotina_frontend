@@ -164,6 +164,8 @@ export interface MenuModal {
     url?: string;
     target?: HTMLAttributeAnchorTarget;
     separator?: boolean;
+    // Badge de notification (nombre d'éléments en attente) affiché à côté du libellé.
+    badge?: number;
 }
 
 export interface UseSubmenuOverlayPositionProps {

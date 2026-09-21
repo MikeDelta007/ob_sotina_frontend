@@ -11,6 +11,7 @@ import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
+import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
 import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, type ExpressionBesoin } from './types'
 
@@ -36,6 +37,7 @@ export default function AValiderTab() {
     try {
       await rejeter(rejetTarget.id, motifRejet.trim())
       fermerRejet()
+      refreshNotificationCounts()
     } catch {
       setErr('Erreur lors du rejet')
     }
@@ -57,6 +59,7 @@ export default function AValiderTab() {
     try {
       await valider(validerTarget.id, quantiteAccordee)
       fermerValidation()
+      refreshNotificationCounts()
     } catch (e: any) {
       setErr(e?.response?.data?.errorMessage ?? e?.response?.data?.message ?? 'Erreur lors de la validation')
     }

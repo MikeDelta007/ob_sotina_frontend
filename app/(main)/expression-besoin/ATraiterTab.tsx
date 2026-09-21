@@ -10,6 +10,7 @@ import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
+import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
 import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, type ExpressionBesoin } from './types'
 
@@ -37,6 +38,7 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
     try {
       await traiter(selected.id, montantReel)
       fermer()
+      refreshNotificationCounts()
     } catch {
       setErr('Erreur lors du traitement')
     }

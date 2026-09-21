@@ -9,6 +9,7 @@ import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Calendar } from 'primereact/calendar'
 import { Dropdown } from 'primereact/dropdown'
 import { InputText } from 'primereact/inputtext'
@@ -17,6 +18,7 @@ import { Tag } from 'primereact/tag'
 import { Message } from 'primereact/message'
 import { Toast } from 'primereact/toast'
 import { useAbsenceStore } from './useAbsenceStore'
+import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
 import { TOUS_ROLES, fmtStatutAbsence, fmtTypePersonnel, type DemandeAbsence, type StatutAbsence, type TypePersonnel, type TypeAbsence } from './types'
 
 const statutSeverity: Record<StatutAbsence, 'warning' | 'success' | 'danger' | 'info'> = {
@@ -48,9 +50,9 @@ const etapeLigne = (label: string, valide?: boolean, rejete?: boolean, par?: str
 }
 const etapesBody = (d: DemandeAbsence) => (
   <div className="flex flex-column gap-1">
-    {etapeLigne('Chef', d.validationChef, d.rejetChef, d.validateurChef, d.motifRejetChef)}
-    {etapeLigne('CSA', d.validationCsa, d.rejetCsa, d.validateurCsa, d.motifRejetCsa)}
-    {etapeLigne('Directeur', d.validationDirecteur, !d.validationDirecteur && d.statut === 'REJETEE', d.validateurDirecteur ?? d.rejetePar, d.motifRejet)}
+    {etapeLigne('Chef', d.validationChef, d.rejetChef, d.validateurChefNom ?? d.validateurChef, d.motifRejetChef)}
+    {etapeLigne('CSA', d.validationCsa, d.rejetCsa, d.validateurCsaNom ?? d.validateurCsa, d.motifRejetCsa)}
+    {etapeLigne('Directeur', d.validationDirecteur, !d.validationDirecteur && d.statut === 'REJETEE', d.validateurDirecteurNom ?? d.rejeteParNom ?? d.validateurDirecteur ?? d.rejetePar, d.motifRejet)}
   </div>
 )
 
@@ -202,7 +204,19 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
     try {
       await valider(d.id, type)
       toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande validée', life: 4000 })
+      refreshNotificationCounts()
     } catch { /* error déjà affiché via le store */ }
+  }
+
+  const confirmValider = (d: DemandeAbsence) => {
+    confirmDialog({
+      message: `Confirmez-vous la validation de la demande de ${d.demandeurNom} ?`,
+      header: 'Confirmation',
+      icon: 'pi pi-check-circle',
+      acceptLabel: 'Valider',
+      rejectLabel: 'Annuler',
+      accept: () => doValider(d),
+    })
   }
 
   const openRejet = (d: DemandeAbsence) => { setRejetDialogFor(d); setMotifRejet(''); clearError() }
@@ -213,6 +227,7 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
       await rejeter(rejetDialogFor.id, motifRejet.trim(), type)
       toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande rejetée', life: 4000 })
       setRejetDialogFor(null)
+      refreshNotificationCounts()
     } catch { /* error déjà affiché via le store */ }
   }
 
@@ -230,7 +245,7 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
     return (
       <div className="flex gap-2 justify-content-center">
         <Button label="Valider" icon="pi pi-check" severity="success" size="small"
-          loading={actionLoadingId === d.id} onClick={() => doValider(d)} />
+          loading={actionLoadingId === d.id} onClick={() => confirmValider(d)} />
         <Button label="Rejeter" icon="pi pi-times" severity="danger" size="small" outlined
           loading={actionLoadingId === d.id} onClick={() => openRejet(d)} />
       </div>
@@ -240,6 +255,7 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
   return (
     <div>
       <Toast ref={toast} />
+      <ConfirmDialog />
       <DataTable value={demandes} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         emptyMessage={pourAgentsDuChef ? "Aucune demande de vos agents" : "Aucune demande en attente de votre validation"} responsiveLayout="scroll"
         globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'motif', 'statut', 'motifRejetChef', 'motifRejetCsa', 'motifRejet']}

@@ -4,6 +4,7 @@ import { Button } from 'primereact/button'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Dropdown } from 'primereact/dropdown'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
 import { InputNumber } from 'primereact/inputnumber'
@@ -57,6 +58,17 @@ export default function MesExpressionsTab() {
   }
   const fermer = () => setDialogOpen(false)
 
+  const confirmerSatisfactionAvecConfirmation = (eb: ExpressionBesoin) => {
+    confirmDialog({
+      message: 'Confirmez-vous être satisfait(e) de cette expression de besoin ? Cette action est définitive.',
+      header: 'Confirmation',
+      icon: 'pi pi-check-circle',
+      acceptLabel: 'Confirmer',
+      rejectLabel: 'Annuler',
+      accept: () => confirmerSatisfaction(eb.id),
+    })
+  }
+
   const montant = (quantite ?? 1) * (prixUnitaire ?? 0)
   const formulaireValide = !!motifId && !!prixUnitaire && prixUnitaire > 0
     && (beneficiaireMoiMeme || !!beneficiaireId)
@@ -102,13 +114,14 @@ export default function MesExpressionsTab() {
       )}
       {eb.statut === 'TRAITEE' && eb.requiertSatisfaction && !eb.satisfactionConfirmee && (
         <Button label="Confirmer ma satisfaction" icon="pi pi-check" size="small" severity="success"
-          loading={actionLoadingId === eb.id} onClick={() => confirmerSatisfaction(eb.id)} />
+          loading={actionLoadingId === eb.id} onClick={() => confirmerSatisfactionAvecConfirmation(eb)} />
       )}
     </div>
   )
 
   return (
     <div>
+      <ConfirmDialog />
       <DataTable value={mesExpressions} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
         loading={loading} emptyMessage="Aucune expression de besoin" responsiveLayout="scroll"
         globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'motifRejet', 'statut']}

@@ -122,6 +122,15 @@ const AppMenuitem = (props: AppMenuItemProps) => {
         }
     };
 
+    // Badge de notification façon messagerie (ex: WhatsApp) : petit cercle rouge avec le
+    // nombre d'éléments en attente, affiché juste à côté du libellé.
+    const badge =
+        item.badge && item.badge > 0 ? (
+            <span className="tw-ml-2 tw-inline-flex tw-h-5 tw-min-w-[1.25rem] tw-items-center tw-justify-center tw-rounded-full tw-bg-red-600 tw-px-1 tw-text-xs tw-font-semibold tw-text-white">
+                {item.badge}
+            </span>
+        ) : null;
+
     const subMenu =
         item.items && item.visible !== false ? (
             <ul ref={submenuRef}>
@@ -154,6 +163,7 @@ const AppMenuitem = (props: AppMenuItemProps) => {
                     >
                         <i className={classNames('layout-menuitem-icon', item.icon)}></i>
                         <span className="layout-menuitem-text">{item.label}</span>
+                        {badge}
                         {item.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
                         <Ripple />
                     </a>
@@ -174,6 +184,7 @@ const AppMenuitem = (props: AppMenuItemProps) => {
                     >
                         <i className={classNames('layout-menuitem-icon', item.icon)}></i>
                         <span className="layout-menuitem-text">{item.label}</span>
+                        {badge}
                         {item.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
                         <Ripple />
                     </Link>

@@ -2,6 +2,7 @@ import { MenuModal } from '@/types/layout';
 import AppSubMenu from './AppSubMenu';
 import { useContext } from 'react';
 import { UserContext } from '@/app/userContext';
+import { useNotificationCounts } from './useNotificationCounts';
 import "primeicons/primeicons.css";
 
 type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE'
@@ -13,6 +14,7 @@ const ROLES: Role[] = ['ADMIN', 'PLANIFICATION', 'PEDAGOGIE',
 const AppMenu = () => {
 
     const { user } = useContext(UserContext);
+    const notificationCounts = useNotificationCounts(!!user);
 
     const isRole = (value: string): value is Role => {
         return (ROLES as string[]).includes(value);
@@ -62,6 +64,11 @@ const AppMenu = () => {
                     label: 'Acces',
                     icon: 'pi pi-fw pi-users',
                     to: '/editions-systeme/acces',
+                },
+                {
+                    label: 'Banques',
+                    icon: 'pi pi-fw pi-building',
+                    to: '/personnel/banques',
                 },
                 {
                     label: 'Données BAC',
@@ -186,7 +193,8 @@ const AppMenu = () => {
                 {
                     label: 'Expressions de besoin',
                     icon: 'pi pi-fw pi-file-edit',
-                    to: '/expression-besoin'
+                    to: '/expression-besoin',
+                    badge: notificationCounts.expressionBesoin
                 }
             ]
         });
@@ -202,8 +210,8 @@ const AppMenu = () => {
         icon: 'pi pi-user',
         items: [
             { label: 'Mon profil', icon: 'pi pi-fw pi-id-card', to: '/personnel/mon-profil' },
-            { label: 'Demandes de congés', icon: 'pi pi-fw pi-calendar-plus', to: '/personnel/conges' },
-            { label: "Autorisation d'absence", icon: 'pi pi-fw pi-calendar-times', to: '/personnel/absences' },
+            { label: 'Demandes de congés', icon: 'pi pi-fw pi-calendar-plus', to: '/personnel/conges', badge: notificationCounts.conges },
+            { label: "Autorisation d'absence", icon: 'pi pi-fw pi-calendar-times', to: '/personnel/absences', badge: notificationCounts.absences },
             { label: 'Mes missions', icon: 'pi pi-fw pi-send', to: '/personnel/missions' }
         ]
     });

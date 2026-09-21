@@ -272,6 +272,20 @@ const CalendarDemo = () => {
 
     console.log(is_update);
 
+    // Login proposé par défaut : première lettre du prénom + nom, en majuscules, sans accents
+    // ni espaces/tirets (ex: "Amadou Diop" -> "ADIOP") — reste modifiable ensuite.
+    const genererLogin = (firstname?: string, lastname?: string) => {
+        const clean = (s?: string) => (s ?? '')
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-zA-Z]/g, '');
+        const f = clean(firstname);
+        const l = clean(lastname);
+        return `${f.charAt(0)}${l}`.toUpperCase();
+    };
+
+    // Mot de passe par défaut proposé à la création d'un accès — modifiable avant validation.
+    const MOT_DE_PASSE_PAR_DEFAUT = 'P@sser123';
+
     const generateSimplePassword = () => {
         const letters = 'abcdefghijklmnopqrstuvwxyz';
         const randomLetters = letters.charAt(Math.floor(Math.random() * letters.length)) + letters.charAt(Math.floor(Math.random() * letters.length));
@@ -960,7 +974,14 @@ const CalendarDemo = () => {
                                                 id="personnelId"
                                                 name="personnelId"
                                                 value={formik.values.personnelId}
-                                                onChange={(e) => formik.setFieldValue('personnelId', e.value)}
+                                                onChange={(e) => {
+                                                    formik.setFieldValue('personnelId', e.value);
+                                                    const p: any = personnelsSansCompte.find((x: any) => x.id === e.value);
+                                                    if (!p) return;
+                                                    formik.setFieldValue('login', genererLogin(p.firstname, p.lastname));
+                                                    formik.setFieldValue('password', MOT_DE_PASSE_PAR_DEFAUT);
+                                                    formik.setFieldValue('conf_password', MOT_DE_PASSE_PAR_DEFAUT);
+                                                }}
                                                 options={personnelsSansCompte}
                                                 optionLabel="label"
                                                 optionValue="id"
@@ -1027,6 +1048,9 @@ const CalendarDemo = () => {
                                                     className={`p-inputtext-sm w-full ${formik.touched.password && formik.errors.password ? 'p-invalid' : ''}`}
                                                 />
                                                 {formik.touched.password && typeof formik.errors.password === 'string' && <small className="p-error">{formik.errors.password}</small>}
+                                                <small className="text-color-secondary">
+                                                    Prérempli à <b>{MOT_DE_PASSE_PAR_DEFAUT}</b> quand un agent est sélectionné — modifiable avant validation.
+                                                </small>
                                             </div>
 
                                             <div className="field col-6">
