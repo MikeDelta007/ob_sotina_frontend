@@ -1,6 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
+import { saveAs } from 'file-saver'
+import { Button } from 'primereact/button'
+import { UserContext } from '@/app/userContext'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { InputText } from 'primereact/inputtext'
@@ -14,6 +18,13 @@ const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\
 export default function TraiteesTab() {
   const { traitees, fetchTraitees } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
+  const { user } = useContext(UserContext)
+  const peutDecharge = aUnDesRoles(user, ['CHEF_COMPTABLE', 'AGENT_COMPTABLE'])
+
+  const telechargerDecharge = async (id: string) => {
+    const { data } = await axiosInstance.get(`expression-besoin/${id}/decharge.pdf`, { responseType: 'blob' })
+    saveAs(data, `decharge_${id}.pdf`)
+  }
 
   useEffect(() => { fetchTraitees() }, [])
 
@@ -73,6 +84,13 @@ export default function TraiteesTab() {
         <Column header="Satisfaction" body={satisfactionBody} align="center" alignHeader="center" />
         <Column header="Mandatement" body={mandatementBody} align="center" alignHeader="center" />
         <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
+        {peutDecharge && (
+          <Column header="Décharge" align="center" alignHeader="center"
+            body={(eb: ExpressionBesoin) => (
+              <Button icon="pi pi-file-pdf" size="small" text tooltip="Télécharger la décharge à faire signer"
+                onClick={() => telechargerDecharge(eb.id)} />
+            )} />
+        )}
       </DataTable>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
+import { saveAs } from 'file-saver'
 import { Button } from 'primereact/button'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
@@ -36,8 +37,14 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
     if (!selected) return
     if (!montantReel || montantReel <= 0) { setErr('Montant réel invalide'); return }
     try {
-      await traiter(selected.id, montantReel)
+      const id = selected.id
+      await traiter(id, montantReel)
       fermer()
+      // Décharge que l'agent doit signer
+      try {
+        const { data } = await axiosInstance.get(`expression-besoin/${id}/decharge.pdf`, { responseType: 'blob' })
+        saveAs(data, `decharge_${id}.pdf`)
+      } catch { /* la décharge reste téléchargeable depuis l'onglet Traitées */ }
       refreshNotificationCounts()
     } catch {
       setErr('Erreur lors du traitement')
