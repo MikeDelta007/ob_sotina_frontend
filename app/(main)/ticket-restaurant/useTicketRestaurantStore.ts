@@ -4,18 +4,13 @@ import axiosInstance from '@/app/api/axiosInstance'
 import type { AgentDivision, TicketRestaurant } from './types'
 
 interface CreerPayload {
-  dateDebut: string
-  dateFin: string
-  lundi: boolean
-  mardi: boolean
-  mercredi: boolean
-  jeudi: boolean
-  vendredi: boolean
+  dates: string[]
   agentIds: string[]
 }
 
 interface TicketRestaurantStore {
   mesAgents: AgentDivision[]
+  agentsErreur: boolean
   mesTickets: TicketRestaurant[]
   aValider: TicketRestaurant[]
   toutes: TicketRestaurant[]
@@ -35,6 +30,7 @@ interface TicketRestaurantStore {
 
 export const useTicketRestaurantStore = create<TicketRestaurantStore>((set, get) => ({
   mesAgents: [],
+  agentsErreur: false,
   mesTickets: [],
   aValider: [],
   toutes: [],
@@ -44,9 +40,9 @@ export const useTicketRestaurantStore = create<TicketRestaurantStore>((set, get)
 
   fetchMesAgents: async () => {
     try {
-      const { data } = await axiosInstance.get('personnel/mes-agents')
-      set({ mesAgents: data })
-    } catch { set({ mesAgents: [] }) }
+      const { data } = await axiosInstance.get('personnel/tous-agents')
+      set({ mesAgents: data, agentsErreur: false })
+    } catch { set({ mesAgents: [], agentsErreur: true }) }
   },
 
   fetchMesTickets: async () => {

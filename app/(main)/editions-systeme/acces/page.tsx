@@ -839,7 +839,8 @@ const CalendarDemo = () => {
                 key_rib: values.key_rib,
                 typePersonnel: values.typePersonnel,
                 soldeConges: values.soldeConges,
-                droitsSupplementaires: values.droitsSupplementaires ?? []
+                droitsSupplementaires: values.droitsSupplementaires ?? [],
+                personnelId: editAgentId !== 'current' ? editAgentId : undefined
             };
 
             try {
@@ -850,9 +851,9 @@ const CalendarDemo = () => {
                     console.log('✅ Candidat mis à jour:', response.data);
                     setMessage('Candidat créé avec succès');
                     toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Utilisateur mis à jour avec succès', life: 4000 });
-                    // Un agent ne peut avoir deux comptes : la fiche Personnel réassignée est consommée
+                    // La fiche Personnel n'est plus supprimée : le compte s'y rattache (envoyé dans le DTO),
+                    // et elle disparaît de la liste des personnes sans compte.
                     if (editAgentId !== 'current') {
-                        await ParametrageService.deletePersonnel(editAgentId);
                         loadPersonnelsSansCompte();
                     }
                     resetForm();

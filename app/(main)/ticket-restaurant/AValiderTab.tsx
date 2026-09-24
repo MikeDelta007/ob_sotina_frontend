@@ -1,21 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Button } from 'primereact/button'
-import { Column } from 'primereact/column'
-import { DataTable } from 'primereact/datatable'
-import { Dialog } from 'primereact/dialog'
-import { InputText } from 'primereact/inputtext'
-import { InputTextarea } from 'primereact/inputtextarea'
-import { Message } from 'primereact/message'
+import { Alerte, Bouton, Champ, CLASSE_INPUT, Modal, Tableau, type Colonne } from './ui'
 import { useTicketRestaurantStore } from './useTicketRestaurantStore'
-import { fmt, joursCoches, type TicketRestaurant } from './types'
+import { fmt, datesCochees, type TicketRestaurant } from './types'
 
 export default function AValiderTab() {
-  const { aValider, actionLoadingId, fetchAValider, valider, rejeter } = useTicketRestaurantStore()
+  const { aValider, loading, actionLoadingId, error, fetchAValider, valider, rejeter } = useTicketRestaurantStore()
   const [rejetTarget, setRejetTarget] = useState<TicketRestaurant | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
   const [err, setErr] = useState('')
-  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchAValider() }, [])
 
@@ -33,62 +26,47 @@ export default function AValiderTab() {
     }
   }
 
-  const periodeBody = (t: TicketRestaurant) => (
-    <span>{new Date(t.dateDebut).toLocaleDateString('fr-FR')} → {new Date(t.dateFin).toLocaleDateString('fr-FR')}</span>
-  )
-  const agentsBody = (t: TicketRestaurant) => (t.agentNoms ?? []).join(', ') || '—'
-
-  const actionsBody = (t: TicketRestaurant) => (
-    <div className="flex gap-2 justify-content-center">
-      <Button label="Valider" icon="pi pi-check" size="small" severity="success"
-        loading={actionLoadingId === t.id} onClick={() => valider(t.id)} />
-      <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
-        loading={actionLoadingId === t.id} onClick={() => ouvrirRejet(t)} />
-    </div>
-  )
+  const colonnes: Colonne<TicketRestaurant>[] = [
+    { titre: 'Demandeur', rendu: t => t.creeParNom || t.creePar },
+    { titre: 'Dates', rendu: t => datesCochees(t) },
+    { titre: 'Agents', rendu: t => (t.agentNoms ?? []).join(', ') || '—' },
+    { titre: 'Jours', rendu: t => t.nombreJours, alignement: 'centre' },
+    { titre: 'Montant', rendu: t => fmt(t.montantTotal), alignement: 'droite' },
+    {
+      titre: 'Actions', alignement: 'centre',
+      rendu: t => (
+        <div className="tw-flex tw-justify-center tw-gap-2">
+          <Bouton variante="succes" chargement={actionLoadingId === t.id} onClick={() => valider(t.id)}>Valider</Bouton>
+          <Bouton variante="contour" className="!tw-border-red-300 !tw-text-red-600" disabled={actionLoadingId === t.id} onClick={() => ouvrirRejet(t)}>Rejeter</Bouton>
+        </div>
+      ),
+    },
+  ]
 
   return (
-    <div>
-      <p className="text-color-secondary mb-3">{aValider.length} demande(s) en attente de validation</p>
+    <div className="tw-flex tw-flex-col tw-gap-3">
+      <p className="tw-m-0 tw-text-sm tw-text-gray-500">{aValider.length} demande(s) en attente de validation</p>
+      {error && <Alerte>{error}</Alerte>}
 
-      <DataTable value={aValider} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune demande en attente" responsiveLayout="scroll"
-        globalFilter={globalFilter} globalFilterFields={['creeParNom', 'creePar']}
-        header={
-          <div className="flex justify-content-end">
-            <span className="p-input-icon-left">
-              <i className="pi pi-search" />
-              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
-            </span>
-          </div>
-        }>
-        <Column header="Demandeur" body={(t: TicketRestaurant) => t.creeParNom || t.creePar} />
-        <Column header="Période" body={periodeBody} />
-        <Column header="Jours" body={(t: TicketRestaurant) => joursCoches(t)} />
-        <Column header="Agents" body={agentsBody} />
-        <Column header="Nombre de jours" field="nombreJours" align="center" alignHeader="center" />
-        <Column header="Montant" body={(t: TicketRestaurant) => fmt(t.montantTotal)} align="right" alignHeader="right" />
-        <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
-      </DataTable>
+      <Tableau lignes={aValider} colonnes={colonnes} chargement={loading}
+        recherche={t => `${t.creeParNom ?? ''} ${t.creePar} ${(t.agentNoms ?? []).join(' ')}`}
+        vide="Aucune demande en attente" />
 
-      <Dialog header="Rejeter la demande" visible={!!rejetTarget} onHide={fermerRejet}
-        style={{ width: '28rem' }} draggable={false}
-        footer={
-          <div className="flex gap-2">
-            <Button label="Annuler" outlined className="flex-1" onClick={fermerRejet} />
-            <Button label="Confirmer le rejet" severity="danger" className="flex-1"
-              loading={actionLoadingId === rejetTarget?.id} onClick={confirmerRejet} />
-          </div>
+      <Modal ouvert={!!rejetTarget} titre="Rejeter la demande" onFermer={fermerRejet}
+        pied={
+          <>
+            <Bouton variante="contour" className="tw-flex-1" onClick={fermerRejet}>Annuler</Bouton>
+            <Bouton variante="danger" className="tw-flex-1" chargement={actionLoadingId === rejetTarget?.id} onClick={confirmerRejet}>Confirmer le rejet</Bouton>
+          </>
         }>
-        <div className="flex flex-column gap-3">
-          <div className="field">
-            <label className="block text-sm font-medium mb-1">Motif du rejet *</label>
-            <InputTextarea value={motifRejet} onChange={e => setMotifRejet(e.target.value)}
-              rows={3} className="w-full" placeholder="Expliquez pourquoi cette demande est rejetée…" />
-          </div>
-          {err && <Message severity="error" text={err} className="w-full" />}
+        <div className="tw-flex tw-flex-col tw-gap-3">
+          <Champ etiquette="Motif du rejet *">
+            <textarea value={motifRejet} onChange={e => setMotifRejet(e.target.value)} rows={3} className={CLASSE_INPUT}
+              placeholder="Expliquez pourquoi cette demande est rejetée…" />
+          </Champ>
+          {err && <Alerte>{err}</Alerte>}
         </div>
-      </Dialog>
+      </Modal>
     </div>
   )
 }
