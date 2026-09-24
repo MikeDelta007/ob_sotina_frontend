@@ -86,7 +86,7 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
 
   fetchMotifs: async () => {
     try {
-      const { data } = await axiosInstance.get('caisse-avance/motifs')
+      const { data } = await axiosInstance.get('caisse-avance/motifs/decaissement')
       set({ motifs: data })
     } catch { set({ error: 'Erreur chargement motifs' }) }
   },
