@@ -28,8 +28,10 @@ function DivisionsContent() {
   useEffect(() => { fetchAllDivisions() }, [])
   useEffect(() => {
     ParametrageService.getUsers().then((groupes: Record<string, any[]>) => {
-      const chefsDeService = groupes?.CHEF_SERVICE ?? []
-      setChefs(chefsDeService.map((u: any) => ({ label: `${u.personnel?.firstname} ${u.personnel?.lastname} (${u.login})`, value: u.id })))
+      // Tous les comptes du personnel : le chef d'une division peut avoir un autre rôle principal
+      // (ADMIN, PEDAGOGIE...) avec CHEF_SERVICE en rôle supplémentaire.
+      const tous = Object.entries(groupes ?? {}).flatMap(([role, u]) => u.map((x: any) => ({ ...x, _role: role })))
+      setChefs(tous.map((u: any) => ({ label: `${u.personnel?.firstname} ${u.personnel?.lastname} (${u.login} — ${u._role})`, value: u.id })))
     })
   }, [])
 

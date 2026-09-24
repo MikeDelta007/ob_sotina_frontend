@@ -1,4 +1,5 @@
 'use client'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { saveAs } from 'file-saver'
 import ProtectedRoute from '@/layout/ProtectedRoute'
@@ -418,10 +419,11 @@ const ROLES_TELECHARGEMENT = ['CSA', 'DIRECTEUR', 'ADMIN']
 
 function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence; titre: string; description: string }) {
   const { user } = useContext(UserContext)
-  const roleName = user?.profil?.name
-  const estChefService = roleName === 'CHEF_SERVICE'
-  const peutValider = !!roleName && ROLES_VALIDATEURS.includes(roleName)
-  const peutTelecharger = !!roleName && ROLES_TELECHARGEMENT.includes(roleName)
+  // Rôle principal + rôles supplémentaires : le chef du service informatique (ADMIN) ou de la
+  // pédagogie (PEDAGOGIE) a CHEF_SERVICE en supplément pour gérer les demandes de ses agents.
+  const estChefService = aUnDesRoles(user, ['CHEF_SERVICE'])
+  const peutValider = aUnDesRoles(user, ROLES_VALIDATEURS)
+  const peutTelecharger = aUnDesRoles(user, ROLES_TELECHARGEMENT)
 
   return (
     <div className="card">

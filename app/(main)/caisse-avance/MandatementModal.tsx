@@ -1,4 +1,5 @@
 'use client'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useContext, useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { Button } from 'primereact/button'
@@ -44,8 +45,8 @@ export default function MandatementModal() {
   const [success, setSuccess] = useState('')
 
   const { user } = useContext(UserContext)
-  const role = user?.profil?.name
-  const peutLierExpressionBesoin = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
+  const aRole = (r: string) => aUnDesRoles(user, [r])
+  const peutLierExpressionBesoin = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   const [expressionsDisponibles, setExpressionsDisponibles] = useState<ExpressionBesoin[]>([])
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 'use client'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { saveAs } from 'file-saver'
 import axiosInstance from '@/app/api/axiosInstance'
@@ -55,17 +56,17 @@ export default function CaisseAvancePage() {
           setPeriodeType, setPeriodeAnnee, setPeriodeMois, setPeriodeSemaine, periodeParams } = useCaisseStore()
   const { openModal } = useMandatementStore()
   const { user } = useContext(UserContext)
-  const role = user?.profil?.name
+  const aRole = (r: string) => aUnDesRoles(user, [r])
   // Création de mandatements : réservée aux comptables (CSA/Directeur : lecture seule)
-  const peutCreerMandatement = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
+  const peutCreerMandatement = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   // Approvisionnement : Chef comptable uniquement, Directeur en suppléance — ni l'Agent
   // comptable, ni même l'Admin n'y ont accès.
-  const peutApprovisionner = role === 'CHEF_COMPTABLE' || role === 'DIRECTEUR'
+  const peutApprovisionner = aRole('CHEF_COMPTABLE') || aRole('DIRECTEUR')
   // Motifs : CRUD ouvert aux comptables ainsi qu'au CSA et au Directeur
-  const peutGererMotifs = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
-    || role === 'CSA' || role === 'DIRECTEUR'
+  const peutGererMotifs = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
+    || aRole('CSA') || aRole('DIRECTEUR')
   // Payer un reliquat : réservé aux comptables
-  const peutPayerReliquat = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE' || role === 'ADMIN'
+  const peutPayerReliquat = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   const [search, setSearch]     = useState('')
   const [filterType, setFilterType] = useState('TOUS')
   const [filterMode, setFilterMode] = useState('TOUS')

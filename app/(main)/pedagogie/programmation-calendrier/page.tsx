@@ -1,5 +1,6 @@
 'use client';
 
+import { aUnDesRoles } from '@/app/rolesUtilisateur';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
@@ -33,7 +34,7 @@ const PlanningRegleMatiere = () => {
     const toast = useRef<any>(null);
     const { user } = useContext(UserContext);
     // Seul l'ADMIN peut modifier ; PEDAGOGIE et PLANIFICATION consultent en lecture seule
-    const lectureSeule = user?.profil?.name !== 'ADMIN';
+    const lectureSeule = !aUnDesRoles(user, ['ADMIN']);
 
     const emptyRegle: RegleMatiere = {
         code: '',

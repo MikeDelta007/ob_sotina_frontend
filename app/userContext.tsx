@@ -203,6 +203,9 @@ export interface User {
   profil: Profil;
   acteur: Acteur; // Tu peux le typer plus tard si tu souhaites gérer les acteurs aussi proprement
   personnel: Personnel;
+  // Rôles supplémentaires en plus du rôle principal (profil) : un même agent peut cumuler
+  // plusieurs rôles (menus/pages de chacun).
+  droitsSupplementaires?: string[];
 }
 
 

@@ -13,6 +13,7 @@ import type { Demo } from '@/types';
 import { ProductService } from '@/demo/service/ProductService';
 import { Dropdown } from 'primereact/dropdown';
 import { Checkbox } from 'primereact/checkbox';
+import { MultiSelect } from 'primereact/multiselect';
 import { Calendar } from 'primereact/calendar';
 import { Carousel } from 'primereact/carousel';
 import { ActeurDTO, ParametrageService, ProfilDTO, ProgrammationDTO, SujetDTO, UserDTO } from '@/demo/service/ParametrageService';
@@ -32,6 +33,18 @@ import { MdLockReset } from 'react-icons/md';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { classNames } from 'primereact/utils';
 import { ProgressSpinner } from 'primereact/progressspinner';
+
+// Rôles supplémentaires possibles, en plus du rôle principal du compte
+const DROITS_SUPPLEMENTAIRES = [
+    { label: 'Administrateur', value: 'ADMIN' },
+    { label: 'Pédagogie', value: 'PEDAGOGIE' },
+    { label: 'Planification', value: 'PLANIFICATION' },
+    { label: 'Chef de service', value: 'CHEF_SERVICE' },
+    { label: 'CSA', value: 'CSA' },
+    { label: 'Chef comptable', value: 'CHEF_COMPTABLE' },
+    { label: 'Agent comptable', value: 'AGENT_COMPTABLE' },
+    { label: 'Ticket restaurant', value: 'TICKET_RESTAURANT' }
+];
 
 const CalendarDemo = () => {
     const [is_update, setIsUpdate] = useState(false); // <== valeur persistante entre les appels
@@ -690,7 +703,8 @@ const CalendarDemo = () => {
             state_account: true,
             etablissement: null,
             profil: null,
-            acteur: null
+            acteur: null,
+            droitsSupplementaires: []
         },
 
         validationSchema: Yup.object({
@@ -721,7 +735,8 @@ const CalendarDemo = () => {
                 password: values.password,
                 state_account: true,
                 profil: profilDTO,
-                acteur: acteurDTO
+                acteur: acteurDTO,
+                droitsSupplementaires: values.droitsSupplementaires ?? []
             };
 
             try {
@@ -777,7 +792,8 @@ const CalendarDemo = () => {
             num_compte: '',
             key_rib: '',
             typePersonnel: null,
-            soldeConges: null
+            soldeConges: null,
+            droitsSupplementaires: []
         },
 
         validationSchema: Yup.object({
@@ -822,7 +838,8 @@ const CalendarDemo = () => {
                 num_compte: values.num_compte,
                 key_rib: values.key_rib,
                 typePersonnel: values.typePersonnel,
-                soldeConges: values.soldeConges
+                soldeConges: values.soldeConges,
+                droitsSupplementaires: values.droitsSupplementaires ?? []
             };
 
             try {
@@ -1071,6 +1088,23 @@ const CalendarDemo = () => {
                                     )}
 
                                     <div className="formgrid grid">
+                                        <div className="field col-12">
+                                            <label className="block text-sm font-medium mb-1">Rôles supplémentaires</label>
+                                            <MultiSelect
+                                                value={formik.values.droitsSupplementaires ?? []}
+                                                onChange={(e) => formik.setFieldValue('droitsSupplementaires', e.value)}
+                                                options={DROITS_SUPPLEMENTAIRES}
+                                                display="chip"
+                                                placeholder="Aucun (rôle principal uniquement)"
+                                                className="p-inputtext-sm w-full"
+                                            />
+                                            <small className="text-color-secondary">
+                                                S&apos;ajoutent au rôle principal (ex. agent informatique + Administrateur). La personne doit se reconnecter.
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div className="formgrid grid">
                                         {/* <div className="field col-6">
                                             <Checkbox name="category" value={is_go_by_smtp} onChange={(e) => setIsGoBySmtp(e.checked)} checked={is_go_by_smtp} />
                                             <span className="ml-2">
@@ -1218,6 +1252,23 @@ const CalendarDemo = () => {
                                                 className={`p-inputtext-sm w-full ${formik2.touched.profil && formik2.errors.profil ? 'p-invalid' : ''}`}
                                             />
                                             {formik2.touched.profil && typeof formik2.errors.profil === 'string' && <small className="p-error">{formik2.errors.email}</small>}
+                                        </div>
+                                    </div>
+
+                                    <div className="formgrid grid">
+                                        <div className="field col-12">
+                                            <label className="block text-sm font-medium mb-1">Rôles supplémentaires</label>
+                                            <MultiSelect
+                                                value={formik2.values.droitsSupplementaires ?? []}
+                                                onChange={(e) => formik2.setFieldValue('droitsSupplementaires', e.value)}
+                                                options={DROITS_SUPPLEMENTAIRES}
+                                                display="chip"
+                                                placeholder="Aucun (rôle principal uniquement)"
+                                                className="p-inputtext-sm w-full"
+                                            />
+                                            <small className="text-color-secondary">
+                                                S&apos;ajoutent au rôle principal (ex. agent informatique + Administrateur). La personne doit se reconnecter.
+                                            </small>
                                         </div>
                                     </div>
 

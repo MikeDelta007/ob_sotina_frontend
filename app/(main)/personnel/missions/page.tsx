@@ -1,4 +1,5 @@
 'use client'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useContext, useEffect, useRef, useState } from 'react'
 import ProtectedRoute from '@/layout/ProtectedRoute'
 import { UserContext } from '@/app/userContext'
@@ -32,8 +33,8 @@ const ligneVide = (): LigneForm => ({ agentId: null, disponibiliteVoiture: null,
 function MissionsContent() {
   const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
-  const role = user?.profil?.name
-  const peutGerer = role === 'CSA'
+  const aRole = (r: string) => aUnDesRoles(user, [r])
+  const peutGerer = aRole('CSA')
 
   const { mesMissions, toutes, loading, actionLoadingId, error, fetchMesMissions, fetchToutes, creer, annuler, clearError } = useMissionStore()
   const [agents, setAgents] = useState<{ label: string; value: string }[]>([])

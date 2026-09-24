@@ -3,6 +3,7 @@ import AppSubMenu from './AppSubMenu';
 import { useContext } from 'react';
 import { UserContext } from '@/app/userContext';
 import { useNotificationCounts } from './useNotificationCounts';
+import { aUnDesRoles } from '@/app/rolesUtilisateur';
 import "primeicons/primeicons.css";
 
 type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE'
@@ -20,10 +21,8 @@ const AppMenu = () => {
         return (ROLES as string[]).includes(value);
     };
 
-    const hasAccess = (roles: Role[]): boolean => {
-        const roleName = user?.profil?.name;
-        return !!roleName && isRole(roleName) && roles.includes(roleName);
-    };
+    // Rôle principal OU l'un des rôles supplémentaires du compte
+    const hasAccess = (roles: Role[]): boolean => aUnDesRoles(user, roles);
 
     const model: MenuModal[] = [];
 
@@ -205,6 +204,26 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-file-edit',
                     to: '/expression-besoin',
                     badge: notificationCounts.expressionBesoin
+                }
+            ]
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // TICKET RESTAURANT (Directeur, ou rôle supplémentaire TICKET_RESTAURANT sur le compte)
+    // =========================
+    if (aUnDesRoles(user, ['DIRECTEUR', 'TICKET_RESTAURANT'])) {
+
+        model.push({
+            label: 'TICKET RESTAURANT',
+            icon: 'pi pi-ticket',
+            items: [
+                {
+                    label: 'Tickets restaurant',
+                    icon: 'pi pi-fw pi-ticket',
+                    to: '/ticket-restaurant'
                 }
             ]
         });

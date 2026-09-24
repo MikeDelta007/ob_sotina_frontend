@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from '@/app/userContext'; // Assurez-vous que le chemin est correct
 import { useRouter } from 'next/navigation';
+import { aUnDesRoles } from '@/app/rolesUtilisateur';
 
 interface ProtectedRouteProps {
   allowedRoles: string[];
@@ -30,8 +31,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
     }
 
     // Vérifier les rôles de l'utilisateur
-    const roleName = user?.profil?.name;
-    if (!roleName || !allowedRoles?.includes(roleName)) {
+    if (!aUnDesRoles(user, allowedRoles ?? [])) {
       router.push('/');  // Rediriger si l'utilisateur n'a pas les bons rôles
     } else {
       setLoading(false);  // Si l'utilisateur a accès, arrêter le loading
@@ -41,8 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
   if (loading || !isClient) return <div>PortailBAC, chargement en cours...</div>;  // Afficher un message de chargement tant que la vérification est en cours
 
   // Si l'utilisateur n'a pas les bons rôles, ne rien afficher
-  const roleName = user?.profil?.name;
-  if (!roleName || !allowedRoles?.includes(roleName)) {
+  if (!aUnDesRoles(user, allowedRoles ?? [])) {
     return <div>Accès refusé à PortailBAC</div>;  // Optionnel : afficher un message d'accès refusé
   }
 

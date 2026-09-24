@@ -1,4 +1,5 @@
 'use client'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useContext } from 'react'
 import { TabPanel, TabView } from 'primereact/tabview'
 import { UserContext } from '@/app/userContext'
@@ -12,14 +13,14 @@ import TraiteesTab from './TraiteesTab'
 
 export default function ExpressionBesoinPage() {
   const { user } = useContext(UserContext)
-  const role = user?.profil?.name
+  const aRole = (r: string) => aUnDesRoles(user, [r])
 
-  const peutTraiter = role === 'CHEF_COMPTABLE' || role === 'AGENT_COMPTABLE'
-  const peutValider = role === 'CSA' || role === 'DIRECTEUR'
-  const peutSoumettre = role === 'CHEF_SERVICE' || peutTraiter || peutValider
+  const peutTraiter = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE')
+  const peutValider = aRole('CSA') || aRole('DIRECTEUR')
+  const peutSoumettre = aRole('CHEF_SERVICE') || peutTraiter || peutValider
   // Un agent simple ne crée jamais d'expression de besoin : il consulte, en lecture seule,
   // celles où son chef l'a déclaré bénéficiaire.
-  const estAgentSimple = role === 'AGENT'
+  const estAgentSimple = aRole('AGENT')
   // CSA/Directeur voient ce que traite la comptabilité, mais en lecture seule
   const peutVoirTraitement = peutTraiter || peutValider
 
