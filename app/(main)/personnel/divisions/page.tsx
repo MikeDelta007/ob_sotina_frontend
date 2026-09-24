@@ -64,7 +64,7 @@ function DivisionsContent() {
     })
   }
 
-  const chefBody = (d: Division) => chefs.find(c => c.value === d.chefServiceId)?.label ?? '—'
+  const chefBody = (d: Division) => d.chefServiceNom ?? chefs.find(c => c.value === d.chefServiceId)?.label ?? '—'
   const actifBody = (d: Division) => <Tag severity={d.actif ? 'success' : 'secondary'} value={d.actif ? 'Actif' : 'Inactif'} />
   const actionsBody = (d: Division) => (
     <div className="flex gap-2 justify-content-center">

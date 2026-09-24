@@ -7,6 +7,7 @@ export interface Division {
   id: string
   libelle: string
   chefServiceId?: string | null
+  chefServiceNom?: string | null
   actif: boolean
 }
 
