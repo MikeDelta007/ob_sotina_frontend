@@ -17,7 +17,7 @@ const useNotificationCountsStore = create<NotificationCountsStore>((set) => ({
   counts: { conges: 0, absences: 0, expressionBesoin: 0 },
   fetchCounts: async () => {
     try {
-      const { data } = await axiosInstance.get('notifications/counts')
+      const { data } = await axiosInstance.get('menu/notification-counts')
       set({ counts: data })
     } catch {
       // Un badge de notification ne doit jamais faire planter le menu : on garde le dernier
