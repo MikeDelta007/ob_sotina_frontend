@@ -8,6 +8,7 @@ interface Motif { id: string; libelle: string; actif: boolean }
 interface CreerPayload {
   motifId: string
   motifLibelle?: string
+  description?: string
   quantite?: number
   prixUnitaire: number
   aFacturePreformat: boolean
@@ -54,6 +55,7 @@ const buildForm = (payload: CreerPayload) => {
   const data = new Blob([JSON.stringify({
     motifId: payload.motifId,
     motifLibelle: payload.motifLibelle,
+    description: payload.description?.trim() || undefined,
     quantite: payload.quantite ?? undefined,
     prixUnitaire: payload.prixUnitaire,
     aFacturePreformat: payload.aFacturePreformat,

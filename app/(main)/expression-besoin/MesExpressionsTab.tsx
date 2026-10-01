@@ -9,6 +9,7 @@ import { Dropdown } from 'primereact/dropdown'
 import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload'
 import { InputNumber } from 'primereact/inputnumber'
 import { InputText } from 'primereact/inputtext'
+import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
@@ -29,6 +30,7 @@ export default function MesExpressionsTab() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ExpressionBesoin | null>(null)
   const [motifId, setMotifId] = useState('')
+  const [description, setDescription] = useState('')
   const [quantite, setQuantite] = useState<number | null>(null)
   const [prixUnitaire, setPrixUnitaire] = useState<number | null>(null)
   const [beneficiaireMoiMeme, setBeneficiaireMoiMeme] = useState(true)
@@ -44,14 +46,14 @@ export default function MesExpressionsTab() {
 
   const openCreate = () => {
     setEditing(null)
-    setMotifId(''); setQuantite(null); setPrixUnitaire(null)
+    setMotifId(''); setDescription(''); setQuantite(null); setPrixUnitaire(null)
     setBeneficiaireMoiMeme(true); setBeneficiaireId('')
     setAFacturePreformat(false)
     setPdfFactureProforma(null); setPdfDeclarationHonneur(null); setErr(''); setDialogOpen(true)
   }
   const openEdit = (eb: ExpressionBesoin) => {
     setEditing(eb)
-    setMotifId(eb.motifId); setQuantite(eb.quantite ?? null); setPrixUnitaire(eb.prixUnitaire)
+    setMotifId(eb.motifId); setDescription(eb.description ?? ''); setQuantite(eb.quantite ?? null); setPrixUnitaire(eb.prixUnitaire)
     setBeneficiaireMoiMeme(eb.beneficiaireMoiMeme ?? true); setBeneficiaireId(eb.beneficiaireMoiMeme ? '' : (eb.beneficiaireId ?? ''))
     setAFacturePreformat(eb.aFacturePreformat); setPdfFactureProforma(null); setPdfDeclarationHonneur(null)
     setErr(''); setDialogOpen(true)
@@ -82,7 +84,7 @@ export default function MesExpressionsTab() {
     try {
       const motif = motifs.find(m => m.id === motifId)
       const payload = {
-        motifId, motifLibelle: motif?.libelle, quantite: quantite ?? undefined, prixUnitaire: prixUnitaire!,
+        motifId, motifLibelle: motif?.libelle, description, quantite: quantite ?? undefined, prixUnitaire: prixUnitaire!,
         aFacturePreformat, beneficiaireMoiMeme, beneficiaireId: beneficiaireMoiMeme ? undefined : beneficiaireId,
         pdfFactureProforma, pdfDeclarationHonneur,
       }
@@ -160,6 +162,11 @@ export default function MesExpressionsTab() {
               <label className="block text-sm text-color-secondary mb-1">Désignation *</label>
               <Dropdown value={motifId} options={motifs.map(m => ({ label: m.libelle, value: m.id }))}
                 onChange={e => setMotifId(e.value)} className="w-full" placeholder="Choisir un motif…" />
+            </div>
+            <div className="col-12 field mb-2">
+              <label className="block text-sm text-color-secondary mb-1">Description (optionnelle)</label>
+              <InputTextarea value={description} onChange={e => setDescription(e.target.value)}
+                rows={2} autoResize className="w-full" placeholder="Précision libre en plus du motif…" />
             </div>
             <div className="col-6 field mb-0">
               <label className="block text-sm text-color-secondary mb-1">Quantité (optionnelle)</label>

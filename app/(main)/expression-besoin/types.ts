@@ -10,6 +10,8 @@ export interface ExpressionBesoin {
   // ── Motif unique ──
   motifId: string
   motifLibelle?: string
+  // Facultative : précision libre en plus du motif (ex. "Papier A4 pour le service X")
+  description?: string
   // Optionnelle : certaines désignations ne sont pas quantitatives (ex. un forfait)
   quantite?: number
   prixUnitaire: number
@@ -83,9 +85,11 @@ export const fmt = (n: number) =>
 
 export const directeurRequis = (montantInitial: number) => montantInitial > SEUIL_VALIDATION_DIRECTEUR
 
-// Désignation affichée dans les tableaux (ex. "Papier A4 (x2)")
-export const designationEb = (eb: ExpressionBesoin) =>
-  eb.quantite ? `${eb.motifLibelle ?? '—'} (x${eb.quantite})` : (eb.motifLibelle ?? '—')
+// Désignation affichée dans les tableaux (ex. "Papier A4 (x2) — pour le service X")
+export const designationEb = (eb: ExpressionBesoin) => {
+  const base = eb.quantite ? `${eb.motifLibelle ?? '—'} (x${eb.quantite})` : (eb.motifLibelle ?? '—')
+  return eb.description ? `${base} — ${eb.description}` : base
+}
 
 // Étape de la chaîne de validation : qui a validé/rejeté et quand, pour affichage de la
 // traçabilité complète (agent bénéficiaire, chef créateur, CSA, Directeur).
