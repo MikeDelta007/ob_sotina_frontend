@@ -39,11 +39,14 @@ const DROITS_SUPPLEMENTAIRES = [
     { label: 'Administrateur', value: 'ADMIN' },
     { label: 'Pédagogie', value: 'PEDAGOGIE' },
     { label: 'Planification', value: 'PLANIFICATION' },
+    { label: 'Scolarité', value: 'SCOLARITE' },
     { label: 'Chef de service', value: 'CHEF_SERVICE' },
     { label: 'CSA', value: 'CSA' },
     { label: 'Chef comptable', value: 'CHEF_COMPTABLE' },
     { label: 'Agent comptable', value: 'AGENT_COMPTABLE' },
-    { label: 'Ticket restaurant', value: 'TICKET_RESTAURANT' }
+    { label: 'Ticket restaurant', value: 'TICKET_RESTAURANT' },
+    { label: 'Ticket carburant', value: 'TICKET_CARBURANT' },
+    { label: 'Chef de service Diplôme', value: 'CHEF_SERVICE_DIPLOME' }
 ];
 
 const CalendarDemo = () => {
@@ -107,12 +110,14 @@ const CalendarDemo = () => {
         { label: 'ADMIN', value: 'ADMIN' },
         { label: 'PLANIFICATION', value: 'PLANIFICATION' },
         { label: 'PEDAGOGIE', value: 'PEDAGOGIE' },
-        { label: 'Chef de service', value: 'CHEF_SERVICE' },
+        { label: 'SCOLARITE', value: 'SCOLARITE' },
+        { label: 'CHEF DE SERVICE', value: 'CHEF_SERVICE' },
         { label: 'CSA', value: 'CSA' },
-        { label: 'Directeur', value: 'DIRECTEUR' },
-        { label: 'Chef comptable', value: 'CHEF_COMPTABLE' },
-        { label: 'Agent comptable', value: 'AGENT_COMPTABLE' },
-        { label: 'Agent', value: 'AGENT' }
+        { label: 'DIRECTEUR', value: 'DIRECTEUR' },
+        { label: 'ASSISTANTE DIRECTEUR', value: 'ASSISTANTE_DIRECTEUR' },
+        { label: 'CHEF COMPTABLE', value: 'CHEF_COMPTABLE' },
+        { label: 'AGENT COMPTABLE', value: 'AGENT_COMPTABLE' },
+        { label: 'AGENT', value: 'AGENT' }
     ];
 
     useEffect(() => {

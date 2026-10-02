@@ -4,7 +4,7 @@ import TicketRestaurantPage from './TicketRestaurantPage'
 
 export default function Page() {
   return (
-    <ProtectedRoute allowedRoles={['DIRECTEUR', 'TICKET_RESTAURANT']}>
+    <ProtectedRoute allowedRoles={['DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'TICKET_RESTAURANT']}>
       <TicketRestaurantPage />
     </ProtectedRoute>
   )

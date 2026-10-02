@@ -138,6 +138,7 @@ export default function MesExpressionsTab() {
         }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
+        <Column header="Description" body={(eb: ExpressionBesoin) => eb.description || '—'} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />

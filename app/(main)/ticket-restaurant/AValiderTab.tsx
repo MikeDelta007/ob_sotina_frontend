@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Alerte, Bouton, Champ, CLASSE_INPUT, Modal, Tableau, type Colonne } from './ui'
 import { useTicketRestaurantStore } from './useTicketRestaurantStore'
 import { fmt, datesCochees, type TicketRestaurant } from './types'
+import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
 
 export default function AValiderTab() {
   const { aValider, loading, actionLoadingId, error, fetchAValider, valider, rejeter } = useTicketRestaurantStore()
@@ -12,6 +13,10 @@ export default function AValiderTab() {
 
   useEffect(() => { fetchAValider() }, [])
 
+  const confirmerValider = async (t: TicketRestaurant) => {
+    try { await valider(t.id); refreshNotificationCounts() } catch { /* erreur affichée via le store */ }
+  }
+
   const ouvrirRejet = (t: TicketRestaurant) => { setRejetTarget(t); setMotifRejet(''); setErr('') }
   const fermerRejet = () => setRejetTarget(null)
 
@@ -20,6 +25,7 @@ export default function AValiderTab() {
     if (!motifRejet.trim()) { setErr('Le motif du rejet est requis'); return }
     try {
       await rejeter(rejetTarget.id, motifRejet.trim())
+      refreshNotificationCounts()
       fermerRejet()
     } catch {
       setErr('Erreur lors du rejet')
@@ -28,15 +34,15 @@ export default function AValiderTab() {
 
   const colonnes: Colonne<TicketRestaurant>[] = [
     { titre: 'Demandeur', rendu: t => t.creeParNom || t.creePar },
-    { titre: 'Dates', rendu: t => datesCochees(t) },
+    { titre: 'Motif', rendu: t => t.motifLibelle },
+    { titre: 'Date', rendu: t => datesCochees(t) },
     { titre: 'Agents', rendu: t => (t.agentNoms ?? []).join(', ') || '—' },
-    { titre: 'Jours', rendu: t => t.nombreJours, alignement: 'centre' },
     { titre: 'Montant', rendu: t => fmt(t.montantTotal), alignement: 'droite' },
     {
       titre: 'Actions', alignement: 'centre',
       rendu: t => (
         <div className="tw-flex tw-justify-center tw-gap-2">
-          <Bouton variante="succes" chargement={actionLoadingId === t.id} onClick={() => valider(t.id)}>Valider</Bouton>
+          <Bouton variante="succes" chargement={actionLoadingId === t.id} onClick={() => confirmerValider(t)}>Valider</Bouton>
           <Bouton variante="contour" className="!tw-border-red-300 !tw-text-red-600" disabled={actionLoadingId === t.id} onClick={() => ouvrirRejet(t)}>Rejeter</Bouton>
         </div>
       ),

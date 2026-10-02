@@ -1,6 +1,7 @@
 // Rôles ayant tous accès aux pages self-service du module personnel (Mon profil, Absences, Missions)
 export const TOUS_ROLES = [
-  'ADMIN', 'PLANIFICATION', 'PEDAGOGIE', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'AGENT'
+  'ADMIN', 'PLANIFICATION', 'PEDAGOGIE', 'SCOLARITE', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR',
+  'ASSISTANTE_DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'AGENT'
 ]
 
 export interface Division {

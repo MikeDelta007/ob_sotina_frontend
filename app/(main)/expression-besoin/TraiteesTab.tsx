@@ -76,6 +76,7 @@ export default function TraiteesTab() {
         }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
+        <Column header="Description" body={(eb: ExpressionBesoin) => eb.description || '—'} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Montant réel" body={(eb: ExpressionBesoin) => eb.montantReel ? fmt(eb.montantReel) : '—'} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />

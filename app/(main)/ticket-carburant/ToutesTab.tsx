@@ -2,24 +2,24 @@
 import { useEffect, useState } from 'react'
 import { saveAs } from 'file-saver'
 import axiosInstance from '@/app/api/axiosInstance'
-import { Alerte, Badge, Bouton, Tableau, type Colonne } from './ui'
-import { useTicketRestaurantStore } from './useTicketRestaurantStore'
-import { fmt, datesCochees, STATUT_LABEL, type StatutTR, type TicketRestaurant } from './types'
+import { Alerte, Badge, Bouton, Tableau, type Colonne } from '../ticket-restaurant/ui'
+import { useTicketCarburantStore } from './useTicketCarburantStore'
+import { STATUT_LABEL, type StatutTC, type TicketCarburant } from './types'
 
-const COULEUR_STATUT: Record<StatutTR, 'attente' | 'succes' | 'danger'> = { EN_ATTENTE: 'attente', VALIDEE: 'succes', REJETEE: 'danger' }
+const COULEUR_STATUT: Record<StatutTC, 'attente' | 'succes' | 'danger'> = { EN_ATTENTE: 'attente', VALIDEE: 'succes', REJETEE: 'danger' }
 
 export default function ToutesTab() {
-  const { toutes, loading, fetchToutes } = useTicketRestaurantStore()
+  const { toutes, loading, fetchToutes } = useTicketCarburantStore()
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [erreurTelechargement, setErreurTelechargement] = useState(false)
 
   useEffect(() => { fetchToutes() }, [])
 
-  const telecharger = async (t: TicketRestaurant) => {
+  const telecharger = async (t: TicketCarburant) => {
     setDownloadingId(t.id); setErreurTelechargement(false)
     try {
-      const { data } = await axiosInstance.get(`ticket-restaurant/${t.id}/liste.pdf`, { responseType: 'blob' })
-      saveAs(data, `tickets_restaurant_${t.id}.pdf`)
+      const { data } = await axiosInstance.get(`ticket-carburant/${t.id}/fiche.pdf`, { responseType: 'blob' })
+      saveAs(data, `demande_carburant_${t.id}.pdf`)
     } catch {
       setErreurTelechargement(true)
     } finally {
@@ -27,12 +27,12 @@ export default function ToutesTab() {
     }
   }
 
-  const colonnes: Colonne<TicketRestaurant>[] = [
+  const colonnes: Colonne<TicketCarburant>[] = [
     { titre: 'Demandeur', rendu: t => t.creeParNom || t.creePar },
-    { titre: 'Motif', rendu: t => t.motifLibelle },
-    { titre: 'Date', rendu: t => datesCochees(t) },
-    { titre: 'Agents', rendu: t => `${t.agentNoms?.length ?? 0} agent(s)`, alignement: 'centre' },
-    { titre: 'Montant', rendu: t => fmt(t.montantTotal), alignement: 'droite' },
+    { titre: 'Date', rendu: t => new Date(t.date).toLocaleDateString('fr-FR') },
+    { titre: 'Trajet', rendu: t => `${t.villeDepartNom} — ${t.villeArriveeNom}` },
+    { titre: 'Demandé', rendu: t => t.nombreTicketsDemande, alignement: 'centre' },
+    { titre: 'Accordé', rendu: t => t.nombreTicketsAccorde ?? '—', alignement: 'centre' },
     { titre: 'Statut', rendu: t => <Badge couleur={COULEUR_STATUT[t.statut]}>{STATUT_LABEL[t.statut]}</Badge>, alignement: 'centre' },
     { titre: 'Motif de rejet', rendu: t => t.motifRejet || '—' },
     {
@@ -47,8 +47,8 @@ export default function ToutesTab() {
     <div className="tw-flex tw-flex-col tw-gap-3">
       {erreurTelechargement && <Alerte>Téléchargement impossible</Alerte>}
       <Tableau lignes={toutes} colonnes={colonnes} chargement={loading}
-        recherche={t => `${t.creeParNom ?? ''} ${t.creePar} ${STATUT_LABEL[t.statut]} ${t.motifRejet ?? ''} ${(t.agentNoms ?? []).join(' ')}`}
-        vide="Aucune demande de tickets restaurant" />
+        recherche={t => `${t.creeParNom ?? ''} ${t.creePar} ${t.motifLibelle} ${t.villeDepartNom} ${t.villeArriveeNom}`}
+        vide="Aucune demande de carburant" />
     </div>
   )
 }

@@ -6,6 +6,8 @@ export interface NotificationCounts {
   conges: number
   absences: number
   expressionBesoin: number
+  ticketRestaurant: number
+  ticketCarburant: number
 }
 
 interface NotificationCountsStore {
@@ -14,7 +16,7 @@ interface NotificationCountsStore {
 }
 
 const useNotificationCountsStore = create<NotificationCountsStore>((set) => ({
-  counts: { conges: 0, absences: 0, expressionBesoin: 0 },
+  counts: { conges: 0, absences: 0, expressionBesoin: 0, ticketRestaurant: 0, ticketCarburant: 0 },
   fetchCounts: async () => {
     try {
       const { data } = await axiosInstance.get('menu/notification-counts')

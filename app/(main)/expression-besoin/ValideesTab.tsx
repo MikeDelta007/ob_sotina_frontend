@@ -60,6 +60,7 @@ export default function ValideesTab() {
         }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
+        <Column header="Description" body={(eb: ExpressionBesoin) => eb.description || '—'} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />

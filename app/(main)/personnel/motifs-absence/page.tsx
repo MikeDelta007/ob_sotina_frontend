@@ -130,7 +130,7 @@ function MotifsAbsenceContent() {
 
 export default function MotifsAbsencePage() {
   return (
-    <ProtectedRoute allowedRoles={['ADMIN', 'CSA', 'DIRECTEUR']}>
+    <ProtectedRoute allowedRoles={['ADMIN', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE']}>
       <MotifsAbsenceContent />
     </ProtectedRoute>
   )

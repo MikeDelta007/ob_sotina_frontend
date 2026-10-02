@@ -62,9 +62,8 @@ export default function CaisseAvancePage() {
   // Approvisionnement : Chef comptable uniquement, Directeur en suppléance — ni l'Agent
   // comptable, ni même l'Admin n'y ont accès.
   const peutApprovisionner = aRole('CHEF_COMPTABLE') || aRole('DIRECTEUR')
-  // Motifs : CRUD ouvert aux comptables ainsi qu'au CSA et au Directeur
-  const peutGererMotifs = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
-    || aRole('CSA') || aRole('DIRECTEUR')
+  // Motifs : CRUD réservé au Directeur, au CSA, à l'Admin et au Chef comptable
+  const peutGererMotifs = aRole('CHEF_COMPTABLE') || aRole('ADMIN') || aRole('CSA') || aRole('DIRECTEUR')
   // Payer un reliquat : réservé aux comptables
   const peutPayerReliquat = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   const [search, setSearch]     = useState('')

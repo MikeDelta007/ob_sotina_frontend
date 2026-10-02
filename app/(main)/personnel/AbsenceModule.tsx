@@ -413,9 +413,9 @@ function MesAgentsTab() {
 // Seuls ces profils peuvent être amenés à valider une demande (CSA/DIRECTEUR/ADMIN au niveau
 // central, CHEF_SERVICE s'il est effectivement chef d'une division) — les autres (Agent, etc.)
 // ne valident jamais rien et n'ont donc pas d'onglet "À valider".
-const ROLES_VALIDATEURS = ['CSA', 'DIRECTEUR', 'ADMIN', 'CHEF_SERVICE']
+const ROLES_VALIDATEURS = ['CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'ADMIN', 'CHEF_SERVICE']
 // Seuls ces rôles peuvent télécharger le PDF d'une autorisation d'absence validée
-const ROLES_TELECHARGEMENT = ['CSA', 'DIRECTEUR', 'ADMIN']
+const ROLES_TELECHARGEMENT = ['CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'ADMIN']
 
 function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence; titre: string; description: string }) {
   const { user } = useContext(UserContext)

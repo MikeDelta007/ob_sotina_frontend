@@ -63,6 +63,7 @@ const Login: React.FC = () => {
                             CHEF_SERVICE: '/expression-besoin',
                             CSA: '/expression-besoin',
                             DIRECTEUR: '/expression-besoin',
+                            ASSISTANTE_DIRECTEUR: '/expression-besoin',
                             CHEF_COMPTABLE: '/caisse-avance',
                             AGENT_COMPTABLE: '/caisse-avance',
                             AGENT: '/personnel/mon-profil',

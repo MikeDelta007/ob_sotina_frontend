@@ -7,10 +7,10 @@ import { aUnDesRoles } from '@/app/rolesUtilisateur';
 import "primeicons/primeicons.css";
 
 type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE'
-    | 'CHEF_SERVICE' | 'CSA' | 'DIRECTEUR' | 'CHEF_COMPTABLE' | 'AGENT_COMPTABLE' | 'AGENT';
+    | 'CHEF_SERVICE' | 'CSA' | 'DIRECTEUR' | 'ASSISTANTE_DIRECTEUR' | 'CHEF_COMPTABLE' | 'AGENT_COMPTABLE' | 'AGENT';
 
 const ROLES: Role[] = ['ADMIN', 'PLANIFICATION', 'PEDAGOGIE',
-    'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'AGENT'];
+    'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'AGENT'];
 
 const AppMenu = () => {
 
@@ -193,7 +193,7 @@ const AppMenu = () => {
     // =========================
     // EXPRESSION DE BESOIN
     // =========================
-    if (hasAccess(['AGENT', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'ADMIN'])) {
+    if (hasAccess(['AGENT', 'CHEF_SERVICE', 'CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'ADMIN'])) {
 
         model.push({
             label: 'EXPRESSION DE BESOIN',
@@ -212,19 +212,48 @@ const AppMenu = () => {
     }
 
     // =========================
-    // TICKET RESTAURANT (Directeur, ou rôle supplémentaire TICKET_RESTAURANT sur le compte)
+    // GESTION DES TICKETS (restaurant : Directeur/Assistante Directeur ou rôle TICKET_RESTAURANT ;
+    // carburant : CSA/Directeur/Assistante Directeur valident, ou rôle TICKET_CARBURANT pour demander)
     // =========================
-    if (aUnDesRoles(user, ['DIRECTEUR', 'TICKET_RESTAURANT'])) {
+    const peutTicketsRestaurant = aUnDesRoles(user, ['DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'TICKET_RESTAURANT']);
+    const peutTicketsCarburant = aUnDesRoles(user, ['CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'TICKET_CARBURANT']);
+    if (peutTicketsRestaurant || peutTicketsCarburant) {
 
         model.push({
-            label: 'TICKET RESTAURANT',
+            label: 'GESTION DES TICKETS',
             icon: 'pi pi-ticket',
             items: [
-                {
+                peutTicketsRestaurant && {
                     label: 'Tickets restaurant',
                     icon: 'pi pi-fw pi-ticket',
-                    to: '/ticket-restaurant'
+                    to: '/ticket-restaurant',
+                    badge: notificationCounts.ticketRestaurant
+                },
+                peutTicketsCarburant && {
+                    label: 'Tickets carburant',
+                    icon: 'pi pi-fw pi-car',
+                    to: '/ticket-carburant',
+                    badge: notificationCounts.ticketCarburant
                 }
+            ].filter(Boolean) as MenuModal[]
+        });
+
+        model.push({ separator: true });
+    }
+
+    // =========================
+    // GESTION DES MOTIFS (Directeur, CSA, Admin, Chef comptable)
+    // =========================
+    if (aUnDesRoles(user, ['ADMIN', 'CSA', 'DIRECTEUR', 'CHEF_COMPTABLE'])) {
+
+        model.push({
+            label: 'GESTION DES MOTIFS',
+            icon: 'pi pi-list',
+            items: [
+                { label: 'Motifs expression de besoin', icon: 'pi pi-fw pi-list', to: '/caisse-avance/motifs' },
+                { label: "Motifs autorisation d'absence", icon: 'pi pi-fw pi-list', to: '/personnel/motifs-absence' },
+                { label: 'Motifs tickets restaurant', icon: 'pi pi-fw pi-list', to: '/ticket-restaurant/motifs' },
+                { label: 'Motifs tickets carburant', icon: 'pi pi-fw pi-list', to: '/ticket-carburant/motifs' }
             ]
         });
 
@@ -258,8 +287,7 @@ const AppMenu = () => {
                 { label: 'Divisions', icon: 'pi pi-fw pi-sitemap', to: '/personnel/divisions' },
                 { label: 'Fonctions', icon: 'pi pi-fw pi-briefcase', to: '/personnel/fonctions' },
                 { label: 'Véhicules', icon: 'pi pi-fw pi-car', to: '/personnel/voitures' },
-                { label: 'Chauffeurs', icon: 'pi pi-fw pi-id-card', to: '/personnel/chauffeurs' },
-                { label: "Motifs d'absence", icon: 'pi pi-fw pi-list', to: '/personnel/motifs-absence' }
+                { label: 'Chauffeurs', icon: 'pi pi-fw pi-id-card', to: '/personnel/chauffeurs' }
             ]
         });
     }

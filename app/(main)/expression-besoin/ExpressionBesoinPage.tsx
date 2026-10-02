@@ -16,7 +16,7 @@ export default function ExpressionBesoinPage() {
   const aRole = (r: string) => aUnDesRoles(user, [r])
 
   const peutTraiter = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE')
-  const peutValider = aRole('CSA') || aRole('DIRECTEUR')
+  const peutValider = aRole('CSA') || aRole('DIRECTEUR') || aRole('ASSISTANTE_DIRECTEUR')
   const peutSoumettre = aRole('CHEF_SERVICE') || peutTraiter || peutValider
   // Un agent simple ne crée jamais d'expression de besoin : il consulte, en lecture seule,
   // celles où son chef l'a déclaré bénéficiaire.

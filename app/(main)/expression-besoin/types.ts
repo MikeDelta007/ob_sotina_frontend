@@ -85,11 +85,9 @@ export const fmt = (n: number) =>
 
 export const directeurRequis = (montantInitial: number) => montantInitial > SEUIL_VALIDATION_DIRECTEUR
 
-// Désignation affichée dans les tableaux (ex. "Papier A4 (x2) — pour le service X")
-export const designationEb = (eb: ExpressionBesoin) => {
-  const base = eb.quantite ? `${eb.motifLibelle ?? '—'} (x${eb.quantite})` : (eb.motifLibelle ?? '—')
-  return eb.description ? `${base} — ${eb.description}` : base
-}
+// Désignation affichée dans les tableaux (ex. "Papier A4 (x2)") — la description a sa propre colonne
+export const designationEb = (eb: ExpressionBesoin) =>
+  eb.quantite ? `${eb.motifLibelle ?? '—'} (x${eb.quantite})` : (eb.motifLibelle ?? '—')
 
 // Étape de la chaîne de validation : qui a validé/rejeté et quand, pour affichage de la
 // traçabilité complète (agent bénéficiaire, chef créateur, CSA, Directeur).

@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 // Petits composants 100 % Tailwind (préfixe tw-) du module Ticket restaurant — sans PrimeReact.
 // Tailwind est configuré sans "preflight" : chaque élément natif doit donc être stylé explicitement.
@@ -175,6 +175,109 @@ export function SelectionMultiple({ options, valeur, onChange, placeholder }:
           </label>
         ))}
       </div>
+    </div>
+  )
+}
+
+export interface MotifCrud {
+  id: string
+  libelle: string
+  actif: boolean
+  roles?: string[]
+}
+
+// Gestion CRUD générique d'une liste de motifs (libellé + actif, rôles concernés en option) —
+// réutilisée par chaque module ayant sa propre liste indépendante (ticket restaurant, ticket
+// carburant…). `rolesDisponibles`, si fourni, affiche un sélecteur des rôles concernés par
+// chaque motif (vide = visible de tous) ; sans lui, aucune notion de rôle n'apparaît.
+export function MotifsAdmin({ motifs, fetchMotifs, onCreer, onModifier, onSupprimer, rolesDisponibles }: {
+  motifs: MotifCrud[]
+  fetchMotifs: () => void
+  onCreer: (libelle: string, roles?: string[]) => Promise<void>
+  onModifier: (id: string, libelle: string, actif: boolean, roles?: string[]) => Promise<void>
+  onSupprimer: (id: string) => Promise<void>
+  rolesDisponibles?: { label: string; value: string }[]
+}) {
+  useEffect(() => { fetchMotifs() }, [])
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<MotifCrud | null>(null)
+  const [libelle, setLibelleVal] = useState('')
+  const [actif, setActif] = useState(true)
+  const [roles, setRoles] = useState<string[]>([])
+  const [err, setErr] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const ouvrirCreation = () => { setEditing(null); setLibelleVal(''); setActif(true); setRoles([]); setErr(''); setDialogOpen(true) }
+  const ouvrirEdition = (m: MotifCrud) => { setEditing(m); setLibelleVal(m.libelle); setActif(m.actif); setRoles(m.roles ?? []); setErr(''); setDialogOpen(true) }
+
+  const enregistrer = async () => {
+    if (!libelle.trim()) { setErr('Le libellé est requis'); return }
+    setSubmitting(true)
+    try {
+      if (editing) await onModifier(editing.id, libelle.trim(), actif, roles)
+      else await onCreer(libelle.trim(), roles)
+      setDialogOpen(false)
+    } catch {
+      setErr('Erreur lors de l\'enregistrement')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const libelleRole = (v: string) => rolesDisponibles?.find(r => r.value === v)?.label ?? v
+
+  const colonnes: Colonne<MotifCrud>[] = [
+    { titre: 'Libellé', rendu: m => m.libelle },
+    ...(rolesDisponibles ? [{
+      titre: 'Rôles concernés', rendu: (m: MotifCrud) => m.roles && m.roles.length > 0 ? m.roles.map(libelleRole).join(', ') : 'Tous',
+    } as Colonne<MotifCrud>] : []),
+    { titre: 'Statut', rendu: m => <Badge couleur={m.actif ? 'succes' : 'danger'}>{m.actif ? 'Actif' : 'Inactif'}</Badge>, alignement: 'centre' },
+    {
+      titre: 'Actions', alignement: 'centre',
+      rendu: m => (
+        <div className="tw-flex tw-justify-center tw-gap-2">
+          <Bouton variante="contour" onClick={() => ouvrirEdition(m)}>Modifier</Bouton>
+          {m.actif && (
+            <Bouton variante="contour" className="!tw-border-red-300 !tw-text-red-600" onClick={() => onSupprimer(m.id)}>Désactiver</Bouton>
+          )}
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <div>
+      <Tableau lignes={motifs} colonnes={colonnes}
+        recherche={m => m.libelle}
+        vide="Aucun motif"
+        entete={<Bouton onClick={ouvrirCreation}>+ Nouveau motif</Bouton>} />
+
+      <Modal ouvert={dialogOpen} titre={editing ? 'Modifier le motif' : 'Nouveau motif'} onFermer={() => setDialogOpen(false)}
+        pied={
+          <>
+            <Bouton variante="contour" className="tw-flex-1" onClick={() => setDialogOpen(false)} disabled={submitting}>Annuler</Bouton>
+            <Bouton className="tw-flex-1" chargement={submitting} onClick={enregistrer}>Enregistrer</Bouton>
+          </>
+        }>
+        <div className="tw-flex tw-flex-col tw-gap-3">
+          <Champ etiquette="Libellé *">
+            <input value={libelle} onChange={e => setLibelleVal(e.target.value)} className={CLASSE_INPUT} />
+          </Champ>
+          {rolesDisponibles && (
+            <Champ etiquette="Rôles concernés (vide = visible de tous)">
+              <SelectionMultiple valeur={roles} onChange={setRoles} placeholder="Rechercher un rôle…" options={rolesDisponibles} />
+            </Champ>
+          )}
+          {editing && (
+            <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-700">
+              <input type="checkbox" className="tw-h-4 tw-w-4 tw-accent-blue-600" checked={actif} onChange={e => setActif(e.target.checked)} />
+              Actif
+            </label>
+          )}
+          {err && <Alerte>{err}</Alerte>}
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -61,6 +61,7 @@ export default function MesExpressionsLieesTab() {
         }>
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
+        <Column header="Description" body={(eb: ExpressionBesoin) => eb.description || '—'} />
         <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
         <Column header="Demandé par" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
