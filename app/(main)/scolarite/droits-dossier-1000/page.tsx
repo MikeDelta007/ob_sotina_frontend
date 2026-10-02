@@ -151,9 +151,9 @@ const UploadPdf = () => {
 
 
 
-  const handleUpload = async () => 
+  const handleUpload = async () =>
   {
-    if (!file) 
+    if (!file)
     {
             setErrorMessage("⚠️ Veuillez d'abord charger un fichier PDF valide.");
             return;
@@ -161,8 +161,15 @@ const UploadPdf = () => {
     else
     {
       let code = 1;
-      await FileService.uploadFile(file, Number(prog?.edition), user?.acteur?.etablissement?.id, code);
-    }  
+      const result = await FileService.uploadFile(file, Number(prog?.edition), user?.acteur?.etablissement?.id, code);
+      if (!result) {
+        toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: 'Impossible de téléverser le fichier', life: 4000 });
+        return;
+      }
+      toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Fichier chargé avec succès', life: 4000 });
+      setRecuDialog2(false);
+      setReloadTrigger(prev => !prev);
+    }
   };
 
   const sessionBodyTemplate = (rowData) => {
@@ -273,7 +280,8 @@ const statutVBodyTemplate = (rowData) => {
                 nbCdtsInscrits: Yup.number()
                 .required('Champ requis')
                 .moreThan(0, 'Le nombre doit être supérieur à 0'),
-                phoneNumber : Yup.string().required('Champ requis'),
+                phoneNumber : Yup.string().required('Champ requis')
+                .matches(/^(77|76|70|78|33|75|71)\d{7}$/, 'Numéro invalide. Doit commencer par 77, 76, 70, 78, 33, 75 ou 71 et avoir 9 chiffres'),
                 
             }),
     

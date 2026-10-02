@@ -21,3 +21,42 @@ $sidebarShadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1p
 .multiselect-sans-checkbox .p-multiselect-checkbox {
     display: none;
 }
+
+// Onglets (TabView) de toute l'application : fond bleu façon bouton au lieu du simple
+// soulignement par défaut de PrimeReact — demandé pour tous les écrans, pas page par page.
+.p-tabview .p-tabview-nav {
+    border: none;
+    gap: 0.5rem;
+
+    li .p-tabview-nav-link {
+        background: var(--primary-color);
+        color: var(--primary-color-text);
+        border: none;
+        border-radius: 6px;
+        margin: 0 0 0.5rem 0;
+    }
+
+    li:not(.p-highlight):not(.p-disabled):hover .p-tabview-nav-link {
+        background: var(--primary-600, var(--primary-color));
+        color: var(--primary-color-text);
+    }
+
+    li.p-highlight .p-tabview-nav-link {
+        background: var(--primary-700, var(--primary-color));
+        color: var(--primary-color-text);
+        box-shadow: none;
+    }
+}
+
+// Onglet "< 20 000 FCFA" (expression de besoin) : en rouge plutôt qu'en bleu comme les autres,
+// pour le distinguer visuellement puisqu'il ne concerne jamais le Directeur.
+.eb-onglet-montant-reduit .p-tabview-nav-link {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+li.eb-onglet-montant-reduit:not(.p-highlight):not(.p-disabled):hover .p-tabview-nav-link {
+    background: #dc2626 !important;
+}
+li.eb-onglet-montant-reduit.p-highlight .p-tabview-nav-link {
+    background: #b91c1c !important;
+}

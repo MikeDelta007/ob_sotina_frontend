@@ -2,12 +2,15 @@
 import { useContext, useState } from 'react'
 import { UserContext } from '@/app/userContext'
 import { aUnDesRoles } from '@/app/rolesUtilisateur'
+import { useNotificationCounts } from '@/layout/useNotificationCounts'
+import OngletBadge from '@/layout/OngletBadge'
 import MesTicketsTab from './MesTicketsTab'
 import AValiderTab from './AValiderTab'
 import ToutesTab from './ToutesTab'
 
 export default function TicketRestaurantPage() {
   const { user } = useContext(UserContext)
+  const notificationCounts = useNotificationCounts(!!user)
 
   const peutValider = aUnDesRoles(user, ['DIRECTEUR', 'ASSISTANTE_DIRECTEUR'])
   // Créer une demande nécessite le rôle supplémentaire TICKET_RESTAURANT (ou être Directeur)
@@ -15,7 +18,11 @@ export default function TicketRestaurantPage() {
 
   const onglets = [
     peutCreer && { key: 'mes', titre: 'Mes demandes', contenu: <MesTicketsTab /> },
-    peutValider && { key: 'avalider', titre: 'À valider', contenu: <AValiderTab /> },
+    peutValider && {
+      key: 'avalider',
+      titre: <>À valider <OngletBadge count={notificationCounts.ticketRestaurant} /></>,
+      contenu: <AValiderTab />
+    },
     peutValider && { key: 'toutes', titre: 'Toutes les demandes', contenu: <ToutesTab /> },
   ].filter((o): o is Exclude<typeof o, false> => !!o)
 
@@ -31,11 +38,11 @@ export default function TicketRestaurantPage() {
         </p>
       </div>
 
-      <div className="tw-mb-5 tw-flex tw-gap-1 tw-border-b tw-border-gray-200">
+      <div className="tw-mb-5 tw-flex tw-gap-2">
         {onglets.map(o => (
           <button key={o.key} type="button" onClick={() => setActif(o.key)}
-            className={`tw-cursor-pointer tw-border-0 tw-border-b-2 tw-bg-transparent tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-transition
-              ${o.key === courant.key ? 'tw-border-blue-600 tw-text-blue-600' : 'tw-border-transparent tw-text-gray-500 hover:tw-text-gray-800'}`}>
+            className={`tw-cursor-pointer tw-rounded-md tw-border-0 tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-transition
+              ${o.key === courant.key ? 'tw-bg-blue-700 tw-text-white' : 'tw-bg-blue-500 tw-text-white hover:tw-bg-blue-600'}`}>
             {o.titre}
           </button>
         ))}

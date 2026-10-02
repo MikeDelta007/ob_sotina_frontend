@@ -116,7 +116,11 @@ const UploadPdf = () => {
             return;
         } else {
             let code = 1;
-            await FileService.uploadFile(file, Number(prog?.edition), user?.acteur?.etablissement?.id, code);
+            const result = await FileService.uploadFile(file, Number(prog?.edition), user?.acteur?.etablissement?.id, code);
+            if (!result) {
+                toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: 'Impossible de téléverser le fichier', life: 4000 });
+                return;
+            }
             toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Fichier chargé avec succès', life: 4000 });
             setRecuDialog2(false);
             await loadFiles();

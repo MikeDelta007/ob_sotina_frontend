@@ -28,6 +28,7 @@ interface ExpressionBesoinStore {
   rejetees: ExpressionBesoin[]
   aTraiter: ExpressionBesoin[]
   traitees: ExpressionBesoin[]
+  montantReduit: ExpressionBesoin[]
   loading: boolean
   error: string | null
   actionLoadingId: string | null
@@ -41,6 +42,7 @@ interface ExpressionBesoinStore {
   fetchRejetees:        () => Promise<void>
   fetchATraiter:        () => Promise<void>
   fetchTraitees:        () => Promise<void>
+  fetchMontantReduit:   () => Promise<void>
   creer:                 (payload: CreerPayload) => Promise<void>
   modifier:               (id: string, payload: CreerPayload) => Promise<void>
   valider:                (id: string, quantiteAccordee?: number | null) => Promise<void>
@@ -78,6 +80,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
   rejetees: [],
   aTraiter: [],
   traitees: [],
+  montantReduit: [],
   loading: false,
   error: null,
   actionLoadingId: null,
@@ -156,6 +159,15 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       const { data } = await axiosInstance.get('expression-besoin/traitees')
       set({ traitees: data })
     } catch { set({ error: 'Erreur chargement des expressions traitées' }) }
+    finally { set({ loading: false }) }
+  },
+
+  fetchMontantReduit: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('expression-besoin/montant-reduit')
+      set({ montantReduit: data })
+    } catch { set({ error: 'Erreur chargement des expressions à montant réduit' }) }
     finally { set({ loading: false }) }
   },
 

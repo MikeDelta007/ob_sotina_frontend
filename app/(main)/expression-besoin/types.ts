@@ -85,6 +85,13 @@ export const fmt = (n: number) =>
 
 export const directeurRequis = (montantInitial: number) => montantInitial > SEUIL_VALIDATION_DIRECTEUR
 
+// Classe à appliquer à la colonne "Montant initial" : en rouge quand le montant ne requiert pas
+// le Directeur (≤ seuil), pour qu'il repère d'un coup d'œil les dossiers qui ne relèvent pas de
+// lui dans les onglets non filtrés par rôle (Rejetées, À traiter, Traitées affichent tout, tous
+// montants confondus).
+export const montantClassName = (montantInitial: number) =>
+  directeurRequis(montantInitial) ? undefined : 'text-red-500 font-semibold'
+
 // Désignation affichée dans les tableaux (ex. "Papier A4 (x2)") — la description a sa propre colonne
 export const designationEb = (eb: ExpressionBesoin) =>
   eb.quantite ? `${eb.motifLibelle ?? '—'} (x${eb.quantite})` : (eb.motifLibelle ?? '—')

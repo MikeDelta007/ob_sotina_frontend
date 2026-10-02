@@ -3,9 +3,12 @@ import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useContext } from 'react'
 import { TabPanel, TabView } from 'primereact/tabview'
 import { UserContext } from '@/app/userContext'
+import { useNotificationCounts } from '@/layout/useNotificationCounts'
+import OngletBadge from '@/layout/OngletBadge'
 import MesExpressionsTab from './MesExpressionsTab'
 import MesExpressionsLieesTab from './MesExpressionsLieesTab'
 import AValiderTab from './AValiderTab'
+import MontantReduitTab from './MontantReduitTab'
 import ValideesTab from './ValideesTab'
 import RejeteesTab from './RejeteesTab'
 import ATraiterTab from './ATraiterTab'
@@ -13,6 +16,7 @@ import TraiteesTab from './TraiteesTab'
 
 export default function ExpressionBesoinPage() {
   const { user } = useContext(UserContext)
+  const notificationCounts = useNotificationCounts(!!user)
   const aRole = (r: string) => aUnDesRoles(user, [r])
 
   const peutTraiter = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE')
@@ -27,8 +31,13 @@ export default function ExpressionBesoinPage() {
   const onglets = [
     peutSoumettre && { key: 'mes', header: 'Mes expressions de besoin', leftIcon: 'pi pi-file-edit mr-2', content: <MesExpressionsTab /> },
     estAgentSimple && { key: 'liees', header: 'Mes expressions de besoin', leftIcon: 'pi pi-eye mr-2', content: <MesExpressionsLieesTab /> },
-    peutValider && { key: 'avalider', header: 'À valider', leftIcon: 'pi pi-check-square mr-2', content: <AValiderTab /> },
+    peutValider && {
+      key: 'avalider',
+      header: <span className="flex align-items-center">À valider <OngletBadge count={notificationCounts.expressionBesoin} /></span>,
+      leftIcon: 'pi pi-check-square mr-2', content: <AValiderTab />
+    },
     peutValider && { key: 'validees', header: 'Validées', leftIcon: 'pi pi-verified mr-2', content: <ValideesTab /> },
+    peutValider && { key: 'montantreduit', header: '< 20 000 FCFA', leftIcon: 'pi pi-arrow-down mr-2', headerClassName: 'eb-onglet-montant-reduit', content: <MontantReduitTab /> },
     peutValider && { key: 'rejetees', header: 'Rejetées', leftIcon: 'pi pi-times-circle mr-2', content: <RejeteesTab /> },
     peutVoirTraitement && { key: 'atraiter', header: 'À traiter', leftIcon: 'pi pi-wallet mr-2', content: <ATraiterTab lectureSeule={!peutTraiter} /> },
     peutVoirTraitement && { key: 'traitees', header: 'Traitées', leftIcon: 'pi pi-verified mr-2', content: <TraiteesTab /> },
@@ -45,7 +54,8 @@ export default function ExpressionBesoinPage() {
 
       <TabView>
         {onglets.map(o => (
-          <TabPanel key={o.key} header={o.header} leftIcon={o.leftIcon}>
+          <TabPanel key={o.key} header={o.header} leftIcon={o.leftIcon}
+            headerClassName={'headerClassName' in o ? o.headerClassName : undefined}>
             {o.content}
           </TabPanel>
         ))}

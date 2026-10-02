@@ -19,7 +19,8 @@ import { Tag } from 'primereact/tag'
 import { Message } from 'primereact/message'
 import { Toast } from 'primereact/toast'
 import { useAbsenceStore } from './useAbsenceStore'
-import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
+import { refreshNotificationCounts, useNotificationCounts } from '@/layout/useNotificationCounts'
+import OngletBadge from '@/layout/OngletBadge'
 import { TOUS_ROLES, fmtStatutAbsence, fmtTypePersonnel, type DemandeAbsence, type StatutAbsence, type TypePersonnel, type TypeAbsence } from './types'
 
 const statutSeverity: Record<StatutAbsence, 'warning' | 'success' | 'danger' | 'info'> = {
@@ -475,6 +476,8 @@ const ROLES_TELECHARGEMENT = ['CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'ADMIN
 
 function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence; titre: string; description: string }) {
   const { user } = useContext(UserContext)
+  const notificationCounts = useNotificationCounts(!!user)
+  const compteAValider = type === 'CONGE' ? notificationCounts.conges : notificationCounts.absences
   // Rôle principal + rôles supplémentaires : le chef du service informatique (ADMIN) ou de la
   // pédagogie (PEDAGOGIE) a CHEF_SERVICE en supplément pour gérer les demandes de ses agents.
   const estChefService = aUnDesRoles(user, ['CHEF_SERVICE'])
@@ -492,7 +495,13 @@ function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence;
           <MesDemandesTab type={type} />
         </TabPanel>
         {peutValider && (
-          <TabPanel header={estChefService ? 'Demandes de mes agents' : 'À valider'} leftIcon="pi pi-check-square mr-2">
+          <TabPanel
+            header={
+              <span className="flex align-items-center">
+                {estChefService ? 'Demandes de mes agents' : 'À valider'} <OngletBadge count={compteAValider} />
+              </span>
+            }
+            leftIcon="pi pi-check-square mr-2">
             <AValiderTab type={type} pourAgentsDuChef={estChefService} />
           </TabPanel>
         )}

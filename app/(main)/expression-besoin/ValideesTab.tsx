@@ -7,7 +7,7 @@ import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import EtapesColonne from './EtapesColonne'
-import { fmt, designationEb, type ExpressionBesoin, type StatutEB } from './types'
+import { fmt, designationEb, montantClassName, type ExpressionBesoin, type StatutEB } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
@@ -61,7 +61,9 @@ export default function ValideesTab() {
         <Column header="Date" body={dateBody} />
         <Column header="Désignation" body={designationEb} />
         <Column header="Description" body={(eb: ExpressionBesoin) => eb.description || '—'} />
-        <Column header="Montant initial" body={(eb: ExpressionBesoin) => fmt(eb.montantInitial)} align="right" alignHeader="right" />
+        <Column header="Montant initial"
+          body={(eb: ExpressionBesoin) => <span className={montantClassName(eb.montantInitial)}>{fmt(eb.montantInitial)}</span>}
+          align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />

@@ -7,19 +7,31 @@ import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import EtapesColonne from './EtapesColonne'
-import { fmt, designationEb, montantClassName, type ExpressionBesoin } from './types'
+import { fmt, designationEb, montantClassName, type ExpressionBesoin, type StatutEB } from './types'
 
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
-export default function RejeteesTab() {
-  const { rejetees, fetchRejetees } = useExpressionBesoinStore()
+const STATUT_SEVERITE: Record<StatutEB, 'warning' | 'success' | 'danger' | 'info'> = {
+  EN_ATTENTE: 'warning', VALIDEE: 'info', REJETEE: 'danger', TRAITEE: 'success',
+}
+const STATUT_LABEL: Record<StatutEB, string> = {
+  EN_ATTENTE: 'En attente', VALIDEE: 'Validée', REJETEE: 'Rejetée', TRAITEE: 'Traitée',
+}
+
+// Vue consolidée, tous statuts confondus, des EB ≤ 20 000 FCFA — celles qui ne relèvent jamais
+// du Directeur (seul le CSA les valide), regroupées à part pour qu'il les distingue d'un coup
+// d'œil de celles qui requièrent sa propre validation.
+export default function MontantReduitTab() {
+  const { montantReduit, fetchMontantReduit } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
 
-  useEffect(() => { fetchRejetees() }, [])
+  useEffect(() => { fetchMontantReduit() }, [])
 
   const dateBody = (eb: ExpressionBesoin) => (
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
   )
+
+  const statutBody = (eb: ExpressionBesoin) => <Tag severity={STATUT_SEVERITE[eb.statut]} value={STATUT_LABEL[eb.statut]} />
 
   const pieceBody = (eb: ExpressionBesoin) => {
     const url = eb.aFacturePreformat ? eb.urlPdfFactureProforma : eb.urlPdfDeclarationHonneur
@@ -35,12 +47,12 @@ export default function RejeteesTab() {
   return (
     <div>
       <p className="text-color-secondary mb-3">
-        {rejetees.length} expression(s) rejetée(s)
+        {montantReduit.length} expression(s) de besoin ≤ 20 000 FCFA (tous statuts)
       </p>
 
-      <DataTable value={rejetees} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
-        emptyMessage="Aucune expression de besoin rejetée" responsiveLayout="scroll"
-        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar', 'motifRejet', 'rejeteParNom']}
+      <DataTable value={montantReduit} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
+        emptyMessage="Aucune expression de besoin ≤ 20 000 FCFA" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['motifLibelle', 'beneficiaireNom', 'creeParNom', 'creePar']}
         header={
           <div className="flex justify-content-end">
             <span className="p-input-icon-left">
@@ -57,8 +69,9 @@ export default function RejeteesTab() {
           align="right" alignHeader="right" />
         <Column header="Bénéficiaire" body={(eb: ExpressionBesoin) => eb.beneficiaireNom || '—'} />
         <Column header="Demandeur" body={(eb: ExpressionBesoin) => eb.creeParNom || eb.creePar} />
-        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
+        <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
+        <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
       </DataTable>
     </div>
   )
