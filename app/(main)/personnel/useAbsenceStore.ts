@@ -7,6 +7,7 @@ interface CreerAbsencePayload {
   dateDebut: string
   dateFin: string
   motif: string
+  beneficiaireId?: string
 }
 
 interface AbsenceStore {

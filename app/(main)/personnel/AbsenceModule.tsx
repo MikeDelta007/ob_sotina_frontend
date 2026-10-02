@@ -68,6 +68,13 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const [motifsOptions, setMotifsOptions] = useState<{ id: string; libelle: string }[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
 
+  // Comme pour les expressions de besoin : chef de service (agents de sa division) ou
+  // CSA/Directeur/Assistante Directeur (tout agent) peuvent créer une demande pour un agent au
+  // lieu d'eux-mêmes — liste vide si le compte connecté n'a personne sous sa responsabilité.
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [beneficiaireId, setBeneficiaireId] = useState<string>('')
+  const peutChoisirBeneficiaire = agents.length > 0
+
   useEffect(() => { fetchMesDemandes(type) }, [type])
 
   useEffect(() => {
@@ -75,18 +82,32 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
     axiosInstance.get('demande-absence/motifs').then(({ data }) => setMotifsOptions(data)).catch(() => {})
   }, [type])
 
-  const chargerSolde = () => {
+  useEffect(() => {
+    axiosInstance.get('personnel/mes-agents').then(({ data }) => setAgents(data)).catch(() => setAgents([]))
+  }, [])
+
+  const chargerSolde = (idBeneficiaire: string) => {
     if (type !== 'CONGE') return
-    axiosInstance.get('profile/me').then(({ data }) =>
-      setSoldeConges(data.personnel?.soldeDisponible ?? data.personnel?.soldeConges ?? null)
-    ).catch(() => {})
+    if (!idBeneficiaire) {
+      axiosInstance.get('profile/me').then(({ data }) =>
+        setSoldeConges(data.personnel?.soldeDisponible ?? data.personnel?.soldeConges ?? null)
+      ).catch(() => {})
+      return
+    }
+    const agent = agents.find(a => a.id === idBeneficiaire)
+    setSoldeConges(agent?.soldeDisponible ?? agent?.soldeConges ?? null)
   }
-  useEffect(() => { chargerSolde() }, [type])
+  useEffect(() => { chargerSolde(beneficiaireId) }, [type])
 
   const openCreate = () => {
-    setDateDebut(null); setDateFin(null); setMotif(''); clearError()
-    chargerSolde()
+    setDateDebut(null); setDateFin(null); setMotif(''); setBeneficiaireId(''); clearError()
+    chargerSolde('')
     setDialogOpen(true)
+  }
+
+  const choisirBeneficiaire = (id: string) => {
+    setBeneficiaireId(id); setDateDebut(null); setDateFin(null)
+    chargerSolde(id)
   }
 
   const nombreJoursDemandes = dateDebut && dateFin
@@ -105,10 +126,13 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const submit = async () => {
     if (!dateDebut || !dateFin || !motifValide || depasseSolde) return
     try {
-      await creer({ type, dateDebut: toIso(dateDebut), dateFin: toIso(dateFin), motif: motif.trim() })
+      await creer({
+        type, dateDebut: toIso(dateDebut), dateFin: toIso(dateFin), motif: motif.trim(),
+        beneficiaireId: beneficiaireId || undefined,
+      })
       toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande envoyée avec succès', life: 4000 })
       setDialogOpen(false)
-      chargerSolde()
+      chargerSolde(beneficiaireId)
     } catch { /* error déjà affiché via le store */ }
   }
 
@@ -138,6 +162,7 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
             </span>
           </div>
         }>
+        {peutChoisirBeneficiaire && <Column header="Pour" field="demandeurNom" />}
         <Column header="Période" body={dateBody} />
         <Column header="Jours" field="nombreJours" />
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
@@ -155,6 +180,15 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
           </div>
         }>
         <div className="flex flex-column gap-3">
+          {peutChoisirBeneficiaire && (
+            <div className="field">
+              <label className="block text-sm font-medium mb-1">Pour qui ?</label>
+              <Dropdown value={beneficiaireId} onChange={e => choisirBeneficiaire(e.value)}
+                options={[{ id: '', nom: 'Moi-même' },
+                  ...agents.map(a => ({ id: a.id, nom: `${a.firstname ?? ''} ${a.lastname ?? ''}`.trim() }))]}
+                optionLabel="nom" optionValue="id" className="w-full" />
+            </div>
+          )}
           {type === 'CONGE' && soldeConges != null && (
             <Message severity="info" text={`Solde de congés restant : ${soldeConges} jour(s)`} className="w-full" />
           )}
