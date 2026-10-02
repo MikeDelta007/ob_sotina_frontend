@@ -70,10 +70,11 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
 
   // Comme pour les expressions de besoin : chef de service (agents de sa division) ou
   // CSA/Directeur/Assistante Directeur (tout agent) peuvent créer une demande pour un agent au
-  // lieu d'eux-mêmes — liste vide si le compte connecté n'a personne sous sa responsabilité.
+  // lieu d'eux-mêmes — case « Moi-même » toujours visible et cochée par défaut, la liste
+  // d'agents n'apparaît que si on la décoche (liste vide si personne sous sa responsabilité).
   const [agents, setAgents] = useState<Agent[]>([])
-  const [beneficiaireId, setBeneficiaireId] = useState<string>('')
-  const peutChoisirBeneficiaire = agents.length > 0
+  const [beneficiaireMoiMeme, setBeneficiaireMoiMeme] = useState(true)
+  const [beneficiaireId, setBeneficiaireId] = useState('')
 
   useEffect(() => { fetchMesDemandes(type) }, [type])
 
@@ -86,9 +87,9 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
     axiosInstance.get('personnel/mes-agents').then(({ data }) => setAgents(data)).catch(() => setAgents([]))
   }, [])
 
-  const chargerSolde = (idBeneficiaire: string) => {
+  const chargerSolde = (moiMeme: boolean, idBeneficiaire: string) => {
     if (type !== 'CONGE') return
-    if (!idBeneficiaire) {
+    if (moiMeme) {
       axiosInstance.get('profile/me').then(({ data }) =>
         setSoldeConges(data.personnel?.soldeDisponible ?? data.personnel?.soldeConges ?? null)
       ).catch(() => {})
@@ -97,42 +98,54 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
     const agent = agents.find(a => a.id === idBeneficiaire)
     setSoldeConges(agent?.soldeDisponible ?? agent?.soldeConges ?? null)
   }
-  useEffect(() => { chargerSolde(beneficiaireId) }, [type])
+  useEffect(() => { chargerSolde(beneficiaireMoiMeme, beneficiaireId) }, [type])
 
   const openCreate = () => {
-    setDateDebut(null); setDateFin(null); setMotif(''); setBeneficiaireId(''); clearError()
-    chargerSolde('')
+    setDateDebut(null); setDateFin(null); setMotif(''); setBeneficiaireMoiMeme(true); setBeneficiaireId(''); clearError()
+    chargerSolde(true, '')
     setDialogOpen(true)
+  }
+
+  const basculerMoiMeme = (moiMeme: boolean) => {
+    setBeneficiaireMoiMeme(moiMeme); setBeneficiaireId(''); setDateDebut(null); setDateFin(null)
+    chargerSolde(moiMeme, '')
   }
 
   const choisirBeneficiaire = (id: string) => {
     setBeneficiaireId(id); setDateDebut(null); setDateFin(null)
-    chargerSolde(id)
+    chargerSolde(false, id)
   }
 
+  // Diff en jours calendaires sur les composants Y/M/D (normalisés en UTC) plutôt que sur les
+  // millisecondes brutes des objets Date, pour ne pas dépendre de leur heure exacte.
   const nombreJoursDemandes = dateDebut && dateFin
-    ? Math.round((dateFin.getTime() - dateDebut.getTime()) / 86400000) + 1
+    ? Math.round((Date.UTC(dateFin.getFullYear(), dateFin.getMonth(), dateFin.getDate())
+        - Date.UTC(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate())) / 86400000) + 1
     : 0
   const depasseSolde = type === 'CONGE' && soldeConges != null && nombreJoursDemandes > soldeConges
 
   // Pour un congé, la date de fin ne peut pas dépasser le solde restant à partir de la date de
-  // début — les jours au-delà apparaissent grisés dans le calendrier.
+  // début — les jours au-delà apparaissent grisés dans le calendrier. Construit à partir des
+  // composants calendaires (pas d'arithmétique sur les millisecondes, fragile) et fixé à la fin
+  // de journée (23:59:59) pour que le dernier jour autorisé reste bien sélectionnable, même si
+  // le composant compare les bornes de façon stricte.
   const maxDateFin = type === 'CONGE' && dateDebut && soldeConges != null
-    ? new Date(dateDebut.getTime() + (soldeConges - 1) * 86400000)
+    ? new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate() + (soldeConges - 1), 23, 59, 59, 999)
     : undefined
 
   const motifValide = type === 'AUTORISATION' ? !!motif.trim() : true
+  const beneficiaireValide = beneficiaireMoiMeme || !!beneficiaireId
 
   const submit = async () => {
-    if (!dateDebut || !dateFin || !motifValide || depasseSolde) return
+    if (!dateDebut || !dateFin || !motifValide || !beneficiaireValide || depasseSolde) return
     try {
       await creer({
         type, dateDebut: toIso(dateDebut), dateFin: toIso(dateFin), motif: motif.trim(),
-        beneficiaireId: beneficiaireId || undefined,
+        beneficiaireId: beneficiaireMoiMeme ? undefined : beneficiaireId,
       })
       toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande envoyée avec succès', life: 4000 })
       setDialogOpen(false)
-      chargerSolde(beneficiaireId)
+      chargerSolde(beneficiaireMoiMeme, beneficiaireId)
     } catch { /* error déjà affiché via le store */ }
   }
 
@@ -162,7 +175,7 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
             </span>
           </div>
         }>
-        {peutChoisirBeneficiaire && <Column header="Pour" field="demandeurNom" />}
+        <Column header="Pour" field="demandeurNom" />
         <Column header="Période" body={dateBody} />
         <Column header="Jours" field="nombreJours" />
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
@@ -176,17 +189,25 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
           <div className="flex gap-2">
             <Button label="Annuler" outlined className="flex-1" onClick={() => setDialogOpen(false)} />
             <Button label={loading ? 'Envoi…' : 'Envoyer'} className="flex-1" loading={loading}
-              disabled={!dateDebut || !dateFin || !motifValide || depasseSolde} onClick={submit} />
+              disabled={!dateDebut || !dateFin || !motifValide || !beneficiaireValide || depasseSolde} onClick={submit} />
           </div>
         }>
         <div className="flex flex-column gap-3">
-          {peutChoisirBeneficiaire && (
+          <label className="tw-flex tw-cursor-pointer tw-items-center tw-gap-2 tw-text-sm tw-text-gray-700">
+            <input type="checkbox" className="tw-h-4 tw-w-4 tw-accent-blue-600" checked={beneficiaireMoiMeme}
+              onChange={e => basculerMoiMeme(e.target.checked)} />
+            Moi-même
+          </label>
+          {!beneficiaireMoiMeme && (
             <div className="field">
               <label className="block text-sm font-medium mb-1">Pour qui ?</label>
-              <Dropdown value={beneficiaireId} onChange={e => choisirBeneficiaire(e.value)}
-                options={[{ id: '', nom: 'Moi-même' },
-                  ...agents.map(a => ({ id: a.id, nom: `${a.firstname ?? ''} ${a.lastname ?? ''}`.trim() }))]}
-                optionLabel="nom" optionValue="id" className="w-full" />
+              <select value={beneficiaireId} onChange={e => choisirBeneficiaire(e.target.value)}
+                className="tw-w-full tw-rounded-lg tw-border tw-border-gray-300 tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-text-gray-800 focus:tw-border-blue-500 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200">
+                <option value="">{agents.length ? 'Choisir…' : 'Aucun agent disponible'}</option>
+                {agents.map(a => (
+                  <option key={a.id} value={a.id}>{`${a.firstname ?? ''} ${a.lastname ?? ''}`.trim()}</option>
+                ))}
+              </select>
             </div>
           )}
           {type === 'CONGE' && soldeConges != null && (
@@ -195,12 +216,13 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
           <div className="field">
             <label className="block text-sm font-medium mb-1">Date de début</label>
             <Calendar value={dateDebut} onChange={e => setDateDebut(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full"
-              minDate={new Date()} />
+              minDate={new Date()} selectOtherMonths />
           </div>
           <div className="field">
             <label className="block text-sm font-medium mb-1">Date de fin</label>
             <Calendar value={dateFin} onChange={e => setDateFin(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full"
-              minDate={dateDebut ?? new Date()} maxDate={maxDateFin} disabled={type === 'CONGE' && (!dateDebut || soldeConges == null)} />
+              minDate={dateDebut ?? new Date()} maxDate={maxDateFin} selectOtherMonths
+              disabled={type === 'CONGE' && (!dateDebut || soldeConges == null)} />
           </div>
           {nombreJoursDemandes > 0 && (
             <div className={depasseSolde ? 'text-red-600 text-sm' : 'text-color-secondary text-sm'}>
