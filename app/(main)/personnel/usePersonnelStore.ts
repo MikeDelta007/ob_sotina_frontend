@@ -60,6 +60,7 @@ interface PersonnelStore {
   createChauffeur: (data: PersonnelData) => Promise<void>
   updateChauffeur: (id: string, data: PersonnelData & { actif: boolean }) => Promise<void>
   deleteChauffeur: (id: string) => Promise<void>
+  setChauffeurActif: (id: string, actif: boolean) => Promise<void>
   importPersonnels: (file: File) => Promise<string>
 
   clearError: () => void
@@ -234,6 +235,17 @@ export const usePersonnelStore = create<PersonnelStore>((set, get) => ({
       await get().fetchAllChauffeurs()
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur modification du chauffeur' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  setChauffeurActif: async (id, actif) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.put(`personnel/personnels/${id}/actif`, null, { params: { actif } })
+      await get().fetchAllChauffeurs()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur changement de statut' })
       throw e
     } finally { set({ loading: false }) }
   },

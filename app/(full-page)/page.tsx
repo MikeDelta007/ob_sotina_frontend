@@ -142,11 +142,11 @@ const Login: React.FC = () => {
                         {errors.password && <small className="p-error">{errors.password}</small>}
                     </div>
 
-                    {/* <div className="text-left py-2">
+                    <div className="text-left py-2">
                         <Link href="/mot-de-passe-oublie" className="text-white font-bold text-sm hover:underline">
                             Mot de passe oublié ?
                         </Link>
-                    </div> */}
+                    </div>
 
                     <div className="py-3">
                         <Button label="Connexion" className="w-full text-xl font-bold" onClick={login} loading={loading} />

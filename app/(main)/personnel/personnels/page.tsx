@@ -5,6 +5,7 @@ import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { Button } from 'primereact/button'
 import { InputSwitch } from 'primereact/inputswitch'
+import SwitchVertRouge from '@/components/SwitchVertRouge'
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Dialog } from 'primereact/dialog'
 import { Dropdown } from 'primereact/dropdown'
@@ -38,7 +39,7 @@ function PersonnelContent() {
   const {
     allChauffeurs, allDivisions, allFonctions, loading, error,
     fetchAllChauffeurs, fetchAllDivisions, fetchAllFonctions,
-    createChauffeur, updateChauffeur, deleteChauffeur, importPersonnels, clearError,
+    createChauffeur, updateChauffeur, setChauffeurActif, importPersonnels, clearError,
   } = usePersonnelStore()
   const { banques, fetchBanques } = useBanqueStore()
   const { validateBankFields } = useBankValidation()
@@ -141,14 +142,15 @@ function PersonnelContent() {
     } catch { /* error déjà affiché via le store */ }
   }
 
-  const confirmDelete = (p: Chauffeur) => {
+  const confirmToggleActif = (p: Chauffeur) => {
+    const desactiver = p.actif
     confirmDialog({
-      message: `Désactiver "${p.firstname} ${p.lastname}" ?`,
+      message: `${desactiver ? 'Désactiver' : 'Activer'} "${p.firstname} ${p.lastname}" ?`,
       header: 'Confirmation',
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Désactiver',
+      acceptLabel: desactiver ? 'Désactiver' : 'Activer',
       rejectLabel: 'Annuler',
-      accept: () => deleteChauffeur(p.id),
+      accept: () => setChauffeurActif(p.id, !desactiver),
     })
   }
 
@@ -167,11 +169,10 @@ function PersonnelContent() {
   const divisionBody = (p: Chauffeur) => p.division?.libelle || '—'
   const fonctionBody = (p: Chauffeur) => p.fonction?.libelle || '—'
   const typeBody = (p: Chauffeur) => p.typePersonnel ? fmtTypePersonnel(p.typePersonnel) : '—'
-  const actifBody = (p: Chauffeur) => <Tag severity={p.actif ? 'success' : 'secondary'} value={p.actif ? 'Actif' : 'Inactif'} />
+  const actifBody = (p: Chauffeur) => <SwitchVertRouge checked={p.actif} onChange={() => confirmToggleActif(p)} />
   const actionsBody = (p: Chauffeur) => (
     <div className="tw-flex tw-justify-center tw-gap-2">
       <Button icon="pi pi-pencil" text size="small" onClick={() => openEdit(p)} />
-      {p.actif && <Button icon="pi pi-trash" text severity="danger" size="small" onClick={() => confirmDelete(p)} />}
     </div>
   )
 

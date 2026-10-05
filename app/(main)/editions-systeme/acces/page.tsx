@@ -5,6 +5,7 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import SwitchVertRouge from '@/components/SwitchVertRouge';
 import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
@@ -80,6 +81,7 @@ const CalendarDemo = () => {
     const [deleteProductDialog, setDeleteProductDialog] = useState(false);
     const [supprimerDialog, setSupprimerDialog] = useState(false);
     const [desactiveAccessDialog, setDesactiveAccessDialog] = useState(false);
+    const [nouvelEtatCompte, setNouvelEtatCompte] = useState(false);
     const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
     const [product, setProduct] = useState(emptyProduct);
     const [selectedProducts, setSelectedProducts] = useState(null);
@@ -333,6 +335,7 @@ const CalendarDemo = () => {
     };
 
     const editProduct4 = (acces) => {
+        setNouvelEtatCompte(!acces.state_account);
         setDesactiveAccessDialog(true);
         const accesFormatted4 = {...acces};
         formik.setValues(accesFormatted4);
@@ -394,18 +397,13 @@ const CalendarDemo = () => {
         console.log('DELETE');
         try 
         {
-            const response = await ParametrageService.desactiveUser(id_user, true);
-            console.log('✅ Candidat mis à jour:', response);
-            setMessage('Candidat supprimé avec succès');
+            const response = await ParametrageService.desactiveUser(id_user, nouvelEtatCompte);
+            console.log('✅ Statut du compte mis à jour:', response);
+            setDesactiveAccessDialog(false);
+            loadData();
 
-            if (response)
-            {
-                toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: 'Compte réactivé avec succés', life: 4000 });
-            }
-            else
-            {
-                toast.current.show({ severity: 'warn', summary: 'Office du Bac', detail: 'Compte désactivé avec succés', life: 4000 });
-            }
+            toast.current.show({ severity: 'success', summary: 'Office du Bac',
+                detail: nouvelEtatCompte ? 'Compte activé avec succès' : 'Compte désactivé avec succès', life: 4000 });
             
             resetForm();
         } 
@@ -614,16 +612,6 @@ const CalendarDemo = () => {
                     />
                     )}
 
-                    {!(rowData.profil.name === "ADMIN") && (
-                    <Button
-                                icon="pi pi-eject"
-                                tooltip="Activé ou Désactivé le compte"
-                                tooltipOptions={{ position: 'bottom' }}
-                                rounded
-                                severity="danger"
-                                onClick={() => editProduct4(rowData)}
-                    />
-                    )}
 
                     {/* <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteProduct(rowData)} /> */}
                 </div>
@@ -631,18 +619,11 @@ const CalendarDemo = () => {
         );
     };
 
-    const statutCompteTemplate = (rowData) => {
-    const colorClass = rowData.first_connexion ? "bg-red-500" : "bg-green-500";
-    const titleText = rowData.first_connexion ? "Pas encore connecté" : "Première connexion effectuée";
+    const statutSwitchTemplate = (rowData) => (
+        <SwitchVertRouge checked={!!rowData.state_account} disabled={rowData.profil?.name === "ADMIN"}
+            onChange={() => editProduct4(rowData)} />
+    );
 
-        return (
-            <div
-                className={`border-circle ${colorClass}`}
-                style={{ width: 24, height: 24, boxShadow: "0 0 6px rgba(0,0,0,0.15)" }}
-                title={titleText}
-            />
-        );
-    }
 
 
     const header = (
@@ -959,7 +940,7 @@ const CalendarDemo = () => {
                                                     return '';
                                                 }}
                                             >
-                                                <Column field="statut" header="Statut" body={statutCompteTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
+                                                <Column field="state_account" header="Statut" body={statutSwitchTemplate} headerStyle={{ minWidth: '2rem' }}></Column>
                                                 <Column field="login" header="Username" body={codeBodyTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
                                                 <Column field="profil" header="Profil" sortable body={date1BodyTemplate} headerStyle={{ minWidth: '5rem' }}></Column>
                                                 <Column field="etablissement" header="Etablissement" sortable body={date2BodyTemplate} headerStyle={{ minWidth: '25rem' }}></Column>
@@ -1319,7 +1300,7 @@ const CalendarDemo = () => {
                                 <div className="flex align-items-center justify-content-center">
                                     <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem', color:'red' }} />
                                     <span>
-                                        Êtes-vous sûr de vouloir modifier le statut du compte <br /><b>{formik.values.login}</b> ?<br />
+                                        Êtes-vous sûr de vouloir {nouvelEtatCompte ? 'activer' : 'désactiver'} le compte <br /><b>{formik.values.login}</b> ?<br />
                                     </span>
                                 </div>
                             </form>
