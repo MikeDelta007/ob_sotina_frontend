@@ -478,10 +478,20 @@ function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence;
   const { user } = useContext(UserContext)
   const notificationCounts = useNotificationCounts(!!user)
   const compteAValider = type === 'CONGE' ? notificationCounts.conges : notificationCounts.absences
-  // Rôle principal + rôles supplémentaires : le chef du service informatique (ADMIN) ou de la
-  // pédagogie (PEDAGOGIE) a CHEF_SERVICE en supplément pour gérer les demandes de ses agents.
-  const estChefService = aUnDesRoles(user, ['CHEF_SERVICE'])
-  const peutValider = aUnDesRoles(user, ROLES_VALIDATEURS)
+
+  // Le statut de chef vient de la division (qui en a été désigné chef dans l'écran Divisions),
+  // jamais du rôle/droit supplémentaire CHEF_SERVICE : un compte peut être chef d'une division
+  // sans que ce droit lui ait été accordé séparément — sinon il ne verrait aucun onglet de
+  // validation pour les demandes de ses agents.
+  const [estChefDivision, setEstChefDivision] = useState(false)
+  useEffect(() => {
+    axiosInstance.get('personnel/suis-chef-de-division')
+      .then(({ data }) => setEstChefDivision(!!data))
+      .catch(() => setEstChefDivision(false))
+  }, [])
+
+  const estChefService = estChefDivision
+  const peutValider = aUnDesRoles(user, ROLES_VALIDATEURS) || estChefDivision
   const peutTelecharger = aUnDesRoles(user, ROLES_TELECHARGEMENT)
 
   return (
