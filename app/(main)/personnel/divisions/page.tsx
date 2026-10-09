@@ -118,7 +118,7 @@ function DivisionsContent() {
           <div className="field">
             <label className="block text-sm font-medium mb-1">Chef de service</label>
             <Dropdown value={chefServiceId} onChange={e => setChefServiceId(e.value)} options={chefs}
-              showClear placeholder="Sélectionner un chef de service" className="w-full" />
+              filter filterPlaceholder="Rechercher…" showClear placeholder="Sélectionner un chef de service" className="w-full" />
           </div>
           {editing && (
             <div className="flex align-items-center gap-2">
