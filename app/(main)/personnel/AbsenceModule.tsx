@@ -60,8 +60,10 @@ const etapesBody = (d: DemandeAbsence) => (
 
 function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const toast = useRef<Toast>(null)
-  const { mesDemandes, loading, error, fetchMesDemandes, creer, clearError } = useAbsenceStore()
+  const { user } = useContext(UserContext)
+  const { mesDemandes, loading, actionLoadingId, error, fetchMesDemandes, creer, modifier, supprimer, clearError } = useAbsenceStore()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<DemandeAbsence | null>(null)
   const [dateDebut, setDateDebut] = useState<Date | null>(null)
   const [dateFin, setDateFin] = useState<Date | null>(null)
   const [motif, setMotif] = useState('')
@@ -102,9 +104,42 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
   useEffect(() => { chargerSolde(beneficiaireMoiMeme, beneficiaireId) }, [type])
 
   const openCreate = () => {
+    setEditing(null)
     setDateDebut(null); setDateFin(null); setMotif(''); setBeneficiaireMoiMeme(true); setBeneficiaireId(''); clearError()
     chargerSolde(true, '')
     setDialogOpen(true)
+  }
+
+  // Modification/suppression réservées au créateur de la demande, tant qu'aucun validateur
+  // (chef, CSA, Directeur) ne s'est encore prononcé — même règle que côté backend.
+  const peutModifier = (d: DemandeAbsence) =>
+    d.creePar === user?.login && !d.validationChef && !d.rejetChef && !d.validationCsa && !d.rejetCsa && !d.validationDirecteur
+
+  const openEdit = (d: DemandeAbsence) => {
+    setEditing(d)
+    const moiMeme = d.demandeurId === user?.id
+    setDateDebut(new Date(d.dateDebut)); setDateFin(new Date(d.dateFin)); setMotif(d.motif ?? '')
+    setBeneficiaireMoiMeme(moiMeme); setBeneficiaireId(moiMeme ? '' : d.demandeurId)
+    clearError()
+    chargerSolde(moiMeme, moiMeme ? '' : d.demandeurId)
+    setDialogOpen(true)
+  }
+
+  const confirmSupprimer = (d: DemandeAbsence) => {
+    confirmDialog({
+      message: `Confirmez-vous la suppression de cette demande ?`,
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Supprimer',
+      acceptClassName: 'p-button-danger',
+      rejectLabel: 'Annuler',
+      accept: async () => {
+        try {
+          await supprimer(d.id, type)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande supprimée', life: 4000 })
+        } catch { /* error déjà affiché via le store */ }
+      },
+    })
   }
 
   const basculerMoiMeme = (moiMeme: boolean) => {
@@ -140,11 +175,17 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const submit = async () => {
     if (!dateDebut || !dateFin || !motifValide || !beneficiaireValide || depasseSolde) return
     try {
-      await creer({
+      const payload = {
         type, dateDebut: toIso(dateDebut), dateFin: toIso(dateFin), motif: motif.trim(),
         beneficiaireId: beneficiaireMoiMeme ? undefined : beneficiaireId,
-      })
-      toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande envoyée avec succès', life: 4000 })
+      }
+      if (editing) {
+        await modifier(editing.id, payload)
+        toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande modifiée avec succès', life: 4000 })
+      } else {
+        await creer(payload)
+        toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande envoyée avec succès', life: 4000 })
+      }
       setDialogOpen(false)
       chargerSolde(beneficiaireMoiMeme, beneficiaireId)
     } catch { /* error déjà affiché via le store */ }
@@ -154,10 +195,21 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
   const dateBody = (d: DemandeAbsence) => (
     <span>{new Date(d.dateDebut).toLocaleDateString('fr-FR')} → {new Date(d.dateFin).toLocaleDateString('fr-FR')}</span>
   )
+  const actionsBody = (d: DemandeAbsence) => {
+    if (!peutModifier(d)) return null
+    return (
+      <div className="flex gap-2 justify-content-center">
+        <Button icon="pi pi-pencil" rounded outlined size="small" onClick={() => openEdit(d)} />
+        <Button icon="pi pi-trash" rounded outlined severity="danger" size="small"
+          loading={actionLoadingId === d.id} onClick={() => confirmSupprimer(d)} />
+      </div>
+    )
+  }
 
   return (
     <div>
       <Toast ref={toast} />
+      <ConfirmDialog />
       <div className="flex justify-content-between align-items-center mb-3">
         <span className="text-color-secondary">
           {type === 'CONGE' && soldeConges != null ? `Solde de congés restant : ${soldeConges} jour(s)` : ''}
@@ -182,14 +234,19 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
         <Column header="Statut" body={statutBody} />
         <Column header="Étapes" body={etapesBody} />
+        <Column header="Actions" body={actionsBody} />
       </DataTable>
 
-      <Dialog header={type === 'CONGE' ? 'Nouvelle demande de congés' : "Nouvelle demande d'autorisation d'absence"} visible={dialogOpen}
+      <Dialog header={
+        editing
+          ? (type === 'CONGE' ? 'Modifier la demande de congés' : "Modifier la demande d'autorisation d'absence")
+          : (type === 'CONGE' ? 'Nouvelle demande de congés' : "Nouvelle demande d'autorisation d'absence")
+      } visible={dialogOpen}
         onHide={() => setDialogOpen(false)} style={{ width: '30rem' }} draggable={false}
         footer={
           <div className="flex gap-2">
             <Button label="Annuler" outlined className="flex-1" onClick={() => setDialogOpen(false)} />
-            <Button label={loading ? 'Envoi…' : 'Envoyer'} className="flex-1" loading={loading}
+            <Button label={loading ? 'Envoi…' : (editing ? 'Enregistrer' : 'Envoyer')} className="flex-1" loading={loading}
               disabled={!dateDebut || !dateFin || !motifValide || !beneficiaireValide || depasseSolde} onClick={submit} />
           </div>
         }>

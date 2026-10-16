@@ -24,6 +24,8 @@ interface AbsenceStore {
   fetchDemandesDeMesAgents: (type: TypeAbsence) => Promise<void>
   fetchDemandesTraitees: (type: TypeAbsence) => Promise<void>
   creer: (payload: CreerAbsencePayload) => Promise<void>
+  modifier: (id: string, payload: CreerAbsencePayload) => Promise<void>
+  supprimer: (id: string, type: TypeAbsence) => Promise<void>
   valider: (id: string, type: TypeAbsence) => Promise<void>
   rejeter: (id: string, motif: string, type: TypeAbsence) => Promise<void>
   clearError: () => void
@@ -83,6 +85,28 @@ export const useAbsenceStore = create<AbsenceStore>((set, get) => ({
       set({ error: e.response?.data?.message ?? 'Erreur lors de la création de la demande' })
       throw e
     } finally { set({ loading: false }) }
+  },
+
+  modifier: async (id, payload) => {
+    set({ loading: true, error: null })
+    try {
+      await axiosInstance.put(`demande-absence/${id}`, payload)
+      await get().fetchMesDemandes(payload.type)
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur lors de la modification de la demande' })
+      throw e
+    } finally { set({ loading: false }) }
+  },
+
+  supprimer: async (id, type) => {
+    set({ actionLoadingId: id, error: null })
+    try {
+      await axiosInstance.delete(`demande-absence/${id}`)
+      await get().fetchMesDemandes(type)
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? 'Erreur lors de la suppression de la demande' })
+      throw e
+    } finally { set({ actionLoadingId: null }) }
   },
 
   valider: async (id, type) => {
