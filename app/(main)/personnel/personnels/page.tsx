@@ -104,15 +104,11 @@ function PersonnelContent() {
     setCodeBank(selected?.codeBanque ?? '')
   }
 
-  // Le matricule reste facultatif (le personnel d'appui n'en a pas) ; tous les autres champs,
-  // y compris les coordonnées bancaires, sont obligatoires.
+  // Le matricule et les coordonnées bancaires restent facultatifs (le personnel d'appui n'en a
+  // pas toujours) — seul leur format est vérifié quand ils sont renseignés.
   const bankErrors: { bank?: string; code_bank?: string; code_agc?: string; num_compte?: string; key_rib?: string } = validateBankFields({
     code_bank: codeBank, code_agc: codeAgc, num_compte: numCompte, key_rib: keyRib,
   })
-  if (!bank.trim()) bankErrors.bank = 'La banque est obligatoire'
-  if (!bankErrors.code_agc && !codeAgc.trim()) bankErrors.code_agc = 'Le code agence est obligatoire'
-  if (!bankErrors.num_compte && !numCompte.trim()) bankErrors.num_compte = 'Le numéro de compte est obligatoire'
-  if (!bankErrors.key_rib && !keyRib.trim()) bankErrors.key_rib = 'La clé RIB est obligatoire'
   const hasBankErrors = Object.keys(bankErrors).length > 0
 
   const fieldErrors = {
@@ -274,20 +270,20 @@ function PersonnelContent() {
 
           <FormSection title="Coordonnées bancaires">
             <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-3">
-              <FormField label="Banque" required error={shouldShowError('bank') ? bankErrors.bank : undefined}>
+              <FormField label="Banque" hint="Optionnel" error={shouldShowError('bank') ? bankErrors.bank : undefined}>
                 <Dropdown value={selectedBanque} onChange={e => handleBanqueChange(e.value)} onBlur={() => markTouched('bank')}
                   options={banques} optionLabel="name" filter showClear placeholder="Choisir une banque" className="w-full" />
               </FormField>
-              <FormField label="Code banque" required>
+              <FormField label="Code banque" hint="Optionnel">
                 <InputText value={codeBank} readOnly disabled placeholder="Déduit de la banque sélectionnée" className="w-full" />
               </FormField>
-              <FormField label="Code agence" required error={shouldShowError('code_agc') ? bankErrors.code_agc : undefined}>
+              <FormField label="Code agence" hint="Optionnel" error={shouldShowError('code_agc') ? bankErrors.code_agc : undefined}>
                 <InputText value={codeAgc} onChange={e => setCodeAgc(e.target.value)} onBlur={() => markTouched('code_agc')} keyfilter="num" maxLength={5} className="w-full" />
               </FormField>
-              <FormField label="N° compte" required error={shouldShowError('num_compte') ? bankErrors.num_compte : undefined}>
+              <FormField label="N° compte" hint="Optionnel" error={shouldShowError('num_compte') ? bankErrors.num_compte : undefined}>
                 <InputText value={numCompte} onChange={e => setNumCompte(e.target.value)} onBlur={() => markTouched('num_compte')} keyfilter="num" maxLength={12} className="w-full" />
               </FormField>
-              <FormField label="Clé RIB" required error={shouldShowError('key_rib') ? bankErrors.key_rib : undefined}>
+              <FormField label="Clé RIB" hint="Optionnel" error={shouldShowError('key_rib') ? bankErrors.key_rib : undefined}>
                 <InputText value={keyRib} onChange={e => setKeyRib(e.target.value)} onBlur={() => markTouched('key_rib')} keyfilter="num" maxLength={2} className="w-full" />
               </FormField>
             </div>
@@ -309,10 +305,11 @@ function PersonnelContent() {
         <div className="tw-flex tw-flex-col tw-gap-3">
           <p className="tw-m-0 tw-text-sm tw-text-[var(--text-color-secondary)]">
             Les colonnes sont détectées par leur nom d&apos;en-tête (peu importe l&apos;ordre) : Prénom(s), Nom,
-            Téléphone (ou Contact), Email, Division (ou Service), Fonction — obligatoires. Matricule, Civilité,
+            Téléphone (ou Contact), Division (ou Service), Fonction — obligatoires. Matricule, Email, Civilité,
             Type de personnel — optionnels (absents d&apos;un export classique, à ajouter si besoin). Division et
-            Fonction sont créées automatiquement si leur libellé n&apos;existe pas encore. Matricule (si renseigné),
-            email et téléphone doivent être uniques — doublons et lignes incomplètes ignorés.
+            Fonction sont créées automatiquement si leur libellé n&apos;existe pas encore. Le téléphone sert de
+            clé : si une fiche existe déjà avec ce téléphone, elle est mise à jour au lieu d&apos;être réimportée
+            en double ; sinon une nouvelle fiche est créée. Lignes incomplètes ignorées.
           </p>
           <FileUpload mode="basic" accept=".xls,.xlsx" customUpload auto={false} chooseLabel="Choisir un fichier Excel"
             onSelect={(e: FileUploadSelectEvent) => setImportFile(e.files[0] ?? null)} />
