@@ -137,19 +137,29 @@ export const fmtStatutAbsence = (s: StatutAbsence) => ({
   REJETEE: 'Rejetée',
 }[s])
 
+export type MoyenTransport = 'VEHICULE_PERSONNEL' | 'VEHICULE_PARC' | 'TRANSPORT_COMMUN'
+
+export const fmtMoyenTransport = (m: MoyenTransport) => ({
+  VEHICULE_PERSONNEL: 'Véhicule personnel',
+  VEHICULE_PARC: 'Véhicule du parc',
+  TRANSPORT_COMMUN: 'Transport en commun',
+}[m])
+
 export interface LigneMission {
   agentId: string
   agentNom?: string
-  disponibiliteVoiture: boolean
-  voitureId: string
-  voitureImmatriculation?: string
+  agentQualite?: string
+  moyenTransport: MoyenTransport
+  voitureId?: string | null
+  voitureImmatriculation?: string | null
 }
 
 export interface OrdreMission {
   id: string
-  regionIds: string[]
-  regionNoms: string[]
-  motif: string
+  villeIds: string[]
+  villeNoms: string[]
+  motifId: string
+  motifLibelle: string
   dateDebut: string
   dateFin: string
   lignes: LigneMission[]
@@ -159,4 +169,10 @@ export interface OrdreMission {
   annule: boolean
   annuleParId?: string
   dateAnnulation?: string
+}
+
+export interface MotifMission {
+  id: string
+  libelle: string
+  actif: boolean
 }

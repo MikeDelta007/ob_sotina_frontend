@@ -1202,6 +1202,17 @@ export const ParametrageService = {
       });
   },
 
+  // Utilitaire de TEST uniquement : réinitialise le mot de passe de TOUS les comptes à la même
+  // valeur — à retirer de l'app une fois les tests terminés.
+  reinitialiserTousLesMotsDePasse(nouveauMotDePasse) {
+    return axiosInstance.put(`/parametrage/reinitialiser-mots-de-passe-test?nouveauMotDePasse=${encodeURIComponent(nouveauMotDePasse)}`)
+      .then(response => response.data)
+      .catch(error => {
+        console.error('Erreur réinitialisation des mots de passe :', error);
+        throw error;
+      });
+  },
+
   deleteUser(id_user) {
     return axiosInstance.delete(`/parametrage/delete-user?idUsr=${encodeURIComponent(id_user)}`)
       .then(response => {

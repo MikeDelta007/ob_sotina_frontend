@@ -82,6 +82,9 @@ const CalendarDemo = () => {
     const [supprimerDialog, setSupprimerDialog] = useState(false);
     const [desactiveAccessDialog, setDesactiveAccessDialog] = useState(false);
     const [nouvelEtatCompte, setNouvelEtatCompte] = useState(false);
+    // Utilitaire de TEST uniquement — réinitialise tous les mots de passe, à retirer après les tests.
+    const [reinitTousDialog, setReinitTousDialog] = useState(false);
+    const [reinitLoading, setReinitLoading] = useState(false);
     const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
     const [product, setProduct] = useState(emptyProduct);
     const [selectedProducts, setSelectedProducts] = useState(null);
@@ -209,6 +212,23 @@ const CalendarDemo = () => {
 
     const hideDeleteProductDialog__ = () => {
         setDesactiveAccessDialog(false);
+    };
+
+    const hideReinitTousDialog = () => {
+        setReinitTousDialog(false);
+    };
+
+    const reinitialiserTousLesMotsDePasse = async () => {
+        setReinitLoading(true);
+        try {
+            const message = await ParametrageService.reinitialiserTousLesMotsDePasse(MOT_DE_PASSE_PAR_DEFAUT);
+            toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: message ?? 'Mots de passe réinitialisés', life: 4000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: 'Erreur lors de la réinitialisation des mots de passe', life: 4000 });
+        } finally {
+            setReinitLoading(false);
+            setReinitTousDialog(false);
+        }
     };
 
     const hideDeleteProductsDialog = () => {
@@ -521,14 +541,23 @@ const CalendarDemo = () => {
         return (
             <div className="flex align-items-center justify-content-start gap-3 my-2">
                 {/* Boutons */}
-                <Button 
+                <Button
                     size="small"
-                    severity="success" 
-                    label="Créer un nouvel accès" 
-                    icon="pi pi-plus" 
-                    onClick={openNew} 
+                    severity="success"
+                    label="Créer un nouvel accès"
+                    icon="pi pi-plus"
+                    onClick={openNew}
                 />
-               
+
+                {/* Utilitaire de TEST uniquement — à retirer une fois les tests terminés. */}
+                <Button
+                    size="small"
+                    severity="warning"
+                    label="Réinitialiser tous les mots de passe (TEST)"
+                    icon="pi pi-replay"
+                    onClick={() => setReinitTousDialog(true)}
+                />
+
                 {/* <Button 
                     size="small"
                     severity="warning" 
@@ -1306,8 +1335,24 @@ const CalendarDemo = () => {
                             </form>
                         </Dialog>
 
-                        <Dialog 
-                            visible={getResultDialog} 
+                        <Dialog visible={reinitTousDialog} style={{ width: '550px' }} header="Réinitialisation des mots de passe (TEST)" modal
+                            footer={
+                                <>
+                                    <Button label="Confirmer" icon="pi pi-check" text loading={reinitLoading} onClick={reinitialiserTousLesMotsDePasse} />
+                                    <Button label="Annuler" icon="pi pi-times" text onClick={hideReinitTousDialog} disabled={reinitLoading} />
+                                </>
+                            } onHide={hideReinitTousDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem', color: 'orange' }} />
+                                <span>
+                                    Confirmer la réinitialisation pour tous les comptes ({MOT_DE_PASSE_PAR_DEFAUT}) ?<br />
+                                    Utilitaire de test uniquement.
+                                </span>
+                            </div>
+                        </Dialog>
+
+                        <Dialog
+                            visible={getResultDialog}
                             style={{ width: '600px' }} 
                             header="Création de comptes pour les Agents de Saisie" 
                             modal 

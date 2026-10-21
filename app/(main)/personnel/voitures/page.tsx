@@ -38,12 +38,12 @@ function VoituresContent() {
 
   useEffect(() => {
     fetchAllVoitures()
-    ParametrageService.getUsers().then((groupes: Record<string, any[]>) => {
-      const tousLesUsers = Object.values(groupes ?? {}).flat()
-      setAgents(tousLesUsers.map((u: any) => ({ label: `${u.personnel?.firstname} ${u.personnel?.lastname} (${u.login})`, value: u.id })))
-    })
+    // Les véhicules appartiennent au personnel, jamais aux comptes User — les deux listes
+    // (agent interne, personne externe) viennent donc toutes les deux de /personnel/personnels/all.
     ParametrageService.getAllPersonnels().then((data: any[]) => {
-      setPersonnels(data.map((p: any) => ({ label: `${p.firstname} ${p.lastname}`, value: p.id })))
+      const actifs = data.filter(p => p.actif).map((p: any) => ({ label: `${p.firstname} ${p.lastname}`, value: p.id }))
+      setAgents(actifs)
+      setPersonnels(actifs)
     })
   }, [])
 

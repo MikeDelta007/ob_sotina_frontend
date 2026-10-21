@@ -253,7 +253,8 @@ const AppMenu = () => {
                 { label: 'Motifs expression de besoin', icon: 'pi pi-fw pi-list', to: '/caisse-avance/motifs' },
                 { label: "Motifs autorisation d'absence", icon: 'pi pi-fw pi-list', to: '/personnel/motifs-absence' },
                 { label: 'Motifs tickets restaurant', icon: 'pi pi-fw pi-list', to: '/ticket-restaurant/motifs' },
-                { label: 'Motifs tickets carburant', icon: 'pi pi-fw pi-list', to: '/ticket-carburant/motifs' }
+                { label: 'Motifs tickets carburant', icon: 'pi pi-fw pi-list', to: '/ticket-carburant/motifs' },
+                { label: 'Motifs ordres de mission', icon: 'pi pi-fw pi-list', to: '/personnel/missions/motifs' }
             ]
         });
 
