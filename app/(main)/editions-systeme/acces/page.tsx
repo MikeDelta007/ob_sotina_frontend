@@ -82,9 +82,10 @@ const CalendarDemo = () => {
     const [supprimerDialog, setSupprimerDialog] = useState(false);
     const [desactiveAccessDialog, setDesactiveAccessDialog] = useState(false);
     const [nouvelEtatCompte, setNouvelEtatCompte] = useState(false);
-    // Utilitaire de TEST uniquement — réinitialise tous les mots de passe, à retirer après les tests.
-    const [reinitTousDialog, setReinitTousDialog] = useState(false);
-    const [reinitLoading, setReinitLoading] = useState(false);
+    // Utilitaire de TEST uniquement — réinitialise tous les mots de passe. Désactivé (commenté)
+    // en dehors des sessions de test — ne jamais réactiver en production.
+    // const [reinitTousDialog, setReinitTousDialog] = useState(false);
+    // const [reinitLoading, setReinitLoading] = useState(false);
     const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
     const [product, setProduct] = useState(emptyProduct);
     const [selectedProducts, setSelectedProducts] = useState(null);
@@ -214,22 +215,23 @@ const CalendarDemo = () => {
         setDesactiveAccessDialog(false);
     };
 
-    const hideReinitTousDialog = () => {
-        setReinitTousDialog(false);
-    };
-
-    const reinitialiserTousLesMotsDePasse = async () => {
-        setReinitLoading(true);
-        try {
-            const message = await ParametrageService.reinitialiserTousLesMotsDePasse(MOT_DE_PASSE_PAR_DEFAUT);
-            toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: message ?? 'Mots de passe réinitialisés', life: 4000 });
-        } catch (error) {
-            toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: 'Erreur lors de la réinitialisation des mots de passe', life: 4000 });
-        } finally {
-            setReinitLoading(false);
-            setReinitTousDialog(false);
-        }
-    };
+    // Utilitaire de TEST uniquement. Désactivé (commenté) en dehors des sessions de test.
+    // const hideReinitTousDialog = () => {
+    //     setReinitTousDialog(false);
+    // };
+    //
+    // const reinitialiserTousLesMotsDePasse = async () => {
+    //     setReinitLoading(true);
+    //     try {
+    //         const message = await ParametrageService.reinitialiserTousLesMotsDePasse(MOT_DE_PASSE_PAR_DEFAUT);
+    //         toast.current.show({ severity: 'success', summary: 'Office du Bac', detail: message ?? 'Mots de passe réinitialisés', life: 4000 });
+    //     } catch (error) {
+    //         toast.current.show({ severity: 'error', summary: 'Office du Bac', detail: 'Erreur lors de la réinitialisation des mots de passe', life: 4000 });
+    //     } finally {
+    //         setReinitLoading(false);
+    //         setReinitTousDialog(false);
+    //     }
+    // };
 
     const hideDeleteProductsDialog = () => {
         setDeleteProductsDialog(false);
@@ -549,7 +551,7 @@ const CalendarDemo = () => {
                     onClick={openNew}
                 />
 
-                {/* Utilitaire de TEST uniquement — à retirer une fois les tests terminés. */}
+                {/* Utilitaire de TEST uniquement. Désactivé (commenté) en dehors des sessions de test.
                 <Button
                     size="small"
                     severity="warning"
@@ -557,6 +559,7 @@ const CalendarDemo = () => {
                     icon="pi pi-replay"
                     onClick={() => setReinitTousDialog(true)}
                 />
+                */}
 
                 {/* <Button 
                     size="small"
@@ -1335,6 +1338,7 @@ const CalendarDemo = () => {
                             </form>
                         </Dialog>
 
+                        {/* Utilitaire de TEST uniquement. Désactivé (commenté) en dehors des sessions de test.
                         <Dialog visible={reinitTousDialog} style={{ width: '550px' }} header="Réinitialisation des mots de passe (TEST)" modal
                             footer={
                                 <>
@@ -1350,6 +1354,7 @@ const CalendarDemo = () => {
                                 </span>
                             </div>
                         </Dialog>
+                        */}
 
                         <Dialog
                             visible={getResultDialog}
