@@ -117,7 +117,7 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
 
   const openEdit = (d: DemandeAbsence) => {
     setEditing(d)
-    const moiMeme = d.demandeurId === user?.id
+    const moiMeme = d.demandeurId === user?.personnel?.id
     setDateDebut(new Date(d.dateDebut)); setDateFin(new Date(d.dateFin)); setMotif(d.motif ?? '')
     setBeneficiaireMoiMeme(moiMeme); setBeneficiaireId(moiMeme ? '' : d.demandeurId)
     clearError()
@@ -304,17 +304,95 @@ function MesDemandesTab({ type }: { type: TypeAbsence }) {
 
 function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; pourAgentsDuChef?: boolean }) {
   const toast = useRef<Toast>(null)
+  const { user } = useContext(UserContext)
   const {
     aValider, demandesDeMesAgents, loading, actionLoadingId, error,
-    fetchAValider, fetchDemandesDeMesAgents, valider, rejeter, clearError,
+    fetchAValider, fetchDemandesDeMesAgents, valider, rejeter, modifier, supprimer, clearError,
   } = useAbsenceStore()
   const [rejetDialogFor, setRejetDialogFor] = useState<DemandeAbsence | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
   const [globalFilter, setGlobalFilter] = useState('')
 
+  // Un chef peut corriger ou supprimer une demande qu'il a lui-même saisie pour l'un de ses
+  // agents (vue "Demandes de mes agents"), tant qu'aucune validation n'a encore eu lieu —
+  // distinct de "Mes demandes", réservée à ce qui le concerne lui en tant que bénéficiaire.
+  const [editing, setEditing] = useState<DemandeAbsence | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dateDebut, setDateDebut] = useState<Date | null>(null)
+  const [dateFin, setDateFin] = useState<Date | null>(null)
+  const [motif, setMotif] = useState('')
+  const [soldeConges, setSoldeConges] = useState<number | null>(null)
+  const [motifsOptions, setMotifsOptions] = useState<{ id: string; libelle: string }[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [beneficiaireId, setBeneficiaireId] = useState('')
+
   const demandes = pourAgentsDuChef ? demandesDeMesAgents : aValider
 
   useEffect(() => { pourAgentsDuChef ? fetchDemandesDeMesAgents(type) : fetchAValider(type) }, [type, pourAgentsDuChef])
+
+  useEffect(() => {
+    if (!pourAgentsDuChef) return
+    if (type === 'AUTORISATION') {
+      axiosInstance.get('demande-absence/motifs').then(({ data }) => setMotifsOptions(data)).catch(() => {})
+    }
+    axiosInstance.get('personnel/mes-agents').then(({ data }) => setAgents(data)).catch(() => setAgents([]))
+  }, [type, pourAgentsDuChef])
+
+  const peutModifier = (d: DemandeAbsence) =>
+    pourAgentsDuChef && d.creePar === user?.login
+    && !d.validationChef && !d.rejetChef && !d.validationCsa && !d.rejetCsa && !d.validationDirecteur
+
+  const openEdit = (d: DemandeAbsence) => {
+    setEditing(d)
+    setDateDebut(new Date(d.dateDebut)); setDateFin(new Date(d.dateFin)); setMotif(d.motif ?? '')
+    setBeneficiaireId(d.demandeurId)
+    clearError()
+    const agent = agents.find(a => a.id === d.demandeurId)
+    setSoldeConges(agent?.soldeDisponible ?? agent?.soldeConges ?? null)
+    setDialogOpen(true)
+  }
+
+  const confirmSupprimer = (d: DemandeAbsence) => {
+    confirmDialog({
+      message: 'Confirmez-vous la suppression de cette demande ?',
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Supprimer',
+      acceptClassName: 'p-button-danger',
+      rejectLabel: 'Annuler',
+      accept: async () => {
+        try {
+          await supprimer(d.id, type)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande supprimée', life: 4000 })
+        } catch { /* error déjà affiché via le store */ }
+      },
+    })
+  }
+
+  const choisirBeneficiaire = (id: string) => {
+    setBeneficiaireId(id); setDateDebut(null); setDateFin(null)
+    const agent = agents.find(a => a.id === id)
+    setSoldeConges(agent?.soldeDisponible ?? agent?.soldeConges ?? null)
+  }
+
+  const nombreJoursEdit = dateDebut && dateFin
+    ? Math.round((Date.UTC(dateFin.getFullYear(), dateFin.getMonth(), dateFin.getDate())
+        - Date.UTC(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate())) / 86400000) + 1
+    : 0
+  const depasseSoldeEdit = type === 'CONGE' && soldeConges != null && nombreJoursEdit > soldeConges
+  const maxDateFinEdit = type === 'CONGE' && dateDebut && soldeConges != null
+    ? new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate() + (soldeConges - 1), 23, 59, 59, 999)
+    : undefined
+  const motifValideEdit = type === 'AUTORISATION' ? !!motif.trim() : true
+
+  const submitEdit = async () => {
+    if (!editing || !dateDebut || !dateFin || !motifValideEdit || !beneficiaireId || depasseSoldeEdit) return
+    try {
+      await modifier(editing.id, { type, dateDebut: toIso(dateDebut), dateFin: toIso(dateFin), motif: motif.trim(), beneficiaireId })
+      toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Demande modifiée avec succès', life: 4000 })
+      setDialogOpen(false)
+    } catch { /* error déjà affiché via le store */ }
+  }
 
   const doValider = async (d: DemandeAbsence) => {
     try {
@@ -357,13 +435,25 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
   // sur leur propre étape (aValider), donc toujours actionnable.
   const actionsBody = (d: DemandeAbsence) => {
     const actionnable = pourAgentsDuChef ? d.statut === 'EN_ATTENTE_CHEF' : true
-    if (!actionnable) return null
+    const modifiable = peutModifier(d)
+    if (!actionnable && !modifiable) return null
     return (
-      <div className="flex gap-2 justify-content-center">
-        <Button label="Valider" icon="pi pi-check" severity="success" size="small"
-          loading={actionLoadingId === d.id} onClick={() => confirmValider(d)} />
-        <Button label="Rejeter" icon="pi pi-times" severity="danger" size="small" outlined
-          loading={actionLoadingId === d.id} onClick={() => openRejet(d)} />
+      <div className="flex gap-2 justify-content-center flex-wrap">
+        {actionnable && (
+          <>
+            <Button label="Valider" icon="pi pi-check" severity="success" size="small"
+              loading={actionLoadingId === d.id} onClick={() => confirmValider(d)} />
+            <Button label="Rejeter" icon="pi pi-times" severity="danger" size="small" outlined
+              loading={actionLoadingId === d.id} onClick={() => openRejet(d)} />
+          </>
+        )}
+        {modifiable && (
+          <>
+            <Button icon="pi pi-pencil" rounded outlined size="small" onClick={() => openEdit(d)} />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" size="small"
+              loading={actionLoadingId === d.id} onClick={() => confirmSupprimer(d)} />
+          </>
+        )}
       </div>
     )
   }
@@ -403,6 +493,59 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
         <InputTextarea value={motifRejet} onChange={e => setMotifRejet(e.target.value)} rows={3} className="w-full" autoFocus />
         {error && <Message severity="error" text={error} className="w-full mt-2" />}
       </Dialog>
+
+      {pourAgentsDuChef && (
+        <Dialog header={type === 'CONGE' ? 'Modifier la demande de congés' : "Modifier la demande d'autorisation d'absence"}
+          visible={dialogOpen} onHide={() => setDialogOpen(false)} style={{ width: '30rem' }} draggable={false}
+          footer={
+            <div className="flex gap-2">
+              <Button label="Annuler" outlined className="flex-1" onClick={() => setDialogOpen(false)} />
+              <Button label={loading ? 'Enregistrement…' : 'Enregistrer'} className="flex-1" loading={loading}
+                disabled={!dateDebut || !dateFin || !motifValideEdit || !beneficiaireId || depasseSoldeEdit} onClick={submitEdit} />
+            </div>
+          }>
+          <div className="flex flex-column gap-3">
+            <div className="field">
+              <label className="block text-sm font-medium mb-1">Pour qui ?</label>
+              <select value={beneficiaireId} onChange={e => choisirBeneficiaire(e.target.value)}
+                className="tw-w-full tw-rounded-lg tw-border tw-border-gray-300 tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-text-gray-800 focus:tw-border-blue-500 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200">
+                <option value="">Choisir…</option>
+                {agents.map(a => (
+                  <option key={a.id} value={a.id}>{`${a.firstname ?? ''} ${a.lastname ?? ''}`.trim()}</option>
+                ))}
+              </select>
+            </div>
+            {type === 'CONGE' && soldeConges != null && (
+              <Message severity="info" text={`Solde de congés restant : ${soldeConges} jour(s)`} className="w-full" />
+            )}
+            <div className="field">
+              <label className="block text-sm font-medium mb-1">Date de début</label>
+              <Calendar value={dateDebut} onChange={e => setDateDebut(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full"
+                minDate={new Date()} selectOtherMonths />
+            </div>
+            <div className="field">
+              <label className="block text-sm font-medium mb-1">Date de fin</label>
+              <Calendar value={dateFin} onChange={e => setDateFin(e.value as Date)} dateFormat="dd/mm/yy" showIcon className="w-full"
+                minDate={dateDebut ?? new Date()} maxDate={maxDateFinEdit} selectOtherMonths
+                disabled={type === 'CONGE' && (!dateDebut || soldeConges == null)} />
+            </div>
+            {nombreJoursEdit > 0 && (
+              <div className={depasseSoldeEdit ? 'text-red-600 text-sm' : 'text-color-secondary text-sm'}>
+                {nombreJoursEdit} jour(s) demandé(s)
+                {depasseSoldeEdit && soldeConges != null && ` — dépasse le solde restant (${soldeConges} j.)`}
+              </div>
+            )}
+            {type === 'AUTORISATION' && (
+              <div className="field">
+                <label className="block text-sm font-medium mb-1">Motif</label>
+                <Dropdown value={motif} onChange={e => setMotif(e.value)} options={motifsOptions}
+                  optionLabel="libelle" optionValue="libelle" placeholder="Sélectionner un motif" className="w-full" />
+              </div>
+            )}
+            {error && <Message severity="error" text={error} className="w-full" />}
+          </div>
+        </Dialog>
+      )}
     </div>
   )
 }
@@ -547,7 +690,11 @@ function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence;
       .catch(() => setEstChefDivision(false))
   }, [])
 
-  const estChefService = estChefDivision
+  // Un CSA/Directeur/Assistante Directeur/Admin voit la file globale "À valider" même s'il est
+  // par ailleurs désigné chef d'une division (ex: le Directeur chef de la division "Direction")
+  // — sinon son onglet de validation se limite à tort aux seuls agents de cette division.
+  const estSuperviseurGlobal = aUnDesRoles(user, ['CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'ADMIN'])
+  const estChefService = estChefDivision && !estSuperviseurGlobal
   const peutValider = aUnDesRoles(user, ROLES_VALIDATEURS) || estChefDivision
   const peutTelecharger = aUnDesRoles(user, ROLES_TELECHARGEMENT)
 
