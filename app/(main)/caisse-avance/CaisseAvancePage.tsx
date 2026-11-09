@@ -336,7 +336,14 @@ export default function CaisseAvancePage() {
       )}
 
       {alerteSolde && !caisseVide && (
-        <Message severity="warn" className="w-full mb-3" text={`Solde faible — en dessous de ${fmt(SEUIL_ALERTE)}`} />
+        <Message severity="warn" className="w-full mb-3" content={
+          <div className="p-2">
+            Solde faible — en dessous de {fmt(SEUIL_ALERTE)}
+            {caisse?.dateDepuisSeuilBas && (
+              <> depuis le <strong>{new Date(caisse.dateDepuisSeuilBas).toLocaleDateString('fr-FR')}</strong></>
+            )}
+          </div>
+        } />
       )}
 
       {error && <Message severity="error" className="w-full mb-3" text={error} />}

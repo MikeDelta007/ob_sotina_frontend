@@ -307,11 +307,17 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
   const { user } = useContext(UserContext)
   const {
     aValider, demandesDeMesAgents, loading, actionLoadingId, error,
-    fetchAValider, fetchDemandesDeMesAgents, valider, rejeter, modifier, supprimer, clearError,
+    fetchAValider, fetchDemandesDeMesAgents, valider, rejeter, modifier, supprimer, definirSuppleant, clearError,
   } = useAbsenceStore()
   const [rejetDialogFor, setRejetDialogFor] = useState<DemandeAbsence | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
   const [globalFilter, setGlobalFilter] = useState('')
+
+  // Un chef de service ne désigne le suppléant de ses agents que depuis cette vue (ses propres
+  // agents, déjà chargés dans `agents` via personnel/mes-agents) — jamais depuis "Qui est en
+  // congé", vue globale réservée au CSA/Directeur.
+  const [suppleantCible, setSuppleantCible] = useState<DemandeAbsence | null>(null)
+  const [suppleantId, setSuppleantId] = useState('')
 
   // Un chef peut corriger ou supprimer une demande qu'il a lui-même saisie pour l'un de ses
   // agents (vue "Demandes de mes agents"), tant qu'aucune validation n'a encore eu lieu —
@@ -430,13 +436,26 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
   )
   const statutBody = (d: DemandeAbsence) => <Tag severity={statutSeverity[d.statut]} value={fmtStatutAbsence(d.statut)} />
 
+  const peutDefinirSuppleant = (d: DemandeAbsence) => pourAgentsDuChef && type === 'CONGE' && d.statut === 'VALIDEE'
+  const ouvrirSuppleant = (d: DemandeAbsence) => { setSuppleantCible(d); setSuppleantId(d.suppleantId ?? ''); clearError() }
+  const fermerSuppleant = () => setSuppleantCible(null)
+  const enregistrerSuppleant = async () => {
+    if (!suppleantCible) return
+    try {
+      await definirSuppleant(suppleantCible.id, suppleantId || null)
+      toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Suppléant mis à jour', life: 4000 })
+      fermerSuppleant()
+    } catch { /* error affiché dans le dialogue via le store */ }
+  }
+
   // Le chef ne peut agir que sur les demandes encore à l'étape chef (vue "Demandes de mes
   // agents", qui montre tout l'historique) ; CSA/Directeur voient déjà une liste pré-filtrée
   // sur leur propre étape (aValider), donc toujours actionnable.
   const actionsBody = (d: DemandeAbsence) => {
     const actionnable = pourAgentsDuChef ? d.statut === 'EN_ATTENTE_CHEF' : true
     const modifiable = peutModifier(d)
-    if (!actionnable && !modifiable) return null
+    const suppleant = peutDefinirSuppleant(d)
+    if (!actionnable && !modifiable && !suppleant) return null
     return (
       <div className="flex gap-2 justify-content-center flex-wrap">
         {actionnable && (
@@ -453,6 +472,10 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
             <Button icon="pi pi-trash" rounded outlined severity="danger" size="small"
               loading={actionLoadingId === d.id} onClick={() => confirmSupprimer(d)} />
           </>
+        )}
+        {suppleant && (
+          <Button icon="pi pi-user-edit" label={d.suppleantNom ? 'Changer suppléant' : 'Désigner suppléant'} size="small" outlined
+            loading={actionLoadingId === d.id} onClick={() => ouvrirSuppleant(d)} />
         )}
       </div>
     )
@@ -478,8 +501,34 @@ function AValiderTab({ type, pourAgentsDuChef = false }: { type: TypeAbsence; po
         {type === 'AUTORISATION' && <Column header="Motif" field="motif" />}
         <Column header="Étapes" body={etapesBody} />
         <Column header="Statut" body={statutBody} />
+        {pourAgentsDuChef && type === 'CONGE' && (
+          <Column header="Suppléant" body={(d: DemandeAbsence) => d.suppleantNom
+            ? <Tag severity="info" icon="pi pi-user" value={d.suppleantNom} />
+            : <span className="text-color-secondary">Aucun</span>} />
+        )}
         <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />
       </DataTable>
+
+      <Dialog header={`Suppléant de ${suppleantCible?.demandeurNom ?? ''}`} visible={!!suppleantCible} onHide={fermerSuppleant}
+        style={{ width: '28rem' }} draggable={false}
+        footer={
+          <div className="flex gap-2">
+            <Button label="Annuler" outlined className="flex-1" onClick={fermerSuppleant} />
+            <Button label="Enregistrer" className="flex-1"
+              loading={actionLoadingId === suppleantCible?.id} onClick={enregistrerSuppleant} />
+          </div>
+        }>
+        <div className="field">
+          <label className="block text-sm font-medium mb-1">Agent suppléant (de votre division)</label>
+          <Dropdown value={suppleantId} onChange={e => setSuppleantId(e.value)} className="w-full"
+            showClear filter
+            options={agents.filter(a => a.id !== suppleantCible?.demandeurId).map(a => ({
+              label: `${a.firstname ?? ''} ${a.lastname ?? ''}`.trim(), value: a.id,
+            }))}
+            placeholder="Aucun suppléant" />
+        </div>
+        {error && <Message severity="error" text={error} className="w-full mt-3" />}
+      </Dialog>
 
       <Dialog header="Motif du rejet" visible={!!rejetDialogFor} onHide={() => setRejetDialogFor(null)}
         style={{ width: '28rem' }} draggable={false}
@@ -625,13 +674,15 @@ interface Agent {
 
 // Vue ouverte à tout agent (pas seulement chef/CSA/Directeur) : qui est actuellement en congé
 // validé (ou le sera prochainement), avec son suppléant éventuel — pour pouvoir renseigner un
-// usager sans avoir à interroger le chef de service. Seul le Directeur (ou l'Admin) peut
-// désigner/changer ce suppléant.
+// usager sans avoir à interroger le chef de service. Seuls le CSA/Directeur (comme l'Assistante
+// Directeur/Admin), supervisant tout le personnel, désignent le suppléant depuis cette vue
+// globale — un chef de service le fait depuis "Demandes de mes agents" (cf. AValiderTab), avec
+// la liste déroulante limitée à ses seuls agents.
 function CongesEnCoursTab() {
   const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
-  const peutGererSuppleant = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
-  const { congesEnCours, loading, actionLoadingId, fetchCongesEnCours, definirSuppleant } = useAbsenceStore()
+  const peutGererSuppleant = aUnDesRoles(user, ['CSA', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'ADMIN'])
+  const { congesEnCours, loading, actionLoadingId, error, fetchCongesEnCours, definirSuppleant, clearError } = useAbsenceStore()
   const [tousAgents, setTousAgents] = useState<Agent[]>([])
   const [cible, setCible] = useState<DemandeAbsence | null>(null)
   const [suppleantId, setSuppleantId] = useState('')
@@ -643,7 +694,7 @@ function CongesEnCoursTab() {
     axiosInstance.get('personnel/tous-agents').then(({ data }) => setTousAgents(data)).catch(() => setTousAgents([]))
   }, [peutGererSuppleant])
 
-  const ouvrir = (d: DemandeAbsence) => { setCible(d); setSuppleantId(d.suppleantId ?? ''); }
+  const ouvrir = (d: DemandeAbsence) => { setCible(d); setSuppleantId(d.suppleantId ?? ''); clearError() }
   const fermer = () => setCible(null)
 
   const enregistrer = async () => {
@@ -652,7 +703,7 @@ function CongesEnCoursTab() {
       await definirSuppleant(cible.id, suppleantId || null)
       toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Suppléant mis à jour', life: 4000 })
       fermer()
-    } catch { /* error déjà affiché via le store */ }
+    } catch { /* error affiché dans le dialogue via le store */ }
   }
 
   const dateBody = (d: DemandeAbsence) => (
@@ -720,6 +771,7 @@ function CongesEnCoursTab() {
             }))}
             placeholder="Aucun suppléant" />
         </div>
+        {error && <Message severity="error" text={error} className="w-full mt-3" />}
       </Dialog>
     </div>
   )

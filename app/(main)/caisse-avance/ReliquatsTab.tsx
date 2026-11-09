@@ -9,7 +9,7 @@ import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
 import { useCaisseStore } from './useCaisseStore'
-import { modeAuto, fmt, type Mandatement } from './types'
+import { modeAuto, fmt, SEUIL_RESERVE, type Mandatement } from './types'
 
 interface Props { lectureSeule?: boolean }
 
@@ -27,6 +27,10 @@ export default function ReliquatsTab({ lectureSeule = false }: Props) {
 
   const mode = selected ? modeAuto(selected.montantReliquat ?? 0, soldeCaisse) : 'ESPECES'
   const piecesValides = mode === 'ESPECES' || !!piecesJustificatives
+  // Même règle que pour un mandatement classique : un paiement en espèces qui ferait
+  // descendre la caisse sous la réserve minimale est refusé par le backend.
+  const reserveBrechee = !!selected && mode === 'ESPECES'
+    && (soldeCaisse - (selected.montantReliquat ?? 0)) < SEUIL_RESERVE
 
   const ouvrir = (m: Mandatement) => {
     setSelected(m); setPiecesJustificatives(null); setErr('')
@@ -36,11 +40,12 @@ export default function ReliquatsTab({ lectureSeule = false }: Props) {
   const confirmer = async () => {
     if (!selected) return
     if (!piecesValides) { setErr('Les pièces justificatives sont requises pour ce paiement.'); return }
+    if (reserveBrechee) { setErr(`Charger la caisse : ce décaissement ferait descendre le solde sous la réserve minimale de ${fmt(SEUIL_RESERVE)}.`); return }
     try {
       await payerReliquat(selected.id, piecesJustificatives)
       fermer()
-    } catch {
-      setErr('Erreur lors du paiement du reliquat')
+    } catch (e: any) {
+      setErr(e.response?.data?.message ?? 'Erreur lors du paiement du reliquat')
     }
   }
 
@@ -67,7 +72,7 @@ export default function ReliquatsTab({ lectureSeule = false }: Props) {
     <div className="flex gap-2">
       <Button label="Annuler" outlined className="flex-1" onClick={fermer} disabled={reliquatLoadingId === selected?.id} />
       <Button label="Payer le reliquat" className="flex-1" loading={reliquatLoadingId === selected?.id}
-        disabled={reliquatLoadingId === selected?.id || !piecesValides} onClick={confirmer} />
+        disabled={reliquatLoadingId === selected?.id || !piecesValides || reserveBrechee} onClick={confirmer} />
     </div>
   )
 
@@ -124,6 +129,15 @@ export default function ReliquatsTab({ lectureSeule = false }: Props) {
             )}
 
             <Message severity="warn" text="Cette action débite la caisse (ou enregistre le paiement par chèque) et ne peut pas être annulée." className="w-full" />
+
+            {reserveBrechee && (
+              <Message severity="error" className="w-full" content={
+                <div className="p-2 text-sm">
+                  Ce décaissement ferait descendre la caisse à <strong>{fmt(soldeCaisse - (selected.montantReliquat ?? 0))}</strong>,
+                  sous la réserve minimale de {fmt(SEUIL_RESERVE)}. <strong>Charger la caisse</strong> avant de poursuivre.
+                </div>
+              } />
+            )}
 
             {err && <Message severity="error" text={err} className="w-full" />}
           </div>

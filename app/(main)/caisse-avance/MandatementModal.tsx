@@ -15,7 +15,7 @@ import { Tag } from 'primereact/tag'
 import { UserContext } from '@/app/userContext'
 import { useMandatementStore } from './useMandatementStore'
 import { useCaisseStore } from './useCaisseStore'
-import { modeAuto, fmt, SEUIL_CHEQUE, ligneEstValide } from './types'
+import { modeAuto, fmt, SEUIL_CHEQUE, SEUIL_RESERVE, ligneEstValide } from './types'
 import { designationEb, type ExpressionBesoin } from '../expression-besoin/types'
 import LigneFactureRow from './LigneFactureRow'
 
@@ -106,8 +106,16 @@ export default function MandatementModal() {
   // la caisse peut couvrir — pas chaque facture individuellement.
   const totalSousLeSeuil = type !== 'CUMULATIF' || total <= SEUIL_CHEQUE
   const totalCouvertParCaisse = type !== 'CUMULATIF' || total <= soldeCaisse
+  // Comme pour le simple, un décaissement en espèces qui ferait descendre la caisse sous la
+  // réserve minimale est refusé par le backend — on se base sur le montant réellement
+  // décaissé maintenant (l'avance si AVANCE, le total sinon), pas sur le total de la facture.
+  const reserveBrecheeCumulatif = type === 'CUMULATIF' && mode === 'ESPECES' && avanceEffective > 0
+    && (soldeCaisse - avanceEffective) < SEUIL_RESERVE
+  const reserveBrecheeSimple = type === 'SIMPLE' && modeSimple === 'ESPECES' && montantPourModeSimple > 0
+    && (soldeCaisse - montantPourModeSimple) < SEUIL_RESERVE
   const formulaireValide = total > 0 && piecesValides && avanceValide && nbFacturesValide
     && totalSousLeSeuil && totalCouvertParCaisse && aucunMotifChequeObligatoireEnCumulatif
+    && !reserveBrecheeCumulatif && !reserveBrecheeSimple
 
   const allerApprovisionner = () => {
     closeModal()
@@ -250,6 +258,19 @@ export default function MandatementModal() {
                 className="mb-3" />
             )}
 
+            {reserveBrecheeSimple && (
+              <Message severity="error" className="w-full mb-3" content={
+                <div className="p-2 flex flex-column gap-2">
+                  <div className="text-sm">
+                    Ce décaissement ferait descendre la caisse à <strong>{fmt(soldeCaisse - montantPourModeSimple)}</strong>,
+                    sous la réserve minimale de {fmt(SEUIL_RESERVE)}. <strong>Charger la caisse</strong> avant de poursuivre.
+                  </div>
+                  <Button label="Approvisionner la caisse" icon="pi pi-wallet" size="small"
+                    className="align-self-start" onClick={allerApprovisionner} />
+                </div>
+              } />
+            )}
+
             {/* Pièces justificatives — un seul PDF (facture, et chèque/CNI si besoin) */}
             <div className="field">
               <label className="block text-sm text-color-secondary mb-1">Pièces justificatives (PDF) *</label>
@@ -296,6 +317,18 @@ export default function MandatementModal() {
                       Total des factures : <strong>{fmt(total)}</strong> — solde disponible : <strong>{fmt(soldeCaisse)}</strong> (dépassement de {fmt(total - soldeCaisse)}).
                       Supprimez une ou plusieurs factures pour réduire le total, ou approvisionnez la caisse pour couvrir ce montant.
                     </div>
+                  </div>
+                  <Button label="Approvisionner la caisse" icon="pi pi-wallet" size="small"
+                    className="align-self-start" onClick={allerApprovisionner} />
+                </div>
+              } />
+            )}
+            {total > 0 && totalCouvertParCaisse && reserveBrecheeCumulatif && (
+              <Message severity="error" className="w-full mt-3" content={
+                <div className="p-2 flex flex-column gap-2">
+                  <div className="text-sm">
+                    Ce décaissement ferait descendre la caisse à <strong>{fmt(soldeCaisse - avanceEffective)}</strong>,
+                    sous la réserve minimale de {fmt(SEUIL_RESERVE)}. <strong>Charger la caisse</strong> avant de poursuivre.
                   </div>
                   <Button label="Approvisionner la caisse" icon="pi pi-wallet" size="small"
                     className="align-self-start" onClick={allerApprovisionner} />

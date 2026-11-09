@@ -21,6 +21,9 @@ export interface CaisseAvance {
   montant: number
   date: string
   description?: string
+  // Depuis quand le solde est resté en continu ≤ au seuil d'alerte (100 000) — null si le
+  // solde est actuellement au-dessus.
+  dateDepuisSeuilBas?: string | null
 }
 
 // Historique des approvisionnements (ajouts de fonds) de la caisse
@@ -89,6 +92,9 @@ export interface LigneLocale {
 
 export const SEUIL_ALERTE  = 100_000
 export const SEUIL_CHEQUE  = 100_000
+// Réserve minimale : un décaissement en espèces qui ferait descendre la caisse sous ce seuil
+// est refusé par le backend, même si le montant lui-même est couvert.
+export const SEUIL_RESERVE = 50_000
 
 // Filtre période partagé (mandatements + approvisionnements, écran + Excel)
 export type PeriodeType = 'TOUTES' | 'ANNEE' | 'MOIS' | 'SEMAINE'
