@@ -623,6 +623,108 @@ interface Agent {
   joursAutorisationCumules?: number | null
 }
 
+// Vue ouverte à tout agent (pas seulement chef/CSA/Directeur) : qui est actuellement en congé
+// validé (ou le sera prochainement), avec son suppléant éventuel — pour pouvoir renseigner un
+// usager sans avoir à interroger le chef de service. Seul le Directeur (ou l'Admin) peut
+// désigner/changer ce suppléant.
+function CongesEnCoursTab() {
+  const toast = useRef<Toast>(null)
+  const { user } = useContext(UserContext)
+  const peutGererSuppleant = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const { congesEnCours, loading, actionLoadingId, fetchCongesEnCours, definirSuppleant } = useAbsenceStore()
+  const [tousAgents, setTousAgents] = useState<Agent[]>([])
+  const [cible, setCible] = useState<DemandeAbsence | null>(null)
+  const [suppleantId, setSuppleantId] = useState('')
+  const [globalFilter, setGlobalFilter] = useState('')
+
+  useEffect(() => { fetchCongesEnCours() }, [])
+  useEffect(() => {
+    if (!peutGererSuppleant) return
+    axiosInstance.get('personnel/tous-agents').then(({ data }) => setTousAgents(data)).catch(() => setTousAgents([]))
+  }, [peutGererSuppleant])
+
+  const ouvrir = (d: DemandeAbsence) => { setCible(d); setSuppleantId(d.suppleantId ?? ''); }
+  const fermer = () => setCible(null)
+
+  const enregistrer = async () => {
+    if (!cible) return
+    try {
+      await definirSuppleant(cible.id, suppleantId || null)
+      toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Suppléant mis à jour', life: 4000 })
+      fermer()
+    } catch { /* error déjà affiché via le store */ }
+  }
+
+  const dateBody = (d: DemandeAbsence) => (
+    <span>{new Date(d.dateDebut).toLocaleDateString('fr-FR')} → {new Date(d.dateFin).toLocaleDateString('fr-FR')}</span>
+  )
+  // Un congé déjà validé mais pas encore commencé doit rester visible (l'agent va bientôt
+  // partir) — ce badge distingue les deux cas pour que ce soit clair d'un coup d'œil.
+  const estDeja = (d: DemandeAbsence) => new Date(d.dateDebut) <= new Date()
+  const statutBody = (d: DemandeAbsence) => (
+    estDeja(d)
+      ? <Tag severity="success" value="En cours" />
+      : <Tag severity="warning" value="À venir" />
+  )
+  const suppleantBody = (d: DemandeAbsence) => d.suppleantNom
+    ? <Tag severity="info" icon="pi pi-user" value={d.suppleantNom} />
+    : <span className="text-color-secondary">Aucun</span>
+  const actionsBody = (d: DemandeAbsence) => (
+    peutGererSuppleant && (
+      <Button icon="pi pi-user-edit" label={d.suppleantNom ? 'Changer' : 'Désigner'} size="small" outlined
+        loading={actionLoadingId === d.id} onClick={() => ouvrir(d)} />
+    )
+  )
+
+  return (
+    <div>
+      <Toast ref={toast} />
+      <p className="text-color-secondary mb-3">
+        {congesEnCours.length} agent(s) en congé validé — en cours ou à venir
+      </p>
+
+      <DataTable value={congesEnCours} loading={loading} paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
+        emptyMessage="Aucun congé en cours ou à venir" responsiveLayout="scroll"
+        globalFilter={globalFilter} globalFilterFields={['demandeurNom', 'suppleantNom']}
+        header={
+          <div className="flex justify-content-end">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} placeholder="Rechercher…" />
+            </span>
+          </div>
+        }>
+        <Column header="Agent" field="demandeurNom" />
+        <Column header="Période" body={dateBody} />
+        <Column header="Jours" field="nombreJours" />
+        <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
+        <Column header="Suppléant" body={suppleantBody} />
+        {peutGererSuppleant && <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />}
+      </DataTable>
+
+      <Dialog header={`Suppléant de ${cible?.demandeurNom ?? ''}`} visible={!!cible} onHide={fermer}
+        style={{ width: '28rem' }} draggable={false}
+        footer={
+          <div className="flex gap-2">
+            <Button label="Annuler" outlined className="flex-1" onClick={fermer} />
+            <Button label="Enregistrer" className="flex-1"
+              loading={actionLoadingId === cible?.id} onClick={enregistrer} />
+          </div>
+        }>
+        <div className="field">
+          <label className="block text-sm font-medium mb-1">Agent suppléant</label>
+          <Dropdown value={suppleantId} onChange={e => setSuppleantId(e.value)} className="w-full"
+            showClear filter
+            options={tousAgents.filter(a => a.id !== cible?.demandeurId).map(a => ({
+              label: `${a.firstname ?? ''} ${a.lastname ?? ''}`.trim(), value: a.id,
+            }))}
+            placeholder="Aucun suppléant" />
+        </div>
+      </Dialog>
+    </div>
+  )
+}
+
 function MesAgentsTab() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(false)
@@ -705,6 +807,11 @@ function AbsenceModuleContent({ type, titre, description }: { type: TypeAbsence;
         <p className="text-color-secondary mt-1 mb-0">{description}</p>
       </div>
       <TabView>
+        {type === 'CONGE' && (
+          <TabPanel header="Qui est en congé" leftIcon="pi pi-users mr-2">
+            <CongesEnCoursTab />
+          </TabPanel>
+        )}
         <TabPanel header="Mes demandes" leftIcon="pi pi-calendar-times mr-2">
           <MesDemandesTab type={type} />
         </TabPanel>

@@ -45,6 +45,9 @@ export default function LigneFactureRow({ ligne, index, canRemove, expressionsDi
     ? (total > 0 ? montantAvance * (ligne.montant / total) : 0)
     : ligne.montant
   const mode = modeAuto(montantPourMode, caisse?.montant ?? 0)
+  // Un motif à chèque obligatoire n'a pas sa place dans un cumulatif (toujours réglé en
+  // espèces par construction) — le backend le refuse, on prévient avant l'envoi.
+  const motifChequeObligatoire = motifs.find(m => m.id === ligne.motifId)?.paiementChequeObligatoire ?? false
 
   return (
     <div className="card mb-3">
@@ -91,12 +94,17 @@ export default function LigneFactureRow({ ligne, index, canRemove, expressionsDi
         </div>
       </div>
 
-      {ligne.montant > 0 && attenteAvance && (
+      {motifChequeObligatoire && (
+        <Message severity="error" className="mb-3"
+          text="Ce motif impose un paiement par chèque : il ne peut pas être inclus dans un mandatement cumulatif (toujours réglé en espèces). Utilisez un mandatement simple." />
+      )}
+
+      {!motifChequeObligatoire && ligne.montant > 0 && attenteAvance && (
         <Message severity="info" className="mb-3"
           text="Saisissez le montant de l'avance pour déterminer le mode de décaissement." />
       )}
 
-      {ligne.montant > 0 && !attenteAvance && (
+      {!motifChequeObligatoire && ligne.montant > 0 && !attenteAvance && (
         <Tag severity={mode === 'ESPECES' ? 'success' : 'warning'}
           icon={mode === 'ESPECES' ? 'pi pi-money-bill' : 'pi pi-credit-card'}
           value={`${mode === 'ESPECES' ? 'Espèces' : 'Chèque'} — ${fmt(montantPourMode)}`}

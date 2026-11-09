@@ -49,6 +49,7 @@ interface ExpressionBesoinStore {
   rejeter:                (id: string, motif: string) => Promise<void>
   traiter:                (id: string, montantReel: number) => Promise<void>
   confirmerSatisfaction:  (id: string) => Promise<void>
+  ajusterSatisfaction:    (id: string, requiertSatisfaction: boolean, satisfactionConfirmee: boolean) => Promise<void>
   archiver:               (id: string) => Promise<void>
   clearError:             () => void
 }
@@ -236,6 +237,19 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await get().fetchMesExpressions()
     } catch (e: any) {
       set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la confirmation de satisfaction' })
+      throw e
+    } finally { set({ actionLoadingId: null }) }
+  },
+
+  // Correction admin, utilisable depuis n'importe quel onglet listant l'EB : on rafraîchit
+  // toutes les listes où elle peut apparaître plutôt que de deviner laquelle est active.
+  ajusterSatisfaction: async (id, requiertSatisfaction, satisfactionConfirmee) => {
+    set({ actionLoadingId: id, error: null })
+    try {
+      await axiosInstance.put(`expression-besoin/${id}/ajuster-satisfaction`, { requiertSatisfaction, satisfactionConfirmee })
+      await Promise.all([get().fetchValidees(), get().fetchATraiter(), get().fetchTraitees(), get().fetchMontantReduit()])
+    } catch (e: any) {
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? "Erreur lors de l'ajustement de la satisfaction" })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },

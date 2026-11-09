@@ -87,6 +87,14 @@ export default function MandatementModal() {
   // Montant à utiliser pour décider du mode de LA facture simple (même logique que
   // le décaissement global) — l'avance si AVANCE, sinon le montant de la facture.
   const montantPourModeSimple = typePaiement === 'AVANCE' ? montantAvance : (ligneSimple.montant ?? 0)
+  // Un motif à chèque obligatoire force le mode, même sous le seuil de 100 000 (reflète
+  // le comportement backend).
+  const motifSimpleChequeObligatoire = motifs.find(m => m.id === ligneSimple.motifId)?.paiementChequeObligatoire ?? false
+  const modeSimple = motifSimpleChequeObligatoire ? 'CHEQUE' : modeAuto(montantPourModeSimple, soldeCaisse)
+  // Un motif à chèque obligatoire ne peut pas figurer dans un cumulatif — le backend le
+  // refuse, on bloque la validation en amont plutôt que de laisser échouer l'envoi.
+  const aucunMotifChequeObligatoireEnCumulatif = type !== 'CUMULATIF'
+    || lignes.every(l => !motifs.find(m => m.id === l.motifId)?.paiementChequeObligatoire)
 
   const avanceValide = typePaiement !== 'AVANCE' || (montantAvance > 0 && montantAvance <= total)
   const piecesValides = type === 'SIMPLE'
@@ -99,7 +107,7 @@ export default function MandatementModal() {
   const totalSousLeSeuil = type !== 'CUMULATIF' || total <= SEUIL_CHEQUE
   const totalCouvertParCaisse = type !== 'CUMULATIF' || total <= soldeCaisse
   const formulaireValide = total > 0 && piecesValides && avanceValide && nbFacturesValide
-    && totalSousLeSeuil && totalCouvertParCaisse
+    && totalSousLeSeuil && totalCouvertParCaisse && aucunMotifChequeObligatoireEnCumulatif
 
   const allerApprovisionner = () => {
     closeModal()
@@ -235,9 +243,10 @@ export default function MandatementModal() {
             )}
 
             {(ligneSimple.montant ?? 0) > 0 && !attenteAvance && (
-              <Tag severity={modeAuto(montantPourModeSimple, soldeCaisse) === 'ESPECES' ? 'success' : 'warning'}
-                icon={modeAuto(montantPourModeSimple, soldeCaisse) === 'ESPECES' ? 'pi pi-money-bill' : 'pi pi-credit-card'}
-                value={`${modeAuto(montantPourModeSimple, soldeCaisse) === 'ESPECES' ? 'Espèces' : 'Chèque'} — ${fmt(montantPourModeSimple)}`}
+              <Tag severity={modeSimple === 'ESPECES' ? 'success' : 'warning'}
+                icon={modeSimple === 'ESPECES' ? 'pi pi-money-bill' : 'pi pi-credit-card'}
+                value={`${modeSimple === 'ESPECES' ? 'Espèces' : 'Chèque'} — ${fmt(montantPourModeSimple)}`
+                  + (motifSimpleChequeObligatoire ? ' (imposé par le motif)' : '')}
                 className="mb-3" />
             )}
 

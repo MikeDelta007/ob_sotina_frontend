@@ -15,6 +15,7 @@ interface AbsenceStore {
   aValider: DemandeAbsence[]
   demandesDeMesAgents: DemandeAbsence[]
   demandesTraitees: DemandeAbsence[]
+  congesEnCours: DemandeAbsence[]
   loading: boolean
   error: string | null
   actionLoadingId: string | null
@@ -23,11 +24,13 @@ interface AbsenceStore {
   fetchAValider: (type: TypeAbsence) => Promise<void>
   fetchDemandesDeMesAgents: (type: TypeAbsence) => Promise<void>
   fetchDemandesTraitees: (type: TypeAbsence) => Promise<void>
+  fetchCongesEnCours: () => Promise<void>
   creer: (payload: CreerAbsencePayload) => Promise<void>
   modifier: (id: string, payload: CreerAbsencePayload) => Promise<void>
   supprimer: (id: string, type: TypeAbsence) => Promise<void>
   valider: (id: string, type: TypeAbsence) => Promise<void>
   rejeter: (id: string, motif: string, type: TypeAbsence) => Promise<void>
+  definirSuppleant: (id: string, suppleantId: string | null) => Promise<void>
   clearError: () => void
 }
 
@@ -36,6 +39,7 @@ export const useAbsenceStore = create<AbsenceStore>((set, get) => ({
   aValider: [],
   demandesDeMesAgents: [],
   demandesTraitees: [],
+  congesEnCours: [],
   loading: false,
   error: null,
   actionLoadingId: null,
@@ -73,6 +77,15 @@ export const useAbsenceStore = create<AbsenceStore>((set, get) => ({
       const { data } = await axiosInstance.get('demande-absence/traitees', { params: { type } })
       set({ demandesTraitees: data })
     } catch { set({ error: 'Erreur chargement des demandes déjà traitées' }) }
+    finally { set({ loading: false }) }
+  },
+
+  fetchCongesEnCours: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('demande-absence/en-cours')
+      set({ congesEnCours: data })
+    } catch { set({ error: 'Erreur chargement des congés en cours' }) }
     finally { set({ loading: false }) }
   },
 
@@ -127,6 +140,17 @@ export const useAbsenceStore = create<AbsenceStore>((set, get) => ({
       await Promise.all([get().fetchAValider(type), get().fetchDemandesDeMesAgents(type), get().fetchDemandesTraitees(type)])
     } catch (e: any) {
       set({ error: e.response?.data?.message ?? 'Erreur lors du rejet' })
+      throw e
+    } finally { set({ actionLoadingId: null }) }
+  },
+
+  definirSuppleant: async (id, suppleantId) => {
+    set({ actionLoadingId: id, error: null })
+    try {
+      await axiosInstance.put(`demande-absence/${id}/suppleant`, { suppleantId })
+      await get().fetchCongesEnCours()
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? "Erreur lors de la désignation du suppléant" })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },

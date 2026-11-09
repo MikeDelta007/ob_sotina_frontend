@@ -10,6 +10,7 @@ import { DataTable } from 'primereact/datatable'
 import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
+import AjusterSatisfactionAction from './AjusterSatisfactionAction'
 import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, montantClassName, type ExpressionBesoin } from './types'
 
@@ -20,6 +21,7 @@ export default function TraiteesTab() {
   const [globalFilter, setGlobalFilter] = useState('')
   const { user } = useContext(UserContext)
   const peutDecharge = aUnDesRoles(user, ['CHEF_COMPTABLE', 'AGENT_COMPTABLE'])
+  const estAdmin = aUnDesRoles(user, ['ADMIN'])
 
   const telechargerDecharge = async (id: string) => {
     const { data } = await axiosInstance.get(`expression-besoin/${id}/decharge.pdf`, { responseType: 'blob' })
@@ -93,6 +95,10 @@ export default function TraiteesTab() {
               <Button icon="pi pi-file-pdf" size="small" text tooltip="Télécharger la décharge à faire signer"
                 onClick={() => telechargerDecharge(eb.id)} />
             )} />
+        )}
+        {estAdmin && (
+          <Column header="Actions" align="center" alignHeader="center"
+            body={(eb: ExpressionBesoin) => <AjusterSatisfactionAction eb={eb} />} />
         )}
       </DataTable>
     </div>

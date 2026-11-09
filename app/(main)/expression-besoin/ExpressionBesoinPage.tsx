@@ -19,13 +19,16 @@ export default function ExpressionBesoinPage() {
   const notificationCounts = useNotificationCounts(!!user)
   const aRole = (r: string) => aUnDesRoles(user, [r])
 
+  const estAdmin = aRole('ADMIN')
   const peutTraiter = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE')
-  const peutValider = aRole('CSA') || aRole('DIRECTEUR') || aRole('ASSISTANTE_DIRECTEUR')
-  const peutSoumettre = aRole('CHEF_SERVICE') || peutTraiter || peutValider
+  // L'Admin voit toutes les expressions de besoin (supervision + correction avant
+  // mandatement), mais ne valide/ne traite jamais lui-même — lecture seule sur ces écrans.
+  const peutValider = aRole('CSA') || aRole('DIRECTEUR') || aRole('ASSISTANTE_DIRECTEUR') || estAdmin
+  const peutSoumettre = aRole('CHEF_SERVICE') || peutTraiter || (peutValider && !estAdmin)
   // Un agent simple ne crée jamais d'expression de besoin : il consulte, en lecture seule,
   // celles où son chef l'a déclaré bénéficiaire.
   const estAgentSimple = aRole('AGENT')
-  // CSA/Directeur voient ce que traite la comptabilité, mais en lecture seule
+  // CSA/Directeur/Admin voient ce que traite la comptabilité, mais en lecture seule
   const peutVoirTraitement = peutTraiter || peutValider
 
   const onglets = [

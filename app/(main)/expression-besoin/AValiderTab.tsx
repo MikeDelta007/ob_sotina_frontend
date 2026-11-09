@@ -1,6 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
+import { UserContext } from '@/app/userContext'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { Button } from 'primereact/button'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
@@ -18,6 +20,10 @@ import { fmt, designationEb, montantClassName, type ExpressionBesoin } from './t
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
 export default function AValiderTab() {
+  const { user } = useContext(UserContext)
+  // L'Admin voit toutes les EB en attente (supervision), mais ne valide/ne rejette jamais
+  // lui-même — ce rôle reste au CSA/Directeur.
+  const estAdmin = aUnDesRoles(user, ['ADMIN'])
   const { aValider, actionLoadingId, fetchAValider, valider, rejeter } = useExpressionBesoinStore()
   const [rejetTarget, setRejetTarget] = useState<ExpressionBesoin | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
@@ -81,12 +87,14 @@ export default function AValiderTab() {
   }
 
   const actionsBody = (eb: ExpressionBesoin) => (
-    <div className="flex gap-1 align-items-center justify-content-center">
-      <Button label="Valider" icon="pi pi-check" size="small" severity="success"
-        loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
-      <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
-        loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
-    </div>
+    estAdmin ? <span className="text-color-secondary">—</span> : (
+      <div className="flex gap-1 align-items-center justify-content-center">
+        <Button label="Valider" icon="pi pi-check" size="small" severity="success"
+          loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
+        <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
+          loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
+      </div>
+    )
   )
 
   return (

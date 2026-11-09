@@ -11,6 +11,7 @@ import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
 import { Toast } from 'primereact/toast'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
+import AjusterSatisfactionAction from './AjusterSatisfactionAction'
 import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, montantClassName, type ExpressionBesoin, type StatutEB } from './types'
 
@@ -27,6 +28,7 @@ export default function ValideesTab() {
   const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
   const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const estAdmin = aUnDesRoles(user, ['ADMIN'])
   const { validees, fetchValidees, archiver, actionLoadingId } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
 
@@ -62,11 +64,14 @@ export default function ValideesTab() {
   )
 
   const archiverBody = (eb: ExpressionBesoin) => (
-    peutArchiver && !eb.archivee && !eb.utiliseePourMandatement
-    && (eb.statut === 'VALIDEE' || eb.statut === 'TRAITEE') && (
-      <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
-        loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
-    )
+    <div className="flex gap-1 align-items-center justify-content-center">
+      {estAdmin && <AjusterSatisfactionAction eb={eb} />}
+      {peutArchiver && !eb.archivee && !eb.utiliseePourMandatement
+        && (eb.statut === 'VALIDEE' || eb.statut === 'TRAITEE') && (
+        <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
+          loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
+      )}
+    </div>
   )
 
   const pieceBody = (eb: ExpressionBesoin) => {

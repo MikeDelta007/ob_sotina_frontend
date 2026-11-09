@@ -125,6 +125,13 @@ export interface DemandeAbsence {
   rejeteParNom?: string
   dateRejet?: string
 
+  // Suppléant désigné par le Directeur sur un congé déjà validé
+  suppleantId?: string
+  suppleantNom?: string
+  suppleantDefiniPar?: string
+  suppleantDefiniParNom?: string
+  dateDefinitionSuppleant?: string
+
   creePar: string
   dateCreation: string
 }

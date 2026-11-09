@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { saveAs } from 'file-saver'
 import { Button } from 'primereact/button'
@@ -10,8 +10,11 @@ import { InputNumber } from 'primereact/inputnumber'
 import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
+import { UserContext } from '@/app/userContext'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
+import AjusterSatisfactionAction from './AjusterSatisfactionAction'
 import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, montantClassName, type ExpressionBesoin } from './types'
 
@@ -20,6 +23,8 @@ const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\
 interface Props { lectureSeule?: boolean }
 
 export default function ATraiterTab({ lectureSeule = false }: Props) {
+  const { user } = useContext(UserContext)
+  const estAdmin = aUnDesRoles(user, ['ADMIN'])
   const { aTraiter, actionLoadingId, fetchATraiter, traiter } = useExpressionBesoinStore()
   const [selected, setSelected] = useState<ExpressionBesoin | null>(null)
   const [montantReel, setMontantReel] = useState<number | null>(null)
@@ -72,6 +77,7 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
         <Button label="Traiter" icon="pi pi-pencil" size="small"
           loading={actionLoadingId === eb.id} onClick={() => ouvrir(eb)} />
       )}
+      {estAdmin && <AjusterSatisfactionAction eb={eb} />}
     </div>
   )
 

@@ -21,23 +21,26 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
   const [libelle, setLibelle] = useState('')
   const [actif, setActif]     = useState(true)
   const [requiertSatisfaction, setRequiertSatisfaction] = useState(false)
+  const [paiementChequeObligatoire, setPaiementChequeObligatoire] = useState(false)
   const [err, setErr]         = useState('')
   const [globalFilter, setGlobalFilter] = useState('')
 
   const openCreate = () => {
-    setEditing(null); setLibelle(''); setActif(true); setRequiertSatisfaction(false)
+    setEditing(null); setLibelle(''); setActif(true)
+    setRequiertSatisfaction(false); setPaiementChequeObligatoire(false)
     setErr(''); setDialogOpen(true)
   }
   const openEdit = (m: Motif) => {
-    setEditing(m); setLibelle(m.libelle); setActif(m.actif); setRequiertSatisfaction(m.requiertSatisfaction)
+    setEditing(m); setLibelle(m.libelle); setActif(m.actif)
+    setRequiertSatisfaction(m.requiertSatisfaction); setPaiementChequeObligatoire(m.paiementChequeObligatoire)
     setErr(''); setDialogOpen(true)
   }
 
   const save = async () => {
     if (!libelle.trim()) { setErr('Libellé requis'); return }
     try {
-      if (editing) await updateMotif(editing.id, { libelle: libelle.trim(), actif, requiertSatisfaction })
-      else await createMotif(libelle.trim(), requiertSatisfaction)
+      if (editing) await updateMotif(editing.id, { libelle: libelle.trim(), actif, requiertSatisfaction, paiementChequeObligatoire })
+      else await createMotif(libelle.trim(), requiertSatisfaction, paiementChequeObligatoire)
       setDialogOpen(false)
     } catch {
       setErr('Erreur lors de l\'enregistrement')
@@ -62,6 +65,12 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
   const satisfactionBody = (m: Motif) => (
     m.requiertSatisfaction
       ? <Tag severity="warning" icon="pi pi-check-circle" value="Oui" />
+      : <span className="text-color-secondary">—</span>
+  )
+
+  const chequeBody = (m: Motif) => (
+    m.paiementChequeObligatoire
+      ? <Tag severity="info" icon="pi pi-money-bill" value="Oui" />
       : <span className="text-color-secondary">—</span>
   )
 
@@ -98,6 +107,7 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
         <Column header="Libellé" field="libelle" />
         <Column header="Statut" body={actifBody} align="center" alignHeader="center" />
         <Column header="Satisfaction requise" body={satisfactionBody} align="center" alignHeader="center" />
+        <Column header="Chèque obligatoire" body={chequeBody} align="center" alignHeader="center" />
         {!lectureSeule && <Column header="Actions" body={actionsBody} align="center" alignHeader="center" />}
       </DataTable>
 
@@ -120,6 +130,13 @@ export default function MotifsTab({ lectureSeule = false }: Props) {
               onChange={e => setRequiertSatisfaction(!!e.checked)} />
             <label htmlFor="requiertSatisfaction" className="text-sm">
               Exige la confirmation de satisfaction du demandeur avant décaissement
+            </label>
+          </div>
+          <div className="flex align-items-center gap-2">
+            <Checkbox inputId="paiementChequeObligatoire" checked={paiementChequeObligatoire}
+              onChange={e => setPaiementChequeObligatoire(!!e.checked)} />
+            <label htmlFor="paiementChequeObligatoire" className="text-sm">
+              Paiement obligatoirement par chèque (même sous le seuil de 100 000 FCFA)
             </label>
           </div>
           {editing && (
