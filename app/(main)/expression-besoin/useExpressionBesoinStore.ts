@@ -49,6 +49,7 @@ interface ExpressionBesoinStore {
   rejeter:                (id: string, motif: string) => Promise<void>
   traiter:                (id: string, montantReel: number) => Promise<void>
   confirmerSatisfaction:  (id: string) => Promise<void>
+  archiver:               (id: string) => Promise<void>
   clearError:             () => void
 }
 
@@ -235,6 +236,17 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
       await get().fetchMesExpressions()
     } catch (e: any) {
       set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? 'Erreur lors de la confirmation de satisfaction' })
+      throw e
+    } finally { set({ actionLoadingId: null }) }
+  },
+
+  archiver: async (id) => {
+    set({ actionLoadingId: id, error: null })
+    try {
+      await axiosInstance.put(`expression-besoin/${id}/archiver`)
+      await Promise.all([get().fetchValidees(), get().fetchATraiter()])
+    } catch (e: any) {
+      set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? "Erreur lors de l'archivage" })
       throw e
     } finally { set({ actionLoadingId: null }) }
   },

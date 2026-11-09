@@ -8,6 +8,7 @@ import { Button } from 'primereact/button'
 import { Card } from 'primereact/card'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { Dialog } from 'primereact/dialog'
 import { Dropdown } from 'primereact/dropdown'
 import { InputNumber } from 'primereact/inputnumber'
@@ -52,6 +53,7 @@ export default function CaisseAvancePage() {
   const { caisse, mandatements, approvisionnements, loading, error,
           fetchCaisse, fetchMotifs, fetchAllMotifs, fetchMandatements, fetchApprovisionnements,
           showApprovisionnementModal, openApprovisionnementModal, closeApprovisionnementModal,
+          annulerMandatement, annulerLoadingId,
           periodeType, periodeAnnee, periodeMois, periodeSemaine,
           setPeriodeType, setPeriodeAnnee, setPeriodeMois, setPeriodeSemaine, periodeParams } = useCaisseStore()
   const { openModal } = useMandatementStore()
@@ -66,6 +68,8 @@ export default function CaisseAvancePage() {
   const peutGererMotifs = aRole('CHEF_COMPTABLE') || aRole('ADMIN') || aRole('CSA') || aRole('DIRECTEUR')
   // Payer un reliquat : réservé aux comptables
   const peutPayerReliquat = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
+  // Annuler un mandatement : réservé au Directeur (Admin en suppléance)
+  const peutAnnulerMandatement = aRole('DIRECTEUR') || aRole('ADMIN')
   const [search, setSearch]     = useState('')
   const [filterType, setFilterType] = useState('TOUS')
   const [filterMode, setFilterMode] = useState('TOUS')
@@ -231,9 +235,42 @@ export default function CaisseAvancePage() {
     </span>
   )
 
+  const statutBody = (m: Mandatement) => (
+    m.annule
+      ? <Tag severity="danger" value="Annulé" />
+      : <Tag severity="success" value="Actif" />
+  )
+
+  const confirmAnnuler = (m: Mandatement) => {
+    confirmDialog({
+      message: `Annuler ce mandatement ? Le montant décaissé (${fmt((m.montantDecaisse ?? 0) + (m.reliquatPaye && m.modePaiementReliquat === 'ESPECES' ? (m.montantReliquat ?? 0) : 0))}) sera restitué à la caisse si réglé en espèces. Cette action est irréversible.`,
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Annuler le mandatement',
+      acceptClassName: 'p-button-danger',
+      rejectLabel: 'Retour',
+      accept: async () => {
+        try {
+          await annulerMandatement(m.id)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Mandatement annulé', life: 4000 })
+        } catch {
+          toast.current?.show({ severity: 'error', summary: 'Erreur', detail: "Annulation impossible", life: 4000 })
+        }
+      },
+    })
+  }
+
+  const annulerBody = (m: Mandatement) => (
+    !m.annule && peutAnnulerMandatement && (
+      <Button icon="pi pi-times-circle" label="Annuler" severity="danger" size="small" outlined
+        loading={annulerLoadingId === m.id} onClick={() => confirmAnnuler(m)} />
+    )
+  )
+
   return (
     <div className="card">
       <Toast ref={toast} />
+      <ConfirmDialog />
 
       {/* Header */}
       <div className="flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -380,6 +417,8 @@ export default function CaisseAvancePage() {
             <Column header="Bénéficiaire" body={beneficiairesBody} />
             <Column header="Pièces & PDF" body={piecesBody} align="center" alignHeader="center" />
             <Column header="Date" body={dateBody} />
+            <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
+            {peutAnnulerMandatement && <Column header="Actions" body={annulerBody} align="center" alignHeader="center" />}
           </DataTable>
         </TabPanel>
 

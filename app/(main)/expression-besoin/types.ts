@@ -68,6 +68,11 @@ export interface ExpressionBesoin {
   satisfactionConfirmee?: boolean
   dateSatisfaction?: string
 
+  // Archivage (Directeur) — EB validée jamais consommée par un mandatement
+  archivee?: boolean
+  archiveePar?: string
+  dateArchivage?: string
+
   creePar: string
   creeParNom?: string
   dateCreation: string

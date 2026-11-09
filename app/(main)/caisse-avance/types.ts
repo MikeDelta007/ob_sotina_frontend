@@ -68,6 +68,9 @@ export interface Mandatement {
   expressionBesoinId?: string
   creePar: string
   dateCreation: string
+  annule?: boolean
+  annulePar?: string
+  dateAnnulation?: string
 }
 
 // Ligne locale pour le formulaire (avant envoi)

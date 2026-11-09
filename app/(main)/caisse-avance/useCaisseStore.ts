@@ -17,6 +17,7 @@ interface CaisseStore {
   showApprovisionnementModal: boolean
   motifLoading: boolean
   reliquatLoadingId: string | null
+  annulerLoadingId: string | null
 
   // Filtre période partagé (mandatements + approvisionnements, écran + Excel)
   periodeType:   PeriodeType
@@ -39,6 +40,7 @@ interface CaisseStore {
   fetchApprovisionnements:       () => Promise<void>
   approvisionner:                (data: { montant: number; date: string; description?: string }) => Promise<void>
   payerReliquat:                  (id: string, piecesJustificatives?: File | null) => Promise<void>
+  annulerMandatement:             (id: string) => Promise<void>
   openApprovisionnementModal:    () => void
   closeApprovisionnementModal:   () => void
   clearError:                    () => void
@@ -55,6 +57,7 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
   showApprovisionnementModal: false,
   motifLoading: false,
   reliquatLoadingId: null,
+  annulerLoadingId: null,
 
   periodeType: 'ANNEE',
   periodeAnnee: NOW.getFullYear(),
@@ -170,6 +173,17 @@ export const useCaisseStore = create<CaisseStore>((set, get) => ({
       set({ error: e.response?.data?.message ?? 'Erreur lors du paiement du reliquat' })
       throw e
     } finally { set({ reliquatLoadingId: null }) }
+  },
+
+  annulerMandatement: async (id) => {
+    set({ annulerLoadingId: id, error: null })
+    try {
+      await axiosInstance.put(`mandatement/${id}/annuler`)
+      await Promise.all([get().fetchCaisse(), get().fetchMandatements()])
+    } catch (e: any) {
+      set({ error: e.response?.data?.message ?? "Erreur lors de l'annulation du mandatement" })
+      throw e
+    } finally { set({ annulerLoadingId: null }) }
   },
 
   openApprovisionnementModal:  () => set({ showApprovisionnementModal: true }),
