@@ -1,14 +1,16 @@
 'use client'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { saveAs } from 'file-saver'
 import { Button } from 'primereact/button'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { UserContext } from '@/app/userContext'
 import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
+import { Toast } from 'primereact/toast'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import AjusterSatisfactionAction from './AjusterSatisfactionAction'
 import EtapesColonne from './EtapesColonne'
@@ -17,15 +19,35 @@ import { fmt, designationEb, montantClassName, type ExpressionBesoin } from './t
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
 export default function TraiteesTab() {
-  const { traitees, fetchTraitees } = useExpressionBesoinStore()
+  const toast = useRef<Toast>(null)
+  const { traitees, actionLoadingId, fetchTraitees, archiver } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
   const { user } = useContext(UserContext)
   const peutDecharge = aUnDesRoles(user, ['CHEF_COMPTABLE', 'AGENT_COMPTABLE'])
   const estAdmin = aUnDesRoles(user, ['ADMIN'])
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
 
   const telechargerDecharge = async (id: string) => {
     const { data } = await axiosInstance.get(`expression-besoin/${id}/decharge.pdf`, { responseType: 'blob' })
     saveAs(data, `decharge_${id}.pdf`)
+  }
+
+  const confirmArchiver = (eb: ExpressionBesoin) => {
+    confirmDialog({
+      message: 'Archiver cette expression de besoin ? Elle sortira des listes actives.',
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Archiver',
+      rejectLabel: 'Annuler',
+      accept: async () => {
+        try {
+          await archiver(eb.id)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Expression de besoin archivée', life: 4000 })
+        } catch {
+          toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Archivage impossible', life: 4000 })
+        }
+      },
+    })
   }
 
   useEffect(() => { fetchTraitees() }, [])
@@ -61,6 +83,8 @@ export default function TraiteesTab() {
 
   return (
     <div>
+      <Toast ref={toast} />
+      <ConfirmDialog />
       <p className="text-color-secondary mb-3">
         {traitees.length} expression(s) traitée(s)
       </p>
@@ -96,9 +120,17 @@ export default function TraiteesTab() {
                 onClick={() => telechargerDecharge(eb.id)} />
             )} />
         )}
-        {estAdmin && (
+        {(estAdmin || peutArchiver) && (
           <Column header="Actions" align="center" alignHeader="center"
-            body={(eb: ExpressionBesoin) => <AjusterSatisfactionAction eb={eb} />} />
+            body={(eb: ExpressionBesoin) => (
+              <div className="flex gap-1 align-items-center justify-content-center flex-wrap">
+                {estAdmin && <AjusterSatisfactionAction eb={eb} />}
+                {peutArchiver && !eb.utiliseePourMandatement && (
+                  <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
+                    loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
+                )}
+              </div>
+            )} />
         )}
       </DataTable>
     </div>

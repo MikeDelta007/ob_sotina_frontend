@@ -1,10 +1,11 @@
 'use client'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { UserContext } from '@/app/userContext'
 import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { Button } from 'primereact/button'
 import { Column } from 'primereact/column'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
 import { InputNumber } from 'primereact/inputnumber'
@@ -12,6 +13,7 @@ import { InputText } from 'primereact/inputtext'
 import { InputTextarea } from 'primereact/inputtextarea'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
+import { Toast } from 'primereact/toast'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import { refreshNotificationCounts } from '@/layout/useNotificationCounts'
 import EtapesColonne from './EtapesColonne'
@@ -20,11 +22,14 @@ import { fmt, designationEb, montantClassName, type ExpressionBesoin } from './t
 const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\/?$/, '')
 
 export default function AValiderTab() {
+  const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
   // L'Admin voit toutes les EB en attente (supervision), mais ne valide/ne rejette jamais
   // lui-même — ce rôle reste au CSA/Directeur.
   const estAdmin = aUnDesRoles(user, ['ADMIN'])
-  const { aValider, actionLoadingId, fetchAValider, valider, rejeter } = useExpressionBesoinStore()
+  // Le Directeur peut archiver n'importe quelle demande, quel que soit son statut.
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const { aValider, actionLoadingId, fetchAValider, valider, rejeter, archiver } = useExpressionBesoinStore()
   const [rejetTarget, setRejetTarget] = useState<ExpressionBesoin | null>(null)
   const [motifRejet, setMotifRejet] = useState('')
   const [validerTarget, setValiderTarget] = useState<ExpressionBesoin | null>(null)
@@ -33,6 +38,24 @@ export default function AValiderTab() {
   const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchAValider() }, [])
+
+  const confirmArchiver = (eb: ExpressionBesoin) => {
+    confirmDialog({
+      message: 'Archiver cette expression de besoin ? Elle sortira des listes actives.',
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Archiver',
+      rejectLabel: 'Annuler',
+      accept: async () => {
+        try {
+          await archiver(eb.id)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Expression de besoin archivée', life: 4000 })
+        } catch {
+          toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Archivage impossible', life: 4000 })
+        }
+      },
+    })
+  }
 
   const ouvrirRejet = (eb: ExpressionBesoin) => { setRejetTarget(eb); setMotifRejet(''); setErr('') }
   const fermerRejet = () => setRejetTarget(null)
@@ -87,18 +110,26 @@ export default function AValiderTab() {
   }
 
   const actionsBody = (eb: ExpressionBesoin) => (
-    estAdmin ? <span className="text-color-secondary">—</span> : (
-      <div className="flex gap-1 align-items-center justify-content-center">
-        <Button label="Valider" icon="pi pi-check" size="small" severity="success"
-          loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
-        <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
-          loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
-      </div>
-    )
+    <div className="flex gap-1 align-items-center justify-content-center flex-wrap">
+      {!estAdmin && (
+        <>
+          <Button label="Valider" icon="pi pi-check" size="small" severity="success"
+            loading={actionLoadingId === eb.id} onClick={() => ouvrirValidation(eb)} />
+          <Button label="Rejeter" icon="pi pi-times" size="small" severity="danger" outlined
+            loading={actionLoadingId === eb.id} onClick={() => ouvrirRejet(eb)} />
+        </>
+      )}
+      {peutArchiver && (
+        <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
+          loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
+      )}
+    </div>
   )
 
   return (
     <div>
+      <Toast ref={toast} />
+      <ConfirmDialog />
       <p className="text-color-secondary mb-3">
         {aValider.length} expression(s) en attente de validation
       </p>

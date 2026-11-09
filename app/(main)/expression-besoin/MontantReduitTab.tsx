@@ -1,10 +1,15 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
+import { UserContext } from '@/app/userContext'
+import { aUnDesRoles } from '@/app/rolesUtilisateur'
+import { Button } from 'primereact/button'
 import { Column } from 'primereact/column'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { DataTable } from 'primereact/datatable'
 import { InputText } from 'primereact/inputtext'
 import { Tag } from 'primereact/tag'
+import { Toast } from 'primereact/toast'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
 import EtapesColonne from './EtapesColonne'
 import { fmt, designationEb, montantClassName, type ExpressionBesoin, type StatutEB } from './types'
@@ -22,10 +27,31 @@ const STATUT_LABEL: Record<StatutEB, string> = {
 // du Directeur (seul le CSA les valide), regroupées à part pour qu'il les distingue d'un coup
 // d'œil de celles qui requièrent sa propre validation.
 export default function MontantReduitTab() {
-  const { montantReduit, fetchMontantReduit } = useExpressionBesoinStore()
+  const toast = useRef<Toast>(null)
+  const { user } = useContext(UserContext)
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const { montantReduit, actionLoadingId, fetchMontantReduit, archiver } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchMontantReduit() }, [])
+
+  const confirmArchiver = (eb: ExpressionBesoin) => {
+    confirmDialog({
+      message: 'Archiver cette expression de besoin ? Elle sortira des listes actives.',
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Archiver',
+      rejectLabel: 'Annuler',
+      accept: async () => {
+        try {
+          await archiver(eb.id)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Expression de besoin archivée', life: 4000 })
+        } catch {
+          toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Archivage impossible', life: 4000 })
+        }
+      },
+    })
+  }
 
   const dateBody = (eb: ExpressionBesoin) => (
     <span className="text-color-secondary text-sm">{new Date(eb.dateCreation).toLocaleDateString('fr-FR')}</span>
@@ -44,8 +70,17 @@ export default function MontantReduitTab() {
     )
   }
 
+  const archiverBody = (eb: ExpressionBesoin) => (
+    !eb.utiliseePourMandatement && (
+      <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
+        loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
+    )
+  )
+
   return (
     <div>
+      <Toast ref={toast} />
+      <ConfirmDialog />
       <p className="text-color-secondary mb-3">
         {montantReduit.length} expression(s) de besoin ≤ 20 000 FCFA (tous statuts)
       </p>
@@ -72,6 +107,7 @@ export default function MontantReduitTab() {
         <Column header="Pièce jointe" body={pieceBody} align="center" alignHeader="center" />
         <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
         <Column header="Étapes" body={(eb: ExpressionBesoin) => <EtapesColonne eb={eb} />} />
+        {peutArchiver && <Column header="Actions" body={archiverBody} align="center" alignHeader="center" />}
       </DataTable>
     </div>
   )

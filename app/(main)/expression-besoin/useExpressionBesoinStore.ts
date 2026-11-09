@@ -254,11 +254,17 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
     } finally { set({ actionLoadingId: null }) }
   },
 
+  // Désormais possible depuis n'importe quel onglet (À valider, Validées, Rejetées, < 20 000,
+  // À traiter, Traitées) — on rafraîchit toutes les listes où l'EB peut apparaître plutôt que
+  // de deviner laquelle est active.
   archiver: async (id) => {
     set({ actionLoadingId: id, error: null })
     try {
       await axiosInstance.put(`expression-besoin/${id}/archiver`)
-      await Promise.all([get().fetchValidees(), get().fetchATraiter()])
+      await Promise.all([
+        get().fetchAValider(), get().fetchValidees(), get().fetchRejetees(),
+        get().fetchMontantReduit(), get().fetchATraiter(), get().fetchTraitees(),
+      ])
     } catch (e: any) {
       set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? "Erreur lors de l'archivage" })
       throw e

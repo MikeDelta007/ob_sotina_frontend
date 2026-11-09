@@ -1,15 +1,17 @@
 'use client'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import axiosInstance from '@/app/api/axiosInstance'
 import { saveAs } from 'file-saver'
 import { Button } from 'primereact/button'
 import { Column } from 'primereact/column'
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog'
 import { DataTable } from 'primereact/datatable'
 import { Dialog } from 'primereact/dialog'
 import { InputNumber } from 'primereact/inputnumber'
 import { InputText } from 'primereact/inputtext'
 import { Message } from 'primereact/message'
 import { Tag } from 'primereact/tag'
+import { Toast } from 'primereact/toast'
 import { UserContext } from '@/app/userContext'
 import { aUnDesRoles } from '@/app/rolesUtilisateur'
 import { useExpressionBesoinStore } from './useExpressionBesoinStore'
@@ -23,15 +25,35 @@ const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\
 interface Props { lectureSeule?: boolean }
 
 export default function ATraiterTab({ lectureSeule = false }: Props) {
+  const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
   const estAdmin = aUnDesRoles(user, ['ADMIN'])
-  const { aTraiter, actionLoadingId, fetchATraiter, traiter } = useExpressionBesoinStore()
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const { aTraiter, actionLoadingId, fetchATraiter, traiter, archiver } = useExpressionBesoinStore()
   const [selected, setSelected] = useState<ExpressionBesoin | null>(null)
   const [montantReel, setMontantReel] = useState<number | null>(null)
   const [err, setErr] = useState('')
   const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => { fetchATraiter() }, [])
+
+  const confirmArchiver = (eb: ExpressionBesoin) => {
+    confirmDialog({
+      message: 'Archiver cette expression de besoin ? Elle sortira des listes actives.',
+      header: 'Confirmation',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Archiver',
+      rejectLabel: 'Annuler',
+      accept: async () => {
+        try {
+          await archiver(eb.id)
+          toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Expression de besoin archivée', life: 4000 })
+        } catch {
+          toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Archivage impossible', life: 4000 })
+        }
+      },
+    })
+  }
 
   const ouvrir = (eb: ExpressionBesoin) => {
     setSelected(eb); setMontantReel(eb.montantInitial); setErr('')
@@ -72,17 +94,23 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
   }
 
   const actionsBody = (eb: ExpressionBesoin) => (
-    <div className="flex gap-1 align-items-center justify-content-center">
+    <div className="flex gap-1 align-items-center justify-content-center flex-wrap">
       {!lectureSeule && (
         <Button label="Traiter" icon="pi pi-pencil" size="small"
           loading={actionLoadingId === eb.id} onClick={() => ouvrir(eb)} />
       )}
       {estAdmin && <AjusterSatisfactionAction eb={eb} />}
+      {peutArchiver && (
+        <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
+          loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
+      )}
     </div>
   )
 
   return (
     <div>
+      <Toast ref={toast} />
+      <ConfirmDialog />
       <p className="text-color-secondary mb-3">
         {aTraiter.length} expression(s) validée(s) à traiter
       </p>

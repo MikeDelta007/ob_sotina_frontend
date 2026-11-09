@@ -66,8 +66,7 @@ export default function ValideesTab() {
   const archiverBody = (eb: ExpressionBesoin) => (
     <div className="flex gap-1 align-items-center justify-content-center">
       {estAdmin && <AjusterSatisfactionAction eb={eb} />}
-      {peutArchiver && !eb.archivee && !eb.utiliseePourMandatement
-        && (eb.statut === 'VALIDEE' || eb.statut === 'TRAITEE') && (
+      {peutArchiver && !eb.archivee && !eb.utiliseePourMandatement && (
         <Button icon="pi pi-inbox" label="Archiver" severity="secondary" size="small" outlined
           loading={actionLoadingId === eb.id} onClick={() => confirmArchiver(eb)} />
       )}
