@@ -49,20 +49,19 @@ export default function AjusterSatisfactionAction({ eb }: Props) {
           </div>
         }>
         <div className="flex flex-column gap-3">
+          {/* Deux booléens indépendants : l'un ne gouverne pas l'affichage ou la valeur de l'autre */}
           <div className="flex align-items-center gap-2">
             <Checkbox inputId={`requiert-${eb.id}`} checked={requiert}
-              onChange={e => { const v = !!e.checked; setRequiert(v); if (!v) setConfirmee(false) }} />
+              onChange={e => setRequiert(!!e.checked)} />
             <label htmlFor={`requiert-${eb.id}`} className="text-sm">
               Exige la confirmation de satisfaction du demandeur
             </label>
           </div>
-          {requiert && (
-            <div className="flex align-items-center gap-2">
-              <Checkbox inputId={`confirmee-${eb.id}`} checked={confirmee}
-                onChange={e => setConfirmee(!!e.checked)} />
-              <label htmlFor={`confirmee-${eb.id}`} className="text-sm">Satisfaction confirmée</label>
-            </div>
-          )}
+          <div className="flex align-items-center gap-2">
+            <Checkbox inputId={`confirmee-${eb.id}`} checked={confirmee}
+              onChange={e => setConfirmee(!!e.checked)} />
+            <label htmlFor={`confirmee-${eb.id}`} className="text-sm">Satisfaction confirmée</label>
+          </div>
           {err && <Message severity="error" text={err} className="w-full" />}
         </div>
       </Dialog>
