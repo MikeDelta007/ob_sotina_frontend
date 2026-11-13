@@ -13,6 +13,7 @@ import ValideesTab from './ValideesTab'
 import RejeteesTab from './RejeteesTab'
 import ATraiterTab from './ATraiterTab'
 import TraiteesTab from './TraiteesTab'
+import ArchiveesTab from './ArchiveesTab'
 
 export default function ExpressionBesoinPage() {
   const { user } = useContext(UserContext)
@@ -30,6 +31,8 @@ export default function ExpressionBesoinPage() {
   const estAgentSimple = aRole('AGENT')
   // CSA/Directeur/Admin voient ce que traite la comptabilité, mais en lecture seule
   const peutVoirTraitement = peutTraiter || peutValider
+  // Seuls ceux qui peuvent archiver ont besoin de retrouver ce qu'ils ont archivé
+  const peutArchiver = aRole('DIRECTEUR') || estAdmin
 
   const onglets = [
     peutSoumettre && { key: 'mes', header: 'Mes expressions de besoin', leftIcon: 'pi pi-file-edit mr-2', content: <MesExpressionsTab /> },
@@ -44,6 +47,7 @@ export default function ExpressionBesoinPage() {
     peutValider && { key: 'rejetees', header: 'Rejetées', leftIcon: 'pi pi-times-circle mr-2', content: <RejeteesTab /> },
     peutVoirTraitement && { key: 'atraiter', header: 'À traiter', leftIcon: 'pi pi-wallet mr-2', content: <ATraiterTab lectureSeule={!peutTraiter} /> },
     peutVoirTraitement && { key: 'traitees', header: 'Traitées', leftIcon: 'pi pi-verified mr-2', content: <TraiteesTab /> },
+    peutArchiver && { key: 'archivees', header: 'Archivées', leftIcon: 'pi pi-inbox mr-2', content: <ArchiveesTab /> },
   ].filter((o): o is Exclude<typeof o, false> => !!o)
 
   return (

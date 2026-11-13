@@ -29,6 +29,7 @@ interface ExpressionBesoinStore {
   aTraiter: ExpressionBesoin[]
   traitees: ExpressionBesoin[]
   montantReduit: ExpressionBesoin[]
+  archivees: ExpressionBesoin[]
   loading: boolean
   error: string | null
   actionLoadingId: string | null
@@ -43,6 +44,7 @@ interface ExpressionBesoinStore {
   fetchATraiter:        () => Promise<void>
   fetchTraitees:        () => Promise<void>
   fetchMontantReduit:   () => Promise<void>
+  fetchArchivees:       () => Promise<void>
   creer:                 (payload: CreerPayload) => Promise<void>
   modifier:               (id: string, payload: CreerPayload) => Promise<void>
   valider:                (id: string, quantiteAccordee?: number | null) => Promise<void>
@@ -83,6 +85,7 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
   aTraiter: [],
   traitees: [],
   montantReduit: [],
+  archivees: [],
   loading: false,
   error: null,
   actionLoadingId: null,
@@ -173,6 +176,15 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
     finally { set({ loading: false }) }
   },
 
+  fetchArchivees: async () => {
+    set({ loading: true, error: null })
+    try {
+      const { data } = await axiosInstance.get('expression-besoin/archivees')
+      set({ archivees: data })
+    } catch { set({ error: 'Erreur chargement des expressions archivées' }) }
+    finally { set({ loading: false }) }
+  },
+
   creer: async (payload) => {
     set({ loading: true, error: null })
     try {
@@ -255,16 +267,28 @@ export const useExpressionBesoinStore = create<ExpressionBesoinStore>((set, get)
   },
 
   // Désormais possible depuis n'importe quel onglet (À valider, Validées, Rejetées, < 20 000,
-  // À traiter, Traitées) — on rafraîchit toutes les listes où l'EB peut apparaître plutôt que
-  // de deviner laquelle est active.
+  // À traiter, Traitées). On retire l'EB localement de toutes ces listes dès la réponse du
+  // serveur, sans attendre le rechargement réseau (qui reste lancé en tâche de fond pour rester
+  // cohérent) — sinon la ligne reste affichée le temps de 6 requêtes successives, ce qui invite
+  // à recliquer "Archiver" et déclenche à tort l'erreur "déjà archivée" sur ce second clic.
   archiver: async (id) => {
     set({ actionLoadingId: id, error: null })
     try {
-      await axiosInstance.put(`expression-besoin/${id}/archiver`)
-      await Promise.all([
+      const { data } = await axiosInstance.put(`expression-besoin/${id}/archiver`)
+      const retirer = (liste: ExpressionBesoin[]) => liste.filter(eb => eb.id !== id)
+      set(state => ({
+        aValider: retirer(state.aValider),
+        validees: retirer(state.validees),
+        rejetees: retirer(state.rejetees),
+        montantReduit: retirer(state.montantReduit),
+        aTraiter: retirer(state.aTraiter),
+        traitees: retirer(state.traitees),
+        archivees: [data, ...state.archivees],
+      }))
+      Promise.all([
         get().fetchAValider(), get().fetchValidees(), get().fetchRejetees(),
-        get().fetchMontantReduit(), get().fetchATraiter(), get().fetchTraitees(),
-      ])
+        get().fetchMontantReduit(), get().fetchATraiter(), get().fetchTraitees(), get().fetchArchivees(),
+      ]).catch(() => {})
     } catch (e: any) {
       set({ error: e.response?.data?.errorMessage ?? e.response?.data?.message ?? "Erreur lors de l'archivage" })
       throw e

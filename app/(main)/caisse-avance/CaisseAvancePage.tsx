@@ -70,12 +70,16 @@ export default function CaisseAvancePage() {
   const peutPayerReliquat = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   // Annuler un mandatement : réservé au Directeur (Admin en suppléance)
   const peutAnnulerMandatement = aRole('DIRECTEUR') || aRole('ADMIN')
+  // Décharge de l'expression de besoin ayant donné lieu à la facture — même portée que
+  // l'onglet Traitées des expressions de besoin (CHEF_COMPTABLE/AGENT_COMPTABLE)
+  const peutDecharge = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   const [search, setSearch]     = useState('')
   const [filterType, setFilterType] = useState('TOUS')
   const [filterMode, setFilterMode] = useState('TOUS')
   const [exportingApprov, setExportingApprov] = useState(false)
   const [exportingMandatements, setExportingMandatements] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadingDechargeId, setDownloadingDechargeId] = useState<string | null>(null)
   const [piecesMandatement, setPiecesMandatement] = useState<Mandatement | null>(null)
   const [globalFilterApprov, setGlobalFilterApprov] = useState('')
   const toast = useRef<Toast>(null)
@@ -119,6 +123,19 @@ export default function CaisseAvancePage() {
       toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Téléchargement du décaissement impossible' })
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  const downloadDecharge = async (expressionBesoinId: string) => {
+    setDownloadingDechargeId(expressionBesoinId)
+    try {
+      const { data } = await axiosInstance.get(`expression-besoin/${expressionBesoinId}/decharge.pdf`,
+        { responseType: 'blob' })
+      saveAs(data, `decharge_${expressionBesoinId}.pdf`)
+    } catch {
+      toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Téléchargement de la décharge impossible' })
+    } finally {
+      setDownloadingDechargeId(null)
     }
   }
 
@@ -167,6 +184,21 @@ export default function CaisseAvancePage() {
       ))}
     </div>
   )
+
+  const dechargeBody = (m: Mandatement) => {
+    const ids = m.factures.map(f => f.expressionBesoinId).filter((id): id is string => !!id)
+    if (!ids.length) return null
+    return (
+      <div className="flex flex-column gap-1 align-items-center">
+        {ids.map(id => (
+          <Button key={id} icon="pi pi-file-pdf" text rounded size="small"
+            tooltip="Télécharger la décharge de l'expression de besoin"
+            loading={downloadingDechargeId === id}
+            onClick={() => downloadDecharge(id)} />
+        ))}
+      </div>
+    )
+  }
 
   const motifsBody = (m: Mandatement) => (
     <div className="flex flex-column gap-1">
@@ -426,6 +458,7 @@ export default function CaisseAvancePage() {
             <Column header="Date" body={dateBody} />
             <Column header="Statut" body={statutBody} align="center" alignHeader="center" />
             {peutAnnulerMandatement && <Column header="Actions" body={annulerBody} align="center" alignHeader="center" />}
+            {peutDecharge && <Column header="Décharge" body={dechargeBody} align="center" alignHeader="center" />}
           </DataTable>
         </TabPanel>
 

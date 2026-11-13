@@ -48,8 +48,9 @@ export default function ATraiterTab({ lectureSeule = false }: Props) {
         try {
           await archiver(eb.id)
           toast.current?.show({ severity: 'success', summary: 'Office du Bac', detail: 'Expression de besoin archivée', life: 4000 })
-        } catch {
-          toast.current?.show({ severity: 'error', summary: 'Erreur', detail: 'Archivage impossible', life: 4000 })
+        } catch (e: any) {
+          toast.current?.show({ severity: 'error', summary: 'Erreur', life: 4000,
+            detail: e?.response?.data?.errorMessage ?? e?.response?.data?.message ?? 'Archivage impossible' })
         }
       },
     })
