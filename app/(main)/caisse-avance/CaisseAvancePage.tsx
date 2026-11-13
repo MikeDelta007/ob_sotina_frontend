@@ -186,6 +186,7 @@ export default function CaisseAvancePage() {
   )
 
   const dechargeBody = (m: Mandatement) => {
+    if (m.annule) return null
     const ids = m.factures.map(f => f.expressionBesoinId).filter((id): id is string => !!id)
     if (!ids.length) return null
     return (
