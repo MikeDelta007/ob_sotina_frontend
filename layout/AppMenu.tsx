@@ -1,9 +1,10 @@
 import { MenuModal } from '@/types/layout';
 import AppSubMenu from './AppSubMenu';
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { UserContext } from '@/app/userContext';
 import { useNotificationCounts } from './useNotificationCounts';
 import { aUnDesRoles } from '@/app/rolesUtilisateur';
+import axiosInstance from '@/app/api/axiosInstance';
 import "primeicons/primeicons.css";
 
 type Role = 'ADMIN' | 'PLANIFICATION' | 'PEDAGOGIE'
@@ -16,6 +17,18 @@ const AppMenu = () => {
 
     const { user } = useContext(UserContext);
     const notificationCounts = useNotificationCounts(!!user);
+
+    // "Axes" est réservé, en dehors des rôles de supervision globale, au seul
+    // chef de la division Hygiène et Sécurité — un simple chef de service générique ne doit pas
+    // voir ce lien. Le rôle ne suffisant pas à le déterminer, on vérifie côté serveur.
+    const [estChefHygieneSecurite, setEstChefHygieneSecurite] = useState(false);
+    useEffect(() => {
+        if (aUnDesRoles(user, ['ADMIN', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'CSA'])) return;
+        if (!aUnDesRoles(user, ['CHEF_SERVICE'])) return;
+        axiosInstance.get('axes/suis-chef-hygiene-securite')
+            .then(({ data }) => setEstChefHygieneSecurite(!!data))
+            .catch(() => setEstChefHygieneSecurite(false));
+    }, [user]);
 
     const isRole = (value: string): value is Role => {
         return (ROLES as string[]).includes(value);
@@ -150,6 +163,25 @@ const AppMenu = () => {
                 //     icon: 'pi pi-fw pi-copy',
                 //     to: '/pedagogie-cgs/repartition-feuille'
                 // }
+            ]
+        });
+    }
+
+    // =========================
+    // AXES — supervision globale (Admin/Directeur/Assistante Directeur/CSA), ou
+    // le seul chef de la division Hygiène et Sécurité (pas n'importe quel chef de service)
+    // =========================
+    if (hasAccess(['ADMIN', 'DIRECTEUR', 'ASSISTANTE_DIRECTEUR', 'CSA']) || estChefHygieneSecurite) {
+
+        model.push({
+            label: 'AXES',
+            icon: 'pi pi-directions',
+            items: [
+                {
+                    label: 'Axes',
+                    icon: 'pi pi-fw pi-directions',
+                    to: '/planification/axes'
+                }
             ]
         });
     }
