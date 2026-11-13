@@ -28,7 +28,7 @@ export default function AValiderTab() {
   // lui-même — ce rôle reste au CSA/Directeur.
   const estAdmin = aUnDesRoles(user, ['ADMIN'])
   // Le Directeur peut archiver n'importe quelle demande, quel que soit son statut.
-  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR'])
   const { aValider, actionLoadingId, fetchAValider, valider, rejeter, archiver } = useExpressionBesoinStore()
   const [rejetTarget, setRejetTarget] = useState<ExpressionBesoin | null>(null)
   const [motifRejet, setMotifRejet] = useState('')

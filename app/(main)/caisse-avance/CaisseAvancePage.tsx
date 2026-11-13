@@ -69,7 +69,7 @@ export default function CaisseAvancePage() {
   // Payer un reliquat : réservé aux comptables
   const peutPayerReliquat = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')
   // Annuler un mandatement : réservé au Directeur (Admin en suppléance)
-  const peutAnnulerMandatement = aRole('DIRECTEUR') || aRole('ADMIN')
+  const peutAnnulerMandatement = aRole('DIRECTEUR')
   // Décharge de l'expression de besoin ayant donné lieu à la facture — même portée que
   // l'onglet Traitées des expressions de besoin (CHEF_COMPTABLE/AGENT_COMPTABLE)
   const peutDecharge = aRole('CHEF_COMPTABLE') || aRole('AGENT_COMPTABLE') || aRole('ADMIN')

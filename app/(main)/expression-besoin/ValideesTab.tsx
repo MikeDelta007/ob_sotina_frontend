@@ -27,7 +27,7 @@ const STATUT_LABEL: Record<StatutEB, string> = {
 export default function ValideesTab() {
   const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
-  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR'])
   const estAdmin = aUnDesRoles(user, ['ADMIN'])
   const { validees, fetchValidees, archiver, actionLoadingId } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')

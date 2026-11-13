@@ -25,7 +25,7 @@ export default function TraiteesTab() {
   const { user } = useContext(UserContext)
   const peutDecharge = aUnDesRoles(user, ['CHEF_COMPTABLE', 'AGENT_COMPTABLE', 'ADMIN'])
   const estAdmin = aUnDesRoles(user, ['ADMIN'])
-  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR'])
 
   const telechargerDecharge = async (id: string) => {
     const { data } = await axiosInstance.get(`expression-besoin/${id}/decharge.pdf`, { responseType: 'blob' })

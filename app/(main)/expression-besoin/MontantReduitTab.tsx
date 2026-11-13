@@ -29,7 +29,7 @@ const STATUT_LABEL: Record<StatutEB, string> = {
 export default function MontantReduitTab() {
   const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
-  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR'])
   const { montantReduit, actionLoadingId, fetchMontantReduit, archiver } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
 

@@ -19,7 +19,7 @@ const FILES_ORIGIN = (axiosInstance.defaults.baseURL ?? '').replace(/\/?api\/v1\
 export default function RejeteesTab() {
   const toast = useRef<Toast>(null)
   const { user } = useContext(UserContext)
-  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR', 'ADMIN'])
+  const peutArchiver = aUnDesRoles(user, ['DIRECTEUR'])
   const { rejetees, actionLoadingId, fetchRejetees, archiver } = useExpressionBesoinStore()
   const [globalFilter, setGlobalFilter] = useState('')
 
